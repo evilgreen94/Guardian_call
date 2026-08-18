@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Protocol
 class EventType:
     """Canonical domain event types."""
     INPUT_RECEIVED = "INPUT_RECEIVED"
+    EXTRACTION_FAILED = "EXTRACTION_FAILED"
     SIGNAL_DETECTED = "SIGNAL_DETECTED"
     RISK_UPDATED = "RISK_UPDATED"
     CANARY_EVALUATION = "CANARY_EVALUATION"
