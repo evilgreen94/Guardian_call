@@ -3,11 +3,13 @@
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 # Ensure backend package is on sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from guardian.actions import execute_warning_action
+from guardian.agent import SignalExtractionError
 from guardian.events import EventType, InMemoryEventSink
 from guardian.models import (
     ActionType,
@@ -156,6 +158,103 @@ class TestEventsAndPipeline(unittest.TestCase):
             self.assertNotIn("123456", payload_str)
             self.assertNotIn("secret_code", payload_str)
 
+    def test_process_text_empty_input_yields_normal(self) -> None:
+        """Verify empty or whitespace text yields NORMAL risk without calling Gemini."""
+        pipeline = GuardianPipeline()
+        sink = InMemoryEventSink()
+
+        result = pipeline.process_text("   ", event_sink=sink)
+
+        self.assertEqual(result.risk_assessment.level, RiskLevel.NORMAL)
+        self.assertEqual(result.canary_decision.decision, PolicyDecision.DENY)
+        self.assertIsNone(result.warning_event)
+
+        events = sink.get_events()
+        event_types = [e.event_type for e in events]
+
+        expected_sequence = [
+            EventType.INPUT_RECEIVED,
+            EventType.SIGNAL_DETECTED,
+            EventType.RISK_UPDATED,
+            EventType.CANARY_EVALUATION,
+            EventType.ACTION_DENIED,
+        ]
+        self.assertEqual(event_types, expected_sequence)
+        self.assertEqual(events[0].payload, {"text_length": 3})
+
+    @patch("guardian.pipeline.extract_signals")
+    def test_process_text_extraction_success(self, mock_extract) -> None:
+        """Verify successful signal extraction processes through Risk Engine and Canary."""
+        mock_extract.return_value = create_signals(
+            otp_request=True,
+            requested_action="share_otp",
+            identity_claim="bank",
+            identity_verified=False,
+            urgency=True,
+            financial_context=True,
+        )
+
+        pipeline = GuardianPipeline()
+        sink = InMemoryEventSink()
+
+        text_input = "Tell me the six-digit code you just received."
+        result = pipeline.process_text(text_input, event_sink=sink)
+
+        self.assertEqual(result.risk_assessment.level, RiskLevel.CRITICAL)
+        self.assertEqual(result.canary_decision.decision, PolicyDecision.ALLOW)
+        self.assertIsNotNone(result.warning_event)
+
+        events = sink.get_events()
+        event_types = [e.event_type for e in events]
+
+        expected_sequence = [
+            EventType.INPUT_RECEIVED,
+            EventType.SIGNAL_DETECTED,
+            EventType.RISK_UPDATED,
+            EventType.CANARY_EVALUATION,
+            EventType.ACTION_ALLOWED,
+            EventType.USER_WARNING,
+        ]
+        self.assertEqual(event_types, expected_sequence)
+        self.assertEqual(events[0].payload, {"text_length": len(text_input)})
+        mock_extract.assert_called_once_with(text_input)
+
+    @patch("guardian.pipeline.extract_signals")
+    def test_process_text_extraction_failure_failsafe(self, mock_extract) -> None:
+        """Verify SignalExtractionError triggers fail-safe HIGH risk and authorizes USER_WARNING."""
+        mock_extract.side_effect = SignalExtractionError("Gemini API connection error")
+
+        pipeline = GuardianPipeline()
+        sink = InMemoryEventSink()
+
+        text_input = "Tell me the six-digit code you just received."
+        result = pipeline.process_text(text_input, event_sink=sink)
+
+        # Fail-safe requires HIGH risk and authorized warning
+        self.assertEqual(result.risk_assessment.level, RiskLevel.HIGH)
+        self.assertEqual(result.canary_decision.decision, PolicyDecision.ALLOW)
+        self.assertIsNotNone(result.warning_event)
+        self.assertIn("extraction_failed", result.risk_assessment.contributing_signals)
+
+        events = sink.get_events()
+        event_types = [e.event_type for e in events]
+
+        expected_sequence = [
+            EventType.INPUT_RECEIVED,
+            EventType.SIGNAL_EXTRACTION_FAILED,
+            EventType.RISK_UPDATED,
+            EventType.CANARY_EVALUATION,
+            EventType.ACTION_ALLOWED,
+            EventType.USER_WARNING,
+        ]
+        self.assertEqual(event_types, expected_sequence)
+
+        # Privacy check: Verify exception details and raw text are not in payload
+        failed_event = sink.get_events_by_type(EventType.SIGNAL_EXTRACTION_FAILED)[0]
+        self.assertEqual(failed_event.payload, {"reason": "signal_extraction_failed"})
+        self.assertNotIn("Gemini API connection error", str(failed_event.payload))
+
 
 if __name__ == "__main__":
     unittest.main()
+
