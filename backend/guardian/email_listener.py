@@ -138,7 +138,38 @@ class EmailListener:
         )
 
         sink = self.event_sink or InMemoryEventSink()
-        return self.pipeline.process_text(formatted_input, event_sink=sink)
+        res = self.pipeline.process_text(formatted_input, event_sink=sink)
+        self._publish_to_server(email_data.sender, email_data.subject, res)
+        return res
+
+    def _publish_to_server(self, sender: str, subject: str, result: PipelineResult) -> None:
+        """Publish analyzed email result to backend FastAPI server for real-time visualizer streaming."""
+        import json
+        import urllib.request
+
+        payload = {
+            "event_type": "REALTIME_EMAIL_ANALYSIS",
+            "source": "IMAP_LISTENER",
+            "sender": sender,
+            "subject": subject,
+            "risk_level": result.risk_assessment.level.value,
+            "decision": result.canary_decision.decision.value,
+            "reasons": result.risk_assessment.reasons,
+            "headline": result.warning_event.payload.get("headline") if result.warning_event else None,
+            "signals": result.signals.to_dict(),
+            "events": [e.to_dict() for e in result.events],
+        }
+        try:
+            req = urllib.request.Request(
+                "http://127.0.0.1:8080/api/v1/events/publish",
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=2):
+                pass
+        except Exception:
+            pass
 
     def fetch_and_process_unseen(self, mark_as_read: bool = False) -> List[Tuple[str, PipelineResult]]:
         """Connect to IMAP server, fetch all UNSEEN emails, and process them through Guardian Pipeline.

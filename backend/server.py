@@ -96,25 +96,97 @@ def health_check() -> Dict[str, Any]:
     status_code=status.HTTP_200_OK,
     tags=["Analysis"],
 )
-def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
+async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
     """Analyze conversational text input through Google ADK and Canary policy engine."""
     sink = InMemoryEventSink()
     pipeline = GuardianPipeline()
 
     try:
         result = pipeline.process_text(request.text, event_sink=sink)
-        return AnalyzeResponse(
+        resp = AnalyzeResponse(
             signals=result.signals.to_dict(),
             risk_assessment=result.risk_assessment.to_dict(),
             canary_decision=result.canary_decision.to_dict(),
             warning=result.warning_event.to_dict() if result.warning_event else None,
             events=[e.to_dict() for e in result.events],
         )
+        await broadcast_event({
+            "event_type": "TEXT_ANALYSIS",
+            "source": "WEB_VISUALIZER",
+            "text": request.text,
+            "risk_level": resp.risk_assessment.get("level"),
+            "decision": resp.canary_decision.get("decision"),
+            "reasons": resp.risk_assessment.get("reasons"),
+            "headline": resp.warning.get("payload", {}).get("headline") if resp.warning else None,
+            "signals": resp.signals,
+            "events": resp.events,
+        })
+        return resp
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Pipeline processing error: {str(exc)}",
         ) from exc
+
+
+import asyncio
+import json
+from fastapi.responses import StreamingResponse
+
+# Event broadcasting queues for real-time visualizer SSE stream
+event_subscribers: List[asyncio.Queue] = []
+recent_events_cache: List[Dict[str, Any]] = []
+
+
+async def broadcast_event(event_data: Dict[str, Any]) -> None:
+    """Broadcast an event payload to all connected SSE browser clients."""
+    recent_events_cache.append(event_data)
+    if len(recent_events_cache) > 50:
+        recent_events_cache.pop(0)
+
+    # Dispatch to all active SSE queues
+    for queue in list(event_subscribers):
+        try:
+            await queue.put(event_data)
+        except Exception:
+            pass
+
+
+@app.post("/api/v1/events/publish", tags=["Realtime Telemetry"])
+async def publish_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Publish a domain analysis event (e.g. from IMAP listener) to real-time subscribers."""
+    await broadcast_event(event_data)
+    return {"status": "published", "subscribers": len(event_subscribers)}
+
+
+@app.get("/api/v1/events/recent", tags=["Realtime Telemetry"])
+def get_recent_events() -> Dict[str, Any]:
+    """Get recent real-time analysis events for initial UI hydration."""
+    return {"events": recent_events_cache}
+
+
+@app.get("/api/v1/events/stream", tags=["Realtime Telemetry"])
+async def stream_events():
+    """Server-Sent Events (SSE) endpoint for real-time frontend visualizer streaming."""
+    queue: asyncio.Queue = asyncio.Queue()
+    event_subscribers.append(queue)
+
+    async def event_generator():
+        try:
+            # Yield initial connection ping
+            yield f"data: {json.dumps({'event_type': 'STREAM_CONNECTED', 'timestamp': os.getenv('SYS_TIME', '')})}\n\n"
+            
+            while True:
+                # Wait for next published event
+                event_data = await queue.get()
+                yield f"data: {json.dumps(event_data)}\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if queue in event_subscribers:
+                event_subscribers.remove(queue)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @app.post(
@@ -132,13 +204,24 @@ async def analyze_image(file: UploadFile = File(...)) -> AnalyzeResponse:
         content = await file.read()
         mime_type = file.content_type or "image/png"
         result = pipeline.process_image(content, mime_type=mime_type, event_sink=sink)
-        return AnalyzeResponse(
+        resp = AnalyzeResponse(
             signals=result.signals.to_dict(),
             risk_assessment=result.risk_assessment.to_dict(),
             canary_decision=result.canary_decision.to_dict(),
             warning=result.warning_event.to_dict() if result.warning_event else None,
             events=[e.to_dict() for e in result.events],
         )
+        await broadcast_event({
+            "event_type": "MULTIMODAL_IMAGE_ANALYSIS",
+            "source": "WEB_VISUALIZER",
+            "risk_level": resp.risk_assessment.get("level"),
+            "decision": resp.canary_decision.get("decision"),
+            "reasons": resp.risk_assessment.get("reasons"),
+            "headline": resp.warning.get("payload", {}).get("headline") if resp.warning else None,
+            "signals": resp.signals,
+            "events": resp.events,
+        })
+        return resp
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

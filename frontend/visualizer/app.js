@@ -254,4 +254,94 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
+
+  // 6. Real-Time Server-Sent Events (SSE) Stream Listener
+  const streamStatus = document.getElementById('stream-status');
+  const realtimeEmailCard = document.getElementById('realtime-email-card');
+  const realtimeSender = document.getElementById('realtime-sender');
+  const realtimeSubject = document.getElementById('realtime-subject');
+
+  function initRealtimeStream() {
+    try {
+      const evtSource = new EventSource('/api/v1/events/stream');
+
+      evtSource.onopen = () => {
+        if (streamStatus) {
+          streamStatus.textContent = 'CONNECTED';
+          streamStatus.className = 'val val-ok';
+        }
+      };
+
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event_type === 'STREAM_CONNECTED') return;
+
+          handleLiveEvent(data);
+        } catch (e) {
+          console.error('Failed to parse SSE event data:', e);
+        }
+      };
+
+      evtSource.onerror = () => {
+        if (streamStatus) {
+          streamStatus.textContent = 'DISCONNECTED';
+          streamStatus.className = 'val val-deny';
+        }
+      };
+    } catch (err) {
+      console.warn('SSE not supported or failed to connect:', err);
+    }
+  }
+
+  function handleLiveEvent(data) {
+    if (data.event_type === 'REALTIME_EMAIL_ANALYSIS') {
+      if (realtimeEmailCard) {
+        realtimeEmailCard.style.display = 'flex';
+        if (realtimeSender) realtimeSender.textContent = data.sender || 'DESCONOCIDO';
+        if (realtimeSubject) realtimeSubject.textContent = data.subject || 'SIN ASUNTO';
+      }
+
+      // Automatically hydrate risk assessment UI
+      renderResults({
+        signals: data.signals || {},
+        risk_assessment: {
+          level: data.risk_level || 'NORMAL',
+          reasons: data.reasons || []
+        },
+        canary_decision: {
+          decision: data.decision || 'DENY'
+        },
+        warning: data.headline ? { payload: { headline: data.headline, directives: ["SOLICITUD DE ALMACENAMIENTO FALSO", "NO HACER CLIC EN NINGÚN ENLACE", "BLOQUEAR REMITENTE"] } } : null,
+        events: data.events || []
+      });
+
+      // Prepend event item into stream log
+      const item = document.createElement('div');
+      item.className = 'event-item evt-warning';
+      const now = new Date().toTimeString().split(' ')[0];
+      item.innerHTML = `
+        <span class="evt-time">[${now}]</span>
+        <span class="evt-type">REALTIME_EMAIL_PHISHING</span>
+        <span class="evt-payload">From: ${data.sender} | Subject: ${data.subject} | Risk: ${data.risk_level}</span>
+      `;
+      if (eventStream.querySelector('.event-empty')) {
+        eventStream.innerHTML = '';
+      }
+      eventStream.prepend(item);
+    }
+  }
+
+  // Hydrate initial recent events if any
+  fetch('/api/v1/events/recent')
+    .then(res => res.json())
+    .then(data => {
+      if (data.events && data.events.length > 0) {
+        const lastEvt = data.events[data.events.length - 1];
+        handleLiveEvent(lastEvt);
+      }
+    })
+    .catch(() => {});
+
+  initRealtimeStream();
 });

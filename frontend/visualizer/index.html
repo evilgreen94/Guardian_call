@@ -24,6 +24,7 @@
     <div class="system-metrics">
       <span class="metric"><span class="label">MODEL:</span> <span class="val">GEMINI-3.5-FLASH</span></span>
       <span class="metric"><span class="label">ENGINE:</span> <span class="val">DETERMINISTIC CANARY</span></span>
+      <span class="metric"><span class="label">LIVE IMAP STREAM:</span> <span class="val val-ok" id="stream-status">CONNECTING...</span></span>
       <span class="metric"><span class="label">SYSTEM STATUS:</span> <span class="val val-ok" id="system-status">ACTIVE</span></span>
       <span class="metric clock"><span class="label">SYS_TIME:</span> <span class="val" id="sys-clock">00:00:00 UTC</span></span>
     </div>
@@ -107,6 +108,18 @@
           <ul id="list-risk-reasons" class="reasons-list">
             <li class="empty-state">No active risk signals evaluated yet.</li>
           </ul>
+        </div>
+
+        <!-- REAL-TIME INCOMING EMAIL THREAT BANNER -->
+        <div class="realtime-email-card" id="realtime-email-card" style="display: none;">
+          <div class="realtime-header">
+            <span class="pulse-dot">🔴 LIVE AMENAZA DE EMAIL</span>
+            <span class="realtime-title">DETECCIÓN EN TIEMPO REAL // IMAP</span>
+          </div>
+          <div class="realtime-details">
+            <div><span class="detail-label">REMITENTE:</span> <span id="realtime-sender" class="detail-val">-</span></div>
+            <div><span class="detail-label">ASUNTO:</span> <span id="realtime-subject" class="detail-val">-</span></div>
+          </div>
         </div>
 
         <!-- GUARDIAN USER WARNING OVERLAY (PROTECTED USER UI) -->
