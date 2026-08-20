@@ -62,9 +62,20 @@ class SignalExtractionError(Exception):
     pass
 
 
+from .knowledge import get_knowledge_prompt_context
+
+KNOWLEDGE_CONTEXT = get_knowledge_prompt_context()
+
 INSTRUCTION = (
-    "Analyze the provided conversational text and extract structured scam signals. "
-    "Populate the 10 schema fields based strictly on facts explicitly mentioned in the text. "
+    "You are Guardian Call's specialized Scam Detection Agent powered by Gemini.\n"
+    "Analyze the provided conversational text and extract structured scam signals.\n"
+    "Populate the 10 schema fields based strictly on facts explicitly mentioned in the text.\n\n"
+    f"{KNOWLEDGE_CONTEXT}\n\n"
+    "CRITICAL RULES FOR SIGNAL EXTRACTION:\n"
+    "1. Strict Fact Extraction: Only set a boolean field to true if explicitly requested or stated by caller.\n"
+    "2. False Positive Suppression: If caller mentions security warnings in a negative context (e.g. 'The bank NEVER asks for passwords'), do NOT flag password_request or otp_request as true.\n"
+    "3. Canonical requested_action values: Limit requested_action to one of: 'share_otp', 'share_password', 'install_remote_software', 'transfer_money', 'buy_giftcards', 'confirm_iban', or null.\n"
+    "4. Normalized identity_claim: Use standard lower-case terms like 'banco', 'soporte_tecnico', 'policia', 'familiar', 'correos', 'director_general', 'broker', 'compania_electrica'.\n\n"
     "Do not invent or infer unstated facts."
 )
 
@@ -74,6 +85,8 @@ signal_agent = LlmAgent(
     instruction=INSTRUCTION,
     output_schema=ScamSignalsSchema,
 )
+
+
 
 
 def extract_signals(text: str, runner: Optional[Runner] = None) -> ScamSignals:

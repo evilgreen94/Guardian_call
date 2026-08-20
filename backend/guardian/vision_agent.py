@@ -90,16 +90,31 @@ def process_image(
     if not image_bytes:
         return VisionOcrResult()
 
+    user_id = "guardian_user"
+    session_id = "guardian_session"
+
     if runner is None:
         session_service = InMemorySessionService()
+        session_service.create_session_sync(
+            app_name="guardian_call",
+            user_id=user_id,
+            session_id=session_id,
+        )
         runner = Runner(
             agent=vision_ocr_agent,
             session_service=session_service,
+            app_name="guardian_call",
         )
 
     try:
         part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
-        events = runner.run(user_input=part)
+        new_message = types.Content(parts=[part], role="user")
+
+        events = list(runner.run(
+            user_id=user_id,
+            session_id=session_id,
+            new_message=new_message,
+        ))
 
         for event in reversed(events):
             if hasattr(event, "output") and event.output is not None:
