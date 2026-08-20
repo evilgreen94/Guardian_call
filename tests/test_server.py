@@ -56,7 +56,7 @@ def test_analyze_endpoint_success(mock_extract) -> None:
     assert data["canary_decision"]["decision"] == "ALLOW"
     assert data["warning"]["payload"]["headline"] == "POSIBLE ESTAFA"
     assert "NO DIGA ESE CÓDIGO" in data["warning"]["payload"]["directives"]
-    assert len(data["events"]) == 6
+    assert len(data["events"]) == 7
 
 
 def test_analyze_endpoint_empty_text() -> None:

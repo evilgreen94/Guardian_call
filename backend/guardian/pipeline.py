@@ -79,6 +79,19 @@ class GuardianPipeline:
                 )
             )
 
+        # Evaluate and execute NOTIFY_TRUSTED_CIRCLE under Canary policy
+        trusted_decision = self.canary_policy.evaluate_action(
+            risk_assessment=risk_assessment,
+            action=ActionType.NOTIFY_TRUSTED_CIRCLE,
+        )
+        if trusted_decision.decision == PolicyDecision.ALLOW:
+            from .trusted_circle import execute_trusted_circle_notification
+            execute_trusted_circle_notification(
+                canary_decision=trusted_decision,
+                risk_assessment=risk_assessment,
+                event_sink=sink,
+            )
+
         all_events = sink.get_events() if isinstance(sink, InMemoryEventSink) else []
 
         return PipelineResult(

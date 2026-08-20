@@ -6,10 +6,10 @@ Guardian Call is an agentic protection system built for the **All Things Agentic
 
 ---
 
-## Current Status (Version 0.5.5 — Guardian 360 Multimodal Implemented)
+## Current Status (Version 0.6.0 — Full M1 & Guardian 360 Multimodal Completed)
 
 Branch: **`lab/splurtch-dev-antigravity`**  
-Test Suite: **34 / 34 tests passing (`python -m pytest`)**
+Test Suite: **37 / 37 tests passing (`python -m pytest`)**
 
 ```text
                                 USER INPUT STREAM
@@ -42,6 +42,11 @@ Test Suite: **34 / 34 tests passing (`python -m pytest`)**
                              CANARY POLICY GUARDRAIL
                                         │
                       Emits CANARY_EVALUATION / USER_WARNING
+                                        │
+                             [If Risk is CRITICAL]
+                                        ▼
+                           TRUSTED CIRCLE NOTIFICATION
+                      (Emits TRUSTED_CONTACT_NOTIFIED Event)
 ```
 
 ---
@@ -54,8 +59,9 @@ Test Suite: **34 / 34 tests passing (`python -m pytest`)**
 
 ### 2. Deterministic Risk Engine & Canary Policy Guardrails
 - **Risk Engine:** [`backend/guardian/risk.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/risk.py) — Computes transparent, explainable risk levels (`NORMAL`, `SUSPICIOUS`, `HIGH`, `CRITICAL`) from contributing signals.
-- **Canary Policy Engine:** [`backend/guardian/canary.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/canary.py) — Authority layer enforcing user autonomy and strict privacy rules (`share_transcript` -> `DENY`, `end_call` -> `ASK_USER`, `warn_user` -> `ALLOW` on `HIGH`/`CRITICAL`).
-- **Fail-safe Posture (ADR-002):** [`backend/guardian/pipeline.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/pipeline.py) — Preserves privacy (only logs text length and image bytes metadata) and defaults to a cautious `HIGH` risk state if Gemini extraction encounters network or API errors.
+- **Canary Policy Engine:** [`backend/guardian/canary.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/canary.py) — Authority layer enforcing user autonomy and strict privacy rules (`share_transcript` -> `DENY`, `end_call` -> `ASK_USER`, `warn_user` -> `ALLOW` on `HIGH`/`CRITICAL`, `notify_trusted_circle` -> `ALLOW` on `CRITICAL`).
+- **Trusted Circle Notifier:** [`backend/guardian/trusted_circle.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/trusted_circle.py) — Dispatches privacy-preserving notifications (webhook/SMS) under `CRITICAL` risk without transmitting raw transcripts.
+- **Fail-safe Posture (ADR-002):** [`backend/guardian/pipeline.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/pipeline.py) — Preserves privacy and defaults to a cautious `HIGH` risk state if Gemini extraction encounters network or API errors.
 
 ### 3. Google Cloud Run Backend Server
 - **File:** [`backend/server.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/server.py)
@@ -74,7 +80,7 @@ Test Suite: **34 / 34 tests passing (`python -m pytest`)**
 ### 5. Synthetic Scenarios & Testing Suite
 - **Scenarios:** [`scenarios/bank_otp_scam.json`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/scenarios/bank_otp_scam.json) & [`scenarios/legitimate_call.json`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/scenarios/legitimate_call.json)
 - **CLI Runner:** [`scenarios/runner.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/scenarios/runner.py)
-- **Test Suite:** [`tests/`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/tests/) — **34 unit & integration tests passing** covering signals, vision agent, risk engine, canary policy, ADK agent, fail-safe pipeline, and FastAPI HTTP endpoints.
+- **Test Suite:** [`tests/`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/tests/) — **37 unit & integration tests passing** covering signals, vision agent, risk engine, canary policy, trusted circle, ADK agent, fail-safe pipeline, and FastAPI HTTP endpoints.
 
 ### 6. Guardian 360 Architectural Spec (Omnichannel Expansion)
 - **Specification:** [`docs/specs/2026-08-20-guardian-360-design.md`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/docs/specs/2026-08-20-guardian-360-design.md)
@@ -99,6 +105,7 @@ pip install -r requirements.txt
 ```env
 GOOGLE_API_KEY=your_gemini_api_key_here
 GOOGLE_GENAI_USE_VERTEXAI=FALSE
+TRUSTED_CIRCLE_WEBHOOK_URL=https://api.example.com/trusted-circle-webhook
 ```
 
 ### 3. Run Automated Tests
@@ -125,31 +132,32 @@ python scenarios/runner.py
 Guardian_call/
 ├── backend/
 │   ├── guardian/
-│   │   ├── actions.py       # Authorized intervention execution
-│   │   ├── agent.py         # Google ADK LlmAgent for text signals (gemini-3.5-flash)
-│   │   ├── canary.py        # Canary Policy Engine & authority guardrails
-│   │   ├── events.py        # Domain event definitions & InMemoryEventSink
-│   │   ├── models.py        # Domain data models (ScamSignals, RiskAssessment, etc.)
-│   │   ├── pipeline.py      # GuardianPipeline coordinator (process_text & process_image)
-│   │   ├── risk.py          # Deterministic explainable Risk Engine
-│   │   ├── signals.py       # ScamSignals constructor & helper functions
-│   │   └── vision_agent.py  # Google ADK Multimodal Vision/OCR LlmAgent (gemini-3.5-flash)
-│   └── server.py            # FastAPI server for Google Cloud Run (POST /api/v1/analyze & analyze-image)
+│   │   ├── actions.py          # Authorized intervention execution
+│   │   ├── agent.py            # Google ADK LlmAgent for text signals (gemini-3.5-flash)
+│   │   ├── canary.py           # Canary Policy Engine & authority guardrails
+│   │   ├── events.py           # Domain event definitions & InMemoryEventSink
+│   │   ├── models.py           # Domain data models (ScamSignals, RiskAssessment, etc.)
+│   │   ├── pipeline.py         # GuardianPipeline coordinator (process_text & process_image)
+│   │   ├── risk.py             # Deterministic explainable Risk Engine
+│   │   ├── signals.py          # ScamSignals constructor & helper functions
+│   │   ├── trusted_circle.py   # Trusted Circle notification client (SMS/Webhook)
+│   │   └── vision_agent.py     # Google ADK Multimodal Vision/OCR LlmAgent (gemini-3.5-flash)
+│   └── server.py               # FastAPI server for Google Cloud Run (POST /api/v1/analyze & analyze-image)
 ├── frontend/
-│   └── visualizer/          # Industrial Brutalist Visualizer UI (Drag & Drop, HTML, CSS, JS)
+│   └── visualizer/             # Industrial Brutalist Visualizer UI (Drag & Drop, HTML, CSS, JS)
 ├── scenarios/
-│   ├── bank_otp_scam.json   # Synthetic bank OTP scam transcript
-│   ├── legitimate_call.json # Synthetic benign appointment transcript
-│   └── runner.py            # CLI scenario evaluator
-├── tests/                   # 34 unit & integration tests (pytest)
+│   ├── bank_otp_scam.json      # Synthetic bank OTP scam transcript
+│   ├── legitimate_call.json    # Synthetic benign appointment transcript
+│   └── runner.py               # CLI scenario evaluator
+├── tests/                      # 37 unit & integration tests (pytest)
 ├── docs/
 │   ├── ADR-001-gemini-signal-agent-adk.md
 │   ├── ADR-002-text-pipeline-failsafe.md
 │   └── specs/
 │       └── 2026-08-20-guardian-360-design.md
-├── Dockerfile               # Google Cloud Run container recipe
+├── Dockerfile                  # Google Cloud Run container recipe
 ├── .dockerignore
-└── requirements.txt         # Project dependencies (google-adk, fastapi, uvicorn, pytest)
+└── requirements.txt            # Project dependencies (google-adk, fastapi, uvicorn, pytest)
 ```
 
 ---

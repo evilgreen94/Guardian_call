@@ -58,6 +58,7 @@ class TestEventsAndPipeline(unittest.TestCase):
             EventType.CANARY_EVALUATION,
             EventType.ACTION_ALLOWED,
             EventType.USER_WARNING,
+            EventType.TRUSTED_CONTACT_NOTIFIED,
         ]
         self.assertEqual(event_types, expected_sequence)
 
@@ -214,6 +215,7 @@ class TestEventsAndPipeline(unittest.TestCase):
             EventType.CANARY_EVALUATION,
             EventType.ACTION_ALLOWED,
             EventType.USER_WARNING,
+            EventType.TRUSTED_CONTACT_NOTIFIED,
         ]
         self.assertEqual(event_types, expected_sequence)
         self.assertEqual(events[0].payload, {"text_length": len(text_input)})
