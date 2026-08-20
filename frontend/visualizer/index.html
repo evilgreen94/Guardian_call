@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guardian Call — Tactical Telemetry & Event Visualizer</title>
+  
+  <!-- Typography: JetBrains Mono for telemetry, Space Grotesk for macro headers -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/visualizer/styles.css">
+</head>
+<body class="crt-overlay">
+
+  <!-- TOP STATUS TELEMETRY BAR -->
+  <header class="telemetry-bar">
+    <div class="brand">
+      <span class="crosshair">+</span>
+      <span class="title">GUARDIAN CALL // M0.5</span>
+      <span class="badge badge-adk">GOOGLE ADK</span>
+    </div>
+    <div class="system-metrics">
+      <span class="metric"><span class="label">MODEL:</span> <span class="val">GEMINI-3.5-FLASH</span></span>
+      <span class="metric"><span class="label">ENGINE:</span> <span class="val">DETERMINISTIC CANARY</span></span>
+      <span class="metric"><span class="label">SYSTEM STATUS:</span> <span class="val val-ok" id="system-status">ACTIVE</span></span>
+      <span class="metric clock"><span class="label">SYS_TIME:</span> <span class="val" id="sys-clock">00:00:00 UTC</span></span>
+    </div>
+  </header>
+
+  <!-- MAIN TERMINAL GRID -->
+  <main class="grid-container">
+
+    <!-- LEFT COLUMN: INPUT TERMINAL & PRESETS -->
+    <section class="panel panel-input">
+      <div class="panel-header">
+        <span class="panel-title">[ 01 // INPUT TEXT TELEMETRY ]</span>
+        <span class="panel-tag">RAW CONVERSATIONAL FEED</span>
+      </div>
+      <div class="panel-body">
+        
+        <div class="presets-toolbar">
+          <span class="label">PRESET SCENARIOS:</span>
+          <button type="button" class="btn btn-preset" id="btn-preset-otp">
+            [ SCENARIO: BANK OTP SCAM ]
+          </button>
+          <button type="button" class="btn btn-preset" id="btn-preset-legit">
+            [ SCENARIO: LEGITIMATE CALL ]
+          </button>
+          <button type="button" class="btn btn-preset" id="btn-preset-failsafe">
+            [ SCENARIO: FAIL-SAFE TEST ]
+          </button>
+        </div>
+
+        <div class="input-wrapper">
+          <label for="input-text" class="input-label">> ENTER CONVERSATIONAL TRANSCRIPT:</label>
+          <textarea id="input-text" rows="6" placeholder="Paste or type conversational transcript here... (e.g. 'Dime el código de 6 dígitos que te llegó por SMS...')"></textarea>
+        </div>
+
+        <div class="actions-bar">
+          <button type="button" class="btn btn-primary" id="btn-analyze">
+            [ RUN GOOGLE ADK ANALYSIS ]
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-clear">
+            [ RESET TERMINAL ]
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: LIVE RISK ENGINE & CANARY DECISION -->
+    <section class="panel panel-status">
+      <div class="panel-header">
+        <span class="panel-title">[ 02 // RISK & CANARY AUTHORITY STATE ]</span>
+        <span class="panel-tag">POLICY DECISION MATRIX</span>
+      </div>
+      <div class="panel-body">
+        
+        <div class="status-grid">
+          <!-- RISK LEVEL DISPLAY -->
+          <div class="status-card" id="card-risk-level">
+            <span class="card-label">RISK LEVEL</span>
+            <div class="card-value" id="val-risk-level">NORMAL</div>
+          </div>
+
+          <!-- CANARY DECISION DISPLAY -->
+          <div class="status-card" id="card-canary-decision">
+            <span class="card-label">CANARY POLICY DECISION</span>
+            <div class="card-value" id="val-canary-decision">DENY</div>
+          </div>
+        </div>
+
+        <!-- REASONS LIST -->
+        <div class="reasons-box">
+          <span class="box-label">EXPLAINABLE RISK REASONS:</span>
+          <ul id="list-risk-reasons" class="reasons-list">
+            <li class="empty-state">No active risk signals evaluated yet.</li>
+          </ul>
+        </div>
+
+        <!-- GUARDIAN USER WARNING OVERLAY (PROTECTED USER UI) -->
+        <div class="user-warning-banner" id="user-warning-banner" style="display: none;">
+          <div class="warning-header">
+            <span class="warning-symbol">⚠️</span>
+            <span class="warning-headline" id="warning-headline">POSIBLE ESTAFA</span>
+          </div>
+          <div class="warning-body">
+            <div class="warning-directives" id="warning-directives">
+              <!-- Directives rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BOTTOM ROW 1: SIGNALS MATRIX -->
+    <section class="panel panel-signals grid-full">
+      <div class="panel-header">
+        <span class="panel-title">[ 03 // EXTRACTED SCAM SIGNALS ]</span>
+        <span class="panel-tag">STRUCTURED ADK OUTPUT</span>
+      </div>
+      <div class="panel-body">
+        <div class="signals-grid" id="signals-grid">
+          <!-- Signals rendered dynamically -->
+        </div>
+      </div>
+    </section>
+
+    <!-- BOTTOM ROW 2: LIVE BACKEND EVENT STREAM TRAIL -->
+    <section class="panel panel-events grid-full">
+      <div class="panel-header">
+        <span class="panel-title">[ 04 // BACKEND EVENT STREAM TRAIL ]</span>
+        <span class="panel-tag">REAL-TIME DETERMINISTIC EVENT LOG</span>
+      </div>
+      <div class="panel-body">
+        <div class="event-stream" id="event-stream">
+          <div class="event-item event-empty">
+            <span class="evt-time">[00:00:00]</span>
+            <span class="evt-type">SYSTEM_READY</span>
+            <span class="evt-payload">Awaiting input submission to emit backend domain events...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- FOOTER METADATA -->
+  <footer class="telemetry-footer">
+    <span>GUARDIAN CALL // ALL THINGS AGENTIC HACKATHON 2026</span>
+    <span>FRAMEWORK: GOOGLE ADK + GEMINI 3.5</span>
+    <span>AUTHORITY: CANARY POLICY ENGINE</span>
+  </footer>
+
+  <script src="/visualizer/app.js"></script>
+</body>
+</html>

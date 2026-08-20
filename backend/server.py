@@ -35,6 +35,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount frontend visualizer static files if directory exists
+frontend_dir = Path(__file__).resolve().parent.parent / "frontend" / "visualizer"
+if frontend_dir.exists():
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/visualizer", StaticFiles(directory=str(frontend_dir), html=True), name="visualizer")
+
+    @app.get("/", tags=["System"])
+    def root() -> FileResponse:
+        """Serve the Guardian Visualizer UI at root."""
+        return FileResponse(str(frontend_dir / "index.html"))
+
 
 class AnalyzeRequest(BaseModel):
     """Payload for text analysis request."""

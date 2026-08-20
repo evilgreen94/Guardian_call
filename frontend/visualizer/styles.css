@@ -1,0 +1,496 @@
+/* 
+ * Guardian Call — Industrial Brutalist Telemetry & Design Engineering Styles
+ * Colors: Substrate #0A0A0A, Carbon Text #EAEAEA, Hazard Red #E61919, Caution Amber #F59E0B, Green #10B981
+ */
+
+:root {
+  --bg-color: #0a0a0a;
+  --panel-bg: #121212;
+  --panel-border: #262626;
+  --border-focus: #404040;
+  
+  --text-main: #eaeaea;
+  --text-muted: #737373;
+  --text-dim: #404040;
+  
+  --hazard-red: #e61919;
+  --hazard-red-glow: rgba(230, 25, 25, 0.25);
+  --caution-amber: #f59e0b;
+  --status-green: #10b981;
+  --adk-blue: #3b82f6;
+
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+  --font-sans: 'Space Grotesk', sans-serif;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* GLOBAL RESETS & BRUTALIST BASICS */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 0 !important; /* Strictly 90-degree sharp corners */
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.4;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* CRT SCANLINE EFFECT OVERLAY */
+.crt-overlay::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* TOP TELEMETRY BAR */
+.telemetry-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background-color: #111111;
+  border-bottom: 1px solid var(--panel-border);
+  text-transform: uppercase;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+}
+
+.crosshair {
+  color: var(--hazard-red);
+  font-size: 18px;
+}
+
+.badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border: 1px solid var(--adk-blue);
+  color: var(--adk-blue);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.system-metrics {
+  display: flex;
+  gap: 20px;
+  font-size: 11px;
+}
+
+.metric .label {
+  color: var(--text-muted);
+}
+.metric .val {
+  color: var(--text-main);
+  font-weight: 700;
+}
+.metric .val-ok {
+  color: var(--status-green);
+}
+
+/* MAIN GRID LAYOUT */
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background-color: var(--panel-border);
+  padding: 1px;
+  flex: 1;
+}
+
+.grid-full {
+  grid-column: span 2;
+}
+
+/* BRUTALIST PANELS */
+.panel {
+  background-color: var(--panel-bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: #161616;
+  border-bottom: 1px solid var(--panel-border);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.panel-title {
+  color: var(--text-main);
+}
+.panel-tag {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.panel-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+/* PRESETS TOOLBAR & BUTTONS */
+.presets-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.presets-toolbar .label {
+  color: var(--text-muted);
+  font-size: 10px;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+/* BUTTON DESIGN ENGINEERING (EMIL KOWALSKI PHILOSOPHY) */
+.btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 8px 12px;
+  background-color: #1a1a1a;
+  color: var(--text-main);
+  border: 1px solid var(--panel-border);
+  cursor: pointer;
+  outline: none;
+  transition: transform 160ms var(--ease-out), background-color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.97); /* Emil Kovalski: Responsive button press feedback */
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover {
+    background-color: #262626;
+    border-color: var(--border-focus);
+  }
+}
+
+.btn-primary {
+  background-color: #222222;
+  border-color: var(--text-main);
+  color: var(--text-main);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover {
+    background-color: var(--text-main);
+    color: #000000;
+  }
+}
+
+.btn-secondary {
+  color: var(--text-muted);
+}
+
+/* INPUT TEXTAREA */
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+textarea {
+  width: 100%;
+  background-color: #0d0d0d;
+  color: var(--text-main);
+  border: 1px solid var(--panel-border);
+  padding: 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 160ms var(--ease-out);
+}
+
+textarea:focus {
+  border-color: var(--text-main);
+}
+
+.actions-bar {
+  display: flex;
+  gap: 10px;
+}
+
+/* STATUS GRID & CARDS */
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.status-card {
+  background-color: #0d0d0d;
+  border: 1px solid var(--panel-border);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.card-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.card-value {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.card-value.val-normal { color: var(--status-green); }
+.card-value.val-suspicious { color: var(--caution-amber); }
+.card-value.val-high { color: var(--hazard-red); }
+.card-value.val-critical { color: var(--hazard-red); animation: pulse-red 1.5s infinite; }
+
+.card-value.val-allow { color: var(--status-green); }
+.card-value.val-deny { color: var(--text-muted); }
+
+@keyframes pulse-red {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* REASONS BOX */
+.reasons-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-color: #0d0d0d;
+  border: 1px solid var(--panel-border);
+  padding: 12px;
+}
+.box-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.reasons-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reasons-list li {
+  font-size: 12px;
+  color: var(--text-main);
+  padding-left: 12px;
+  position: relative;
+}
+.reasons-list li::before {
+  content: ">";
+  position: absolute;
+  left: 0;
+  color: var(--hazard-red);
+}
+.reasons-list li.empty-state {
+  color: var(--text-muted);
+  padding-left: 0;
+}
+.reasons-list li.empty-state::before {
+  content: "";
+}
+
+/* GUARDIAN USER WARNING OVERLAY (PROTECTED USER UI) */
+.user-warning-banner {
+  background-color: var(--hazard-red);
+  color: #000000;
+  border: 2px solid #ffffff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+  box-shadow: 0 0 20px var(--hazard-red-glow);
+  transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+
+@starting-style {
+  .user-warning-banner {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.warning-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.warning-headline {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.warning-directives {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 800;
+  font-size: 14px;
+  text-transform: uppercase;
+}
+
+.warning-directive-item {
+  background-color: #000000;
+  color: #ffffff;
+  padding: 6px 10px;
+}
+
+/* SIGNALS TELEMETRY MATRIX GRID */
+.signals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+
+.signal-cell {
+  background-color: #0d0d0d;
+  border: 1px solid var(--panel-border);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.signal-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.signal-val {
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.signal-val.true {
+  color: var(--hazard-red);
+  background: rgba(230, 25, 25, 0.15);
+  padding: 2px 6px;
+  border: 1px solid var(--hazard-red);
+}
+
+.signal-val.false {
+  color: var(--text-dim);
+}
+
+.signal-val.str {
+  color: var(--caution-amber);
+}
+
+/* EVENT STREAM TRAIL */
+.event-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.event-item {
+  background-color: #0d0d0d;
+  border: 1px solid var(--panel-border);
+  padding: 8px 12px;
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  align-items: flex-start;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+}
+
+@starting-style {
+  .event-item {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.evt-time {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.evt-type {
+  font-weight: 700;
+  color: var(--adk-blue);
+  min-width: 170px;
+}
+
+.event-item.evt-warning .evt-type { color: var(--hazard-red); }
+.event-item.evt-allowed .evt-type { color: var(--status-green); }
+.event-item.evt-denied .evt-type { color: var(--text-muted); }
+.event-item.evt-failed .evt-type { color: var(--hazard-red); }
+
+.evt-payload {
+  color: var(--text-main);
+  flex: 1;
+  word-break: break-all;
+}
+
+.event-empty {
+  color: var(--text-muted);
+}
+
+/* FOOTER */
+.telemetry-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background-color: #111111;
+  border-top: 1px solid var(--panel-border);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
