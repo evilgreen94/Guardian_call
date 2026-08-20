@@ -199,3 +199,45 @@ class GuardianPipeline:
 
         return self._act_on_risk_assessment(signals, risk_assessment, sink)
 
+    def process_image(
+        self,
+        image_bytes: bytes,
+        mime_type: str = "image/png",
+        event_sink: Optional[EventSink] = None,
+    ) -> PipelineResult:
+        """Process image/screenshot input through Google ADK vision agent and Guardian pipeline."""
+        sink = event_sink or InMemoryEventSink()
+
+        sink.emit(
+            GuardianEvent(
+                event_type=EventType.IMAGE_RECEIVED,
+                payload={"image_size_bytes": len(image_bytes) if image_bytes else 0, "mime_type": mime_type},
+            )
+        )
+
+        from .vision_agent import VisionOcrError, process_image as vision_process_image
+
+        ocr_result = None
+        if image_bytes:
+            try:
+                ocr_result = vision_process_image(image_bytes, mime_type=mime_type)
+            except VisionOcrError:
+                ocr_result = None
+
+        if ocr_result:
+            sink.emit(
+                GuardianEvent(
+                    event_type=EventType.IMAGE_PROCESSED_OCR,
+                    payload={
+                        "text_length": len(ocr_result.extracted_text),
+                        "visual_manipulation_suspected": ocr_result.visual_manipulation_suspected,
+                        "channel_detected": ocr_result.channel_detected,
+                    },
+                )
+            )
+            extracted_text = ocr_result.extracted_text
+        else:
+            extracted_text = ""
+
+        return self.process_text(extracted_text, event_sink=sink)
+

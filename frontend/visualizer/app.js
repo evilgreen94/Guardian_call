@@ -53,9 +53,45 @@ document.addEventListener('DOMContentLoaded', () => {
     inputText.value = PRESETS.failsafe;
   });
 
+  let selectedFile = null;
+  const dropZone = document.getElementById('drop-zone');
+  const imageInput = document.getElementById('image-input');
+  const fileNameDisplay = document.getElementById('file-name');
+
+  // File Dropzone handlers
+  dropZone?.addEventListener('click', () => imageInput?.click());
+
+  imageInput?.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) {
+      selectedFile = e.target.files[0];
+      fileNameDisplay.textContent = `SELECTED FILE: ${selectedFile.name} (${Math.round(selectedFile.size / 1024)} KB)`;
+    }
+  });
+
+  dropZone?.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone?.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone?.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      selectedFile = e.dataTransfer.files[0];
+      fileNameDisplay.textContent = `SELECTED FILE: ${selectedFile.name} (${Math.round(selectedFile.size / 1024)} KB)`;
+    }
+  });
+
   // 3. Clear Terminal
   btnClear?.addEventListener('click', () => {
     inputText.value = '';
+    selectedFile = null;
+    if (imageInput) imageInput.value = '';
+    if (fileNameDisplay) fileNameDisplay.textContent = '';
     resetStatusDisplay();
   });
 
@@ -82,20 +118,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // 4. Run Analysis
   btnAnalyze?.addEventListener('click', async () => {
     const text = inputText.value.trim();
-    if (!text) {
-      alert('Please enter conversational text or select a preset scenario.');
+
+    if (!selectedFile && !text) {
+      alert('Please enter conversational text or attach/drop a screenshot file.');
       return;
     }
 
     btnAnalyze.disabled = true;
-    btnAnalyze.textContent = '[ ANALYZING AGENT SIGNALS... ]';
+    btnAnalyze.textContent = selectedFile ? '[ ANALYZING MULTIMODAL SCREENSHOT... ]' : '[ ANALYZING AGENT SIGNALS... ]';
 
     try {
-      const response = await fetch('/api/v1/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text })
-      });
+      let response;
+
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        response = await fetch('/api/v1/analyze-image', {
+          method: 'POST',
+          body: formData
+        });
+      } else {
+        response = await fetch('/api/v1/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP error ${response.status}`);

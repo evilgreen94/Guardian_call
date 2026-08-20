@@ -55,7 +55,16 @@
 
         <div class="input-wrapper">
           <label for="input-text" class="input-label">> ENTER CONVERSATIONAL TRANSCRIPT:</label>
-          <textarea id="input-text" rows="6" placeholder="Paste or type conversational transcript here... (e.g. 'Dime el código de 6 dígitos que te llegó por SMS...')"></textarea>
+          <textarea id="input-text" rows="4" placeholder="Paste or type conversational transcript here... (e.g. 'Dime el código de 6 dígitos que te llegó por SMS...')"></textarea>
+        </div>
+
+        <div class="image-upload-wrapper">
+          <label class="input-label">> GUARDIAN 360 // MULTIMODAL SCREENSHOT / RECEIPT INPUT:</label>
+          <div class="drop-zone" id="drop-zone">
+            <span class="drop-zone-text">[ DROP CHAT SCREENSHOT / BANK RECEIPT HERE OR CLICK TO UPLOAD ]</span>
+            <input type="file" id="image-input" accept="image/*" style="display: none;">
+            <span class="file-name" id="file-name"></span>
+          </div>
         </div>
 
         <div class="actions-bar">

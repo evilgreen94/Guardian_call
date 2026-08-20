@@ -249,6 +249,41 @@ textarea:focus {
   border-color: var(--text-main);
 }
 
+/* DROP ZONE FOR MULTIMODAL SCREENSHOTS */
+.image-upload-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drop-zone {
+  border: 1px dashed var(--panel-border);
+  background-color: #0d0d0d;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 160ms var(--ease-out), background-color 160ms var(--ease-out);
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--text-main);
+  background-color: #1a1a1a;
+}
+
+.drop-zone-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.file-name {
+  display: block;
+  font-size: 11px;
+  color: var(--adk-blue);
+  font-weight: 700;
+  margin-top: 4px;
+}
+
 .actions-bar {
   display: flex;
   gap: 10px;

@@ -70,3 +70,38 @@ def test_analyze_endpoint_empty_text() -> None:
     assert data["risk_assessment"]["level"] == "NORMAL"
     assert data["canary_decision"]["decision"] == "DENY"
     assert data["warning"] is None
+
+
+@patch("guardian.vision_agent.process_image")
+@patch("guardian.pipeline.extract_signals")
+def test_analyze_image_endpoint(mock_extract_signals, mock_process_image) -> None:
+    """Verify POST /api/v1/analyze-image endpoint processes uploaded image files."""
+    from guardian.vision_agent import VisionOcrResult
+
+    mock_process_image.return_value = VisionOcrResult(
+        extracted_text="Dime el código de verificación del SMS que te llegó del banco",
+        visual_manipulation_suspected=True,
+        channel_detected="chat_screenshot",
+        key_visual_elements=["whatsapp_header"],
+    )
+    mock_extract_signals.return_value = create_signals(
+        otp_request=True,
+        requested_action="share_otp",
+        identity_claim="bank",
+        urgency=True,
+        financial_context=True,
+        transfer_request=True,
+    )
+
+    files = {"file": ("screenshot.png", b"fake_png_bytes", "image/png")}
+    response = client.post("/api/v1/analyze-image", files=files)
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["risk_assessment"]["level"] == "CRITICAL"
+    assert data["canary_decision"]["decision"] == "ALLOW"
+    assert data["warning"]["payload"]["headline"] == "POSIBLE ESTAFA"
+    event_types = [e["event_type"] for e in data["events"]]
+    assert "IMAGE_RECEIVED" in event_types
+    assert "IMAGE_PROCESSED_OCR" in event_types

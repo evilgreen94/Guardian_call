@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 
 # Ensure backend package directory is on sys.path
@@ -105,6 +105,35 @@ def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Pipeline processing error: {str(exc)}",
+        ) from exc
+
+
+@app.post(
+    "/api/v1/analyze-image",
+    response_model=AnalyzeResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Analysis"],
+)
+async def analyze_image(file: UploadFile = File(...)) -> AnalyzeResponse:
+    """Analyze image/screenshot input through Google ADK vision agent and Guardian pipeline."""
+    sink = InMemoryEventSink()
+    pipeline = GuardianPipeline()
+
+    try:
+        content = await file.read()
+        mime_type = file.content_type or "image/png"
+        result = pipeline.process_image(content, mime_type=mime_type, event_sink=sink)
+        return AnalyzeResponse(
+            signals=result.signals.to_dict(),
+            risk_assessment=result.risk_assessment.to_dict(),
+            canary_decision=result.canary_decision.to_dict(),
+            warning=result.warning_event.to_dict() if result.warning_event else None,
+            events=[e.to_dict() for e in result.events],
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Image processing error: {str(exc)}",
         ) from exc
 
 
