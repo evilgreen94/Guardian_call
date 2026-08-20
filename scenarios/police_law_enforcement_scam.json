@@ -1,0 +1,12 @@
+{
+  "scenario_id": "police_law_enforcement_01",
+  "title": "Suplantación de Policía Nacional y Citación Judicial",
+  "description": "El estafador se hace pasar por un inspector de policía, indica que existe una investigación criminal abierta y exige una fianza urgente.",
+  "dialogue": [
+    "Buenas tardes, le habla el Inspector Ramírez de la Jefatura Superior de Policía. Su número de DNI aparece vinculado a un delito de fraude y blanqueo de capitales.",
+    "Para suspender la orden de embargo judicial e inmovilización de sus cuentas bancarias dictada para hoy a las 18:00, debe realizar una fianza cautelar de 1.500 euros.",
+    "No cuelgue la llamada ni intente contactar a ningún abogado o familiar, ya que esta investigación se encuentra bajo secreto de sumario riguroso."
+  ],
+  "expected_final_risk": "HIGH",
+  "expected_warning_directive": "CUELGUE Y VERIFIQUE CON LA POLICÍA"
+}

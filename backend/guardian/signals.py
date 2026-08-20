@@ -14,6 +14,9 @@ def create_signals(
     password_request: bool = False,
     transfer_request: bool = False,
     remote_access_request: bool = False,
+    service_cancellation_threat: bool = False,
+    subscription_fee_claim: bool = False,
+    unverified_link_prompt: bool = False,
     requested_action: Optional[str] = None,
 ) -> ScamSignals:
     """Create a validated ScamSignals instance."""
@@ -35,6 +38,9 @@ def create_signals(
         password_request=bool(password_request),
         transfer_request=bool(transfer_request),
         remote_access_request=bool(remote_access_request),
+        service_cancellation_threat=bool(service_cancellation_threat),
+        subscription_fee_claim=bool(subscription_fee_claim),
+        unverified_link_prompt=bool(unverified_link_prompt),
         requested_action=normalized_requested_action,
     )
 
@@ -51,5 +57,8 @@ def signals_from_dict(data: Dict[str, Any]) -> ScamSignals:
         password_request=data.get("password_request", False),
         transfer_request=data.get("transfer_request", False),
         remote_access_request=data.get("remote_access_request", False),
+        service_cancellation_threat=data.get("service_cancellation_threat", False),
+        subscription_fee_claim=data.get("subscription_fee_claim", False),
+        unverified_link_prompt=data.get("unverified_link_prompt", False),
         requested_action=data.get("requested_action"),
     )

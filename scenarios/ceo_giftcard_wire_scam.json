@@ -1,0 +1,12 @@
+{
+  "scenario_id": "ceo_giftcard_wire_01",
+  "title": "Fraude del CEO y Compra Confidencial de Tarjetas de Regalo",
+  "description": "El estafador suplanta al Director General de la empresa del usuario exigiendo la compra urgente y secreta de cupones digitales.",
+  "dialogue": [
+    "Hola Javier, soy Marcos, el Director General. Estoy atrapado en una reunión ejecutiva crítica y necesito tu ayuda urgente e impecable.",
+    "Estamos cerrando un acuerdo de incentivos confidencial. Necesito que compres 5 tarjetas de regalo de Apple de 200 euros cada una en el establecimiento más cercano.",
+    "No comentes esto con nadie del equipo por razones de confidencialidad y rasca los códigos para leérmelos por teléfono en 20 minutos."
+  ],
+  "expected_final_risk": "HIGH",
+  "expected_warning_directive": "CONFIRME CON SU EMPRESA POR CANAL OFICIAL"
+}

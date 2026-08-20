@@ -1,0 +1,12 @@
+{
+  "scenario_id": "refund_overpayment_01",
+  "title": "Falso Reembolso Excesivo y Devolución por Error de Sistema",
+  "description": "El estafador finge haber reembolsado por error una cantidad muy superior a la debida y ruega la devolución inmediata por transferencia.",
+  "dialogue": [
+    "Hola, le llamo del departamento de contabilidad de su suscripción de protección informática. Íbamos a procesar un reembolso de 50 euros a su favor.",
+    "Lamentablemente el operador cometió una equivocación de tecleo y le ha transferido 5.000 euros a su cuenta bancaria por error.",
+    "Por favor devuélvanos la diferencia de 4.950 euros inmediatamente por transferencia rápida o el operador perderá su empleo hoy mismo."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO DEVUELVA DINERO SIN VERIFICAR SU BANCO"
+}

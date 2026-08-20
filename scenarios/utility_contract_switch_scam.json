@@ -1,0 +1,12 @@
+{
+  "scenario_id": "utility_contract_switch_01",
+  "title": "Falso Inspector Electrónico y Amenaza de Corte de Luz",
+  "description": "El estafador suplanta a la distribuidora de energía amenazando con un corte de suministro si no se facilita el IBAN y código de verificación.",
+  "dialogue": [
+    "Buenos días, le llamamos del departamento técnico de su distribuidora de energía eléctrica. Consta un error grave de actualización de tarifa en su contrato.",
+    "Si no confirmamos sus datos bancarios en este momento, se procederá al corte de luz preventivo en su domicilio hoy a las 20:00 horas.",
+    "Facilíteme su IBAN bancario completo y el código SMS que acaba de recibir para regularizar su contrato sin coste."
+  ],
+  "expected_final_risk": "HIGH",
+  "expected_warning_directive": "NO PROPORCIONE SU IBAN O CÓDIGOS SMS"
+}

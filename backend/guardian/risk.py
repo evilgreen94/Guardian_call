@@ -19,6 +19,9 @@ class RiskEngine:
         )
         is_remote_access = signals.remote_access_request
         is_transfer_request = signals.transfer_request
+        is_service_threat = signals.service_cancellation_threat
+        is_subscription_claim = signals.subscription_fee_claim
+        is_unverified_link = signals.unverified_link_prompt
 
         # 2. Gather contextual risk indicators
         has_unverified_claim = bool(signals.identity_claim) and not signals.identity_verified
@@ -81,8 +84,39 @@ class RiskEngine:
                 level = RiskLevel.NORMAL
                 reasons.insert(0, "Legitimate OTP flow detected (user not asked to reveal code)")
             contributing.append("otp_request")
-            if signals.requested_action:
-                contributing.append(f"requested_action:{signals.requested_action}")
+
+        elif is_service_threat:
+            contributing.append("service_cancellation_threat")
+            if is_unverified_link or is_transfer_request or signals.financial_context or is_otp_theft:
+                level = RiskLevel.CRITICAL
+                reasons.insert(0, "Intento de estafa/phishing de almacenamiento o servicio exigiendo pago o datos de acceso bajo amenaza de pérdida de información")
+            elif signals.urgency or has_unverified_claim:
+                level = RiskLevel.HIGH
+                reasons.insert(0, "Amenaza de suspensión de servicio o pérdida de almacenamiento en la nube detectada con tácticas de urgencia")
+            else:
+                level = RiskLevel.SUSPICIOUS
+                reasons.insert(0, "Notificación sospechosa de cancelación de servicio o espacio de almacenamiento lleno")
+
+        elif is_subscription_claim:
+            contributing.append("subscription_fee_claim")
+            if is_unverified_link or is_transfer_request or is_otp_theft:
+                level = RiskLevel.CRITICAL
+                reasons.insert(0, "Cobro o renovación de suscripción imprevista redirigiendo a enlace o pago sospechoso")
+            elif signals.urgency or has_unverified_claim:
+                level = RiskLevel.HIGH
+                reasons.insert(0, "Notificación sospechosa de cobro o renovación de suscripción imprevista con urgencia")
+            else:
+                level = RiskLevel.SUSPICIOUS
+                reasons.insert(0, "Reclamo de cobro o suscripción no reconocida")
+
+        elif is_unverified_link:
+            contributing.append("unverified_link_prompt")
+            if signals.urgency or has_unverified_claim or signals.financial_context:
+                level = RiskLevel.HIGH
+                reasons.insert(0, "Enlace externo no verificado en contexto urgente o financiero sospechoso")
+            else:
+                level = RiskLevel.SUSPICIOUS
+                reasons.insert(0, "Solicitud de clic en enlace externo no verificado")
 
         elif has_unverified_claim and (signals.urgency or signals.financial_context):
             level = RiskLevel.SUSPICIOUS

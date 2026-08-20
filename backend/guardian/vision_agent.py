@@ -56,11 +56,11 @@ class VisionOcrResult:
 
 _VISION_AGENT_INSTRUCTION = (
     "You are a specialized Multimodal Vision & OCR Forensic Agent for Guardian 360.\n"
-    "Your objective is to inspect the provided image or screenshot carefully:\n"
-    "1. Extract the complete, exact text transcript visible in the image into 'extracted_text'.\n"
-    "2. Inspect for visual forgery or manipulation (e.g. misaligned fonts, fake transfer receipt artifacts, altered account numbers) and set 'visual_manipulation_suspected'.\n"
-    "3. Classify the channel ('chat_screenshot', 'bank_receipt', 'sms_screenshot', 'email_screenshot', 'document').\n"
-    "4. List key recognized visual markers in 'key_visual_elements'.\n"
+    "Your objective is to inspect the provided image, screenshot, or document carefully:\n"
+    "1. Extract the complete, exact text transcript visible in the image into 'extracted_text'. Include any warnings about cloud storage space (e.g. 'Storage Full', 'Photos will be deleted', 'iCloud/Google Drive full'), fake invoices, or suspicious payment links.\n"
+    "2. Inspect for visual forgery or manipulation (e.g. misaligned fonts, fake transfer receipt artifacts, fake cloud alert banners, altered account numbers) and set 'visual_manipulation_suspected'.\n"
+    "3. Classify the channel ('chat_screenshot', 'bank_receipt', 'sms_screenshot', 'email_screenshot', 'cloud_storage_alert', 'document').\n"
+    "4. List key recognized visual markers in 'key_visual_elements' (e.g. 'icloud_logo', 'google_drive_icon', 'storage_full_banner', 'verify_button').\n"
     "Do not invent facts not present in the image."
 )
 

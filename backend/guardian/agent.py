@@ -51,9 +51,21 @@ class ScamSignalsSchema(BaseModel):
         default=False,
         description="Whether the caller requests installing remote access software (AnyDesk, TeamViewer, etc.).",
     )
+    service_cancellation_threat: bool = Field(
+        default=False,
+        description="Whether there is a threat of cloud storage full, account deletion, lost photos/files, or service cancellation.",
+    )
+    subscription_fee_claim: bool = Field(
+        default=False,
+        description="Whether there is a claim of an unexpected subscription fee, mandatory renewal charge, or unpaid invoice.",
+    )
+    unverified_link_prompt: bool = Field(
+        default=False,
+        description="Whether the user is prompted to click an external link, update payment methods, or login outside the official app.",
+    )
     requested_action: Optional[str] = Field(
         default=None,
-        description="Specific action requested by caller (e.g. 'share_otp', 'share_password', 'transfer_money').",
+        description="Specific action requested by caller (e.g. 'share_otp', 'click_link', 'upgrade_storage', 'transfer_money').",
     )
 
 

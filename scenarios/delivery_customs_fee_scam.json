@@ -1,0 +1,12 @@
+{
+  "scenario_id": "delivery_customs_fee_01",
+  "title": "Falsa Incidencia de Paquetería y Pago de Aduanas",
+  "description": "El estafador alerta sobre la retención de un paquete urgente de Correos solicitando los datos de la tarjeta bancaria para liberar el envío.",
+  "dialogue": [
+    "Estimado cliente, le contactamos del servicio de logística y aduanas de Correos referente a su paquete registrado con número de seguimiento internacional.",
+    "El envío no ha podido ser entregado debido a una tasa aduanera pendiente de 2,45 euros que vence hoy.",
+    "Para liberar el paquete y programar la entrega esta tarde, dígame el número completo de su tarjeta y el código de seguridad CVC."
+  ],
+  "expected_final_risk": "SUSPICIOUS",
+  "expected_warning_directive": "NO FACILITE DATOS DE TARJETA"
+}

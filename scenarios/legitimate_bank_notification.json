@@ -1,0 +1,12 @@
+{
+  "scenario_id": "legitimate_bank_notification_01",
+  "title": "Notificación Informativa Banco Legítimo (Control)",
+  "description": "Llamada informativa legítima de un gestor de banco notificando el vencimiento de un depósito sin solicitar claves ni transferencias.",
+  "dialogue": [
+    "Hola buenos días María, le habla Carlos, su gestor personal de la oficina de Banco Santander de la calle Alcalá.",
+    "Le llamo simplemente para recordarle que su depósito a plazo fijo vence la próxima semana y para invitarle a revisar las opciones cuando pase por la oficina.",
+    "No necesita realizar ninguna acción por teléfono. Que tenga un muy buen día."
+  ],
+  "expected_final_risk": "NORMAL",
+  "expected_warning_directive": null
+}

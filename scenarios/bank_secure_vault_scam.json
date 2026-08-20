@@ -1,0 +1,12 @@
+{
+  "scenario_id": "bank_secure_vault_01",
+  "title": "Falsa Bóveda Segura Bancaria y Transferencia Proactiva",
+  "description": "El estafador usa el manejo preventivo de objeciones afirmando que no pedirá claves, pero guiando la transferencia a una cuenta bóveda.",
+  "dialogue": [
+    "Hola, le llamo del Departamento de Prevención de Fraudes del Banco Santander. Hemos bloqueado una transferencia sospechosa de 3.500 euros a Lituania.",
+    "Para su tranquilidad, le recuerdo que yo nunca le pediré su contraseña ni PIN. Únicamente necesitamos confirmar su identidad para proteger sus fondos.",
+    "Le acabo de enviar un SMS oficial con un enlace a una bóveda electrónica segura a su nombre. Debe transferir sus fondos temporalmente a esta cuenta para no perder el dinero."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO TRANSFERIR FONDOS A OTRA CUENTA"
+}

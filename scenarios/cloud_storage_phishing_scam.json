@@ -1,0 +1,18 @@
+{
+  "scenario_id": "cloud_storage_phishing_001",
+  "title": "Cloud Storage Full & Urgent Photo Deletion Phishing Threat",
+  "description": "Scammer sends fake cloud storage notification claiming user's iCloud/Google Drive is 100% full and all photos/files will be deleted within 24 hours unless they click a link and pay a fee.",
+  "channel": "email_phishing",
+  "dialogue": [
+    "ALERTA URGENTE: Su almacenamiento en iCloud está completamente lleno (99.9%). Si no actualiza su plan de almacenamiento en las próximas 24 horas, todas sus fotos y archivos guardados serán eliminados permanentemente de nuestros servidores. Haga clic en el siguiente enlace seguro para actualizar su método de pago y mantener sus fotos a salvo: http://icloud-storage-renewal-fake-domain.com/pay"
+  ],
+  "expected_signals": {
+    "identity_claim": "icloud",
+    "service_cancellation_threat": true,
+    "urgency": true,
+    "unverified_link_prompt": true,
+    "financial_context": true
+  },
+  "expected_risk": "CRITICAL",
+  "expected_canary_action": "ALLOW"
+}

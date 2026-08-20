@@ -1,0 +1,12 @@
+{
+  "scenario_id": "crypto_investment_guaranteed_01",
+  "title": "Chiringuito Financiero e Inversión Ficticia en Criptomonedas",
+  "description": "El estafador ofrece una oportunidad exclusiva de trading automatizado garantizando ganancias sin riesgo tras un pago inicial.",
+  "dialogue": [
+    "Hola, le llamo de la división VIP de CryptoGlobal Trading. Su número ha sido seleccionado para participar en nuestro algoritmo de arbitraje automatizado.",
+    "Con un depósito mínimo inicial de 250 euros hoy, nuestro bot le garantiza un rendimiento de 2.000 euros semanales completamente sin riesgo.",
+    "La oferta expira al finalizar esta llamada. Facilíteme sus datos bancarios para realizar el ingreso de inicio ahora mismo."
+  ],
+  "expected_final_risk": "HIGH",
+  "expected_warning_directive": "NO REALICE TRANSFERENCIAS DE INVERSIÓN"
+}

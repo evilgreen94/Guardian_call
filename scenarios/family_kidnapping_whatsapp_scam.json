@@ -1,0 +1,12 @@
+{
+  "scenario_id": "family_kidnapping_whatsapp_01",
+  "title": "Falso Familiar en Apuros y Teléfono Roto",
+  "description": "El estafador llama fingiendo ser el hijo del usuario desorientado tras un grave incidente, solicitando un envío urgente de dinero.",
+  "dialogue": [
+    "¡Papá, por favor escúchame! Tuve un accidente con el coche y se me rompió el móvil. Estoy en la comisaría con el teléfono de un desconocido.",
+    "Tengo que pagar urgentemente 650 euros en el taller de la grúa antes de media hora para que no me retengan el vehículo.",
+    "Por favor realiza una transferencia inmediata a este número por Bizum y no intentes llamarme a mi número normal porque no funciona."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "LLAME A SU FAMILIAR DIRECTAMENTE"
+}

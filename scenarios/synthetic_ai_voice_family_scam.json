@@ -1,0 +1,12 @@
+{
+  "scenario_id": "synthetic_ai_voice_family_01",
+  "title": "Clonación de Voz con IA y Retención Extranjera",
+  "description": "El estafador usa un clon de voz del hijo del usuario solicitando una fianza urgente durante un viaje al extranjero.",
+  "dialogue": [
+    "¡Mamá, soy yo! Ha ocurrido un desastre terrible en el aeropuerto durante el transbordo de mi vuelo internacional.",
+    "Las autoridades me están reteniendo en la aduana porque dicen que hay un problema con mi visado de tránsito y no me dejan embarcar.",
+    "Necesito que transfieras 900 euros inmediatamente a la cuenta del gestor consular para que me permitan salir antes de que salga el avión."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "VERIFIQUE MEDIANTE PREGUNTA PERSONAL"
+}

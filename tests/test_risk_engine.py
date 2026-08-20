@@ -131,5 +131,41 @@ class TestRiskEngine(unittest.TestCase):
                 self.assertGreater(len(reason.strip()), 0, "Reason string must not be blank")
 
 
+    def test_cloud_storage_deletion_threat_triggers_high_or_critical(self) -> None:
+        """Verify cloud storage full / data deletion threat triggers HIGH or CRITICAL risk."""
+        # Case A: Urgent storage deletion threat -> HIGH
+        signals_high = create_signals(
+            service_cancellation_threat=True,
+            urgency=True,
+            identity_claim="cloud_storage",
+        )
+        assessment_high = self.engine.evaluate(signals_high)
+        self.assertIn(assessment_high.level, (RiskLevel.HIGH, RiskLevel.CRITICAL))
+        self.assertTrue(any("almacenamiento" in r.lower() or "storage" in r.lower() or "cancelaci" in r.lower() for r in assessment_high.reasons))
+
+        # Case B: Storage deletion threat with payment link or transfer request -> CRITICAL
+        signals_critical = create_signals(
+            service_cancellation_threat=True,
+            urgency=True,
+            unverified_link_prompt=True,
+            financial_context=True,
+            identity_claim="cloud_storage",
+        )
+        assessment_critical = self.engine.evaluate(signals_critical)
+        self.assertEqual(assessment_critical.level, RiskLevel.CRITICAL)
+        self.assertIn("service_cancellation_threat", assessment_critical.contributing_signals)
+
+    def test_fake_subscription_fee_claim_triggers_high_or_critical(self) -> None:
+        """Verify fake subscription fee or unexpected charge claim triggers HIGH or CRITICAL risk."""
+        signals = create_signals(
+            subscription_fee_claim=True,
+            urgency=True,
+            unverified_link_prompt=True,
+        )
+        assessment = self.engine.evaluate(signals)
+        self.assertIn(assessment.level, (RiskLevel.HIGH, RiskLevel.CRITICAL))
+        self.assertIn("subscription_fee_claim", assessment.contributing_signals)
+
+
 if __name__ == "__main__":
     unittest.main()

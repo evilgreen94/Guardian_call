@@ -42,6 +42,9 @@ class ScamSignals:
     password_request: bool = False
     transfer_request: bool = False
     remote_access_request: bool = False
+    service_cancellation_threat: bool = False
+    subscription_fee_claim: bool = False
+    unverified_link_prompt: bool = False
     requested_action: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:

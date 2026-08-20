@@ -1,0 +1,12 @@
+{
+  "scenario_id": "mfa_fatigue_it_helpdesk_01",
+  "title": "Falso Soporte TI y Fatiga MFA / Push Bombing (Scattered Spider)",
+  "description": "El estafador desencadena múltiples notificaciones push de MFA y llama haciendo pasar por soporte informático exigiendo pulsar Aprobar.",
+  "dialogue": [
+    "Hi Sarah, this is Mike from Global IT Security. We are currently seeing a cluster of anomalous login attempts trying to access your Microsoft 365 environment.",
+    "Your phone has been buzzing with Authenticator push approval requests. Do not ignore them. It is a credential stuffing attack in progress.",
+    "I need you to hit Approve on the very next push prompt that pops up so our security backend can synchronize your device token and lock out the hostile IP."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO APRUEBE NINGUNA NOTIFICACIÓN PUSH"
+}
