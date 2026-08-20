@@ -12,18 +12,26 @@ import os
 import re
 import time
 from dataclasses import dataclass
+import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+
+backend_dir = Path(__file__).resolve().parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
 from dotenv import load_dotenv
 
 # Ensure .env is loaded
-env_file = Path(__file__).resolve().parent.parent.parent / ".env"
+env_file = backend_dir.parent / ".env"
 if env_file.exists():
     load_dotenv(env_file)
 
-from .events import EventSink, InMemoryEventSink
-from .pipeline import GuardianPipeline, PipelineResult
+try:
+    from .events import EventSink, InMemoryEventSink
+    from .pipeline import GuardianPipeline, PipelineResult
+except ImportError:
+    from guardian.events import EventSink, InMemoryEventSink
+    from guardian.pipeline import GuardianPipeline, PipelineResult
 
 
 @dataclass
@@ -181,36 +189,36 @@ def main() -> None:
     args = parser.parse_args()
 
     listener = EmailListener()
-    print("=" * 70)
-    print(f"GUARDIAN 360 — REAL-TIME EMAIL PROTECTION LISTENER")
-    print(f"Server:   {listener.imap_server}:{listener.imap_port}")
-    print(f"User:     {listener.username or '[NOT CONFIGURED - Set IMAP_USER in .env]'}")
-    print(f"Interval: {args.interval}s")
-    print("=" * 70)
+    print("=" * 70, flush=True)
+    print(f"GUARDIAN 360 — REAL-TIME EMAIL PROTECTION LISTENER", flush=True)
+    print(f"Server:   {listener.imap_server}:{listener.imap_port}", flush=True)
+    print(f"User:     {listener.username or '[NOT CONFIGURED - Set IMAP_USER in .env]'}", flush=True)
+    print(f"Interval: {args.interval}s", flush=True)
+    print("=" * 70, flush=True)
 
     if not listener.username or not listener.password:
-        print("\n[CONFIG NEEDED] To connect to your real email inbox:")
-        print("1. Open your .env file")
-        print("2. Set IMAP_USER=your_email@gmail.com")
-        print("3. Set IMAP_PASSWORD=your_app_password  (Generate a 16-character App Password in Google Security)")
-        print("4. Re-run: python backend/guardian/email_listener.py\n")
+        print("\n[CONFIG NEEDED] To connect to your real email inbox:", flush=True)
+        print("1. Open your .env file", flush=True)
+        print("2. Set IMAP_USER=your_email@gmail.com", flush=True)
+        print("3. Set IMAP_PASSWORD=your_app_password  (Generate a 16-character App Password in Google Security)", flush=True)
+        print("4. Re-run: python backend/guardian/email_listener.py\n", flush=True)
         return
 
-    print("\nListening for incoming emails... Press CTRL+C to stop.\n")
+    print("\nListening for incoming emails... Press CTRL+C to stop.\n", flush=True)
     try:
         while True:
             try:
                 results = listener.fetch_and_process_unseen(mark_as_read=False)
                 if results:
-                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Processed {len(results)} new email(s):")
+                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Processed {len(results)} new email(s):", flush=True)
                     for msg_id, res in results:
-                        print(f" -> Message ID #{msg_id} | Risk: {res.risk_assessment.level.value} | Action: {res.canary_decision.decision.value}")
+                        print(f" -> Message ID #{msg_id} | Risk: {res.risk_assessment.level.value} | Action: {res.canary_decision.decision.value}", flush=True)
                         if res.warning_event:
-                            print(f"    [WARNING TRIGGERED] {res.warning_event.payload.get('headline')}: {res.risk_assessment.reasons}")
+                            print(f"    [WARNING TRIGGERED] {res.warning_event.payload.get('headline')}: {res.risk_assessment.reasons}", flush=True)
                 else:
-                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Polling INBOX... (No new unseen emails)")
+                    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Polling INBOX... (No new unseen emails)", flush=True)
             except EmailListenerError as err:
-                print(f"[IMAP ERROR] {err}")
+                print(f"[IMAP ERROR] {err}", flush=True)
 
             time.sleep(args.interval)
 
