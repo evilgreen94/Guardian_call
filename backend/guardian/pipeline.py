@@ -252,5 +252,38 @@ class GuardianPipeline:
         else:
             extracted_text = ""
 
-        return self.process_text(extracted_text, event_sink=sink)
+        result = self.process_text(extracted_text, event_sink=sink)
+
+        if ocr_result and (
+            ocr_result.suspicious_domain_detected
+            or ocr_result.special_offer_detected
+            or ocr_result.countdown_timer_detected
+            or ocr_result.visual_manipulation_suspected
+            or ocr_result.sender_email
+        ):
+            from .signals import create_signals
+            lower_text = extracted_text.lower()
+            merged_signals = create_signals(
+                identity_claim=result.signals.identity_claim or (ocr_result.channel_detected if ocr_result.channel_detected != "unknown" else None),
+                identity_verified=result.signals.identity_verified,
+                financial_context=result.signals.financial_context or ("payment" in lower_text or "fee" in lower_text or "upgrade" in lower_text),
+                urgency=result.signals.urgency or ocr_result.countdown_timer_detected or ("urg" in lower_text or "blocked" in lower_text or "deleted" in lower_text or "immediately" in lower_text or "expire" in lower_text or "don't wait" in lower_text),
+                secrecy_request=result.signals.secrecy_request,
+                otp_request=result.signals.otp_request,
+                password_request=result.signals.password_request,
+                transfer_request=result.signals.transfer_request,
+                remote_access_request=result.signals.remote_access_request,
+                service_cancellation_threat=result.signals.service_cancellation_threat or ("storage" in lower_text or "blocked" in lower_text or "deleted" in lower_text or "full" in lower_text or "removed" in lower_text),
+                subscription_fee_claim=result.signals.subscription_fee_claim or ("payment-declined" in lower_text or "subscription" in lower_text or "upgrade" in lower_text),
+                unverified_link_prompt=result.signals.unverified_link_prompt or ("http" in lower_text or "www." in lower_text or "update" in lower_text or "click" in lower_text),
+                sender_email=result.signals.sender_email or ocr_result.sender_email,
+                suspicious_domain=result.signals.suspicious_domain or ocr_result.suspicious_domain_detected or ocr_result.visual_manipulation_suspected,
+                special_offer_hook=result.signals.special_offer_hook or ocr_result.special_offer_detected,
+                countdown_timer=result.signals.countdown_timer or ocr_result.countdown_timer_detected,
+                requested_action=result.signals.requested_action or "update_payment_or_storage",
+            )
+            risk_assessment = self.risk_engine.evaluate(merged_signals)
+            return self._act_on_risk_assessment(merged_signals, risk_assessment, sink)
+
+        return result
 

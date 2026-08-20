@@ -17,12 +17,19 @@ def create_signals(
     service_cancellation_threat: bool = False,
     subscription_fee_claim: bool = False,
     unverified_link_prompt: bool = False,
+    sender_email: Optional[str] = None,
+    suspicious_domain: bool = False,
+    special_offer_hook: bool = False,
+    countdown_timer: bool = False,
     requested_action: Optional[str] = None,
 ) -> ScamSignals:
     """Create a validated ScamSignals instance."""
     # Normalize string inputs to lowercase and strip whitespace if present
     normalized_identity_claim = (
         identity_claim.strip().lower() if isinstance(identity_claim, str) and identity_claim.strip() else None
+    )
+    normalized_sender_email = (
+        sender_email.strip().lower() if isinstance(sender_email, str) and sender_email.strip() else None
     )
     normalized_requested_action = (
         requested_action.strip().lower() if isinstance(requested_action, str) and requested_action.strip() else None
@@ -41,6 +48,10 @@ def create_signals(
         service_cancellation_threat=bool(service_cancellation_threat),
         subscription_fee_claim=bool(subscription_fee_claim),
         unverified_link_prompt=bool(unverified_link_prompt),
+        sender_email=normalized_sender_email,
+        suspicious_domain=bool(suspicious_domain),
+        special_offer_hook=bool(special_offer_hook),
+        countdown_timer=bool(countdown_timer),
         requested_action=normalized_requested_action,
     )
 
@@ -60,5 +71,9 @@ def signals_from_dict(data: Dict[str, Any]) -> ScamSignals:
         service_cancellation_threat=data.get("service_cancellation_threat", False),
         subscription_fee_claim=data.get("subscription_fee_claim", False),
         unverified_link_prompt=data.get("unverified_link_prompt", False),
+        sender_email=data.get("sender_email"),
+        suspicious_domain=data.get("suspicious_domain", False),
+        special_offer_hook=data.get("special_offer_hook", False),
+        countdown_timer=data.get("countdown_timer", False),
         requested_action=data.get("requested_action"),
     )

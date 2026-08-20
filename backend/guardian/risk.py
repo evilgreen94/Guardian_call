@@ -22,6 +22,9 @@ class RiskEngine:
         is_service_threat = signals.service_cancellation_threat
         is_subscription_claim = signals.subscription_fee_claim
         is_unverified_link = signals.unverified_link_prompt
+        is_suspicious_domain = signals.suspicious_domain
+        is_countdown_timer = signals.countdown_timer
+        is_special_offer = signals.special_offer_hook
 
         # 2. Gather contextual risk indicators
         has_unverified_claim = bool(signals.identity_claim) and not signals.identity_verified
@@ -75,19 +78,13 @@ class RiskEngine:
                 reasons.insert(0, "Money transfer requested")
             contributing.append("transfer_request")
 
-        elif signals.otp_request and signals.requested_action != "share_otp":
-            # Legitimate OTP flow (e.g. entering in official app, or general mention without sharing)
-            if has_unverified_claim and signals.urgency:
-                level = RiskLevel.SUSPICIOUS
-                reasons.insert(0, "OTP mentioned with unverified caller and urgency (no sharing requested)")
-            else:
-                level = RiskLevel.NORMAL
-                reasons.insert(0, "Legitimate OTP flow detected (user not asked to reveal code)")
-            contributing.append("otp_request")
+        elif is_suspicious_domain and (is_service_threat or is_subscription_claim or is_unverified_link or signals.urgency or is_countdown_timer or is_special_offer):
+            level = RiskLevel.CRITICAL
+            reasons.insert(0, f"Correo electrónico o dominio de remitente falsificado/sospechoso ({signals.sender_email or 'desconocido'}) combinado con táctica de phishing")
 
         elif is_service_threat:
             contributing.append("service_cancellation_threat")
-            if is_unverified_link or is_transfer_request or signals.financial_context or is_otp_theft:
+            if is_unverified_link or is_transfer_request or signals.financial_context or is_otp_theft or is_countdown_timer or is_special_offer or is_suspicious_domain:
                 level = RiskLevel.CRITICAL
                 reasons.insert(0, "Intento de estafa/phishing de almacenamiento o servicio exigiendo pago o datos de acceso bajo amenaza de pérdida de información")
             elif signals.urgency or has_unverified_claim:
@@ -99,7 +96,7 @@ class RiskEngine:
 
         elif is_subscription_claim:
             contributing.append("subscription_fee_claim")
-            if is_unverified_link or is_transfer_request or is_otp_theft:
+            if is_unverified_link or is_transfer_request or is_otp_theft or is_countdown_timer or is_suspicious_domain:
                 level = RiskLevel.CRITICAL
                 reasons.insert(0, "Cobro o renovación de suscripción imprevista redirigiendo a enlace o pago sospechoso")
             elif signals.urgency or has_unverified_claim:
@@ -108,6 +105,25 @@ class RiskEngine:
             else:
                 level = RiskLevel.SUSPICIOUS
                 reasons.insert(0, "Reclamo de cobro o suscripción no reconocida")
+
+        elif is_unverified_link:
+            contributing.append("unverified_link_prompt")
+            if signals.urgency or has_unverified_claim or signals.financial_context:
+                level = RiskLevel.HIGH
+                reasons.insert(0, "Enlace externo no verificado en contexto urgente o financiero sospechoso")
+            else:
+                level = RiskLevel.SUSPICIOUS
+                reasons.insert(0, "Solicitud de clic en enlace externo no verificado")
+
+        elif signals.otp_request and signals.requested_action != "share_otp":
+            # Legitimate OTP flow (e.g. entering in official app, or general mention without sharing)
+            if has_unverified_claim and signals.urgency:
+                level = RiskLevel.SUSPICIOUS
+                reasons.insert(0, "OTP mentioned with unverified caller and urgency (no sharing requested)")
+            else:
+                level = RiskLevel.NORMAL
+                reasons.insert(0, "Legitimate OTP flow detected (user not asked to reveal code)")
+            contributing.append("otp_request")
 
         elif is_unverified_link:
             contributing.append("unverified_link_prompt")

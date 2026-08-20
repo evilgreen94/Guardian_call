@@ -45,6 +45,10 @@ class ScamSignals:
     service_cancellation_threat: bool = False
     subscription_fee_claim: bool = False
     unverified_link_prompt: bool = False
+    sender_email: Optional[str] = None
+    suspicious_domain: bool = False
+    special_offer_hook: bool = False
+    countdown_timer: bool = False
     requested_action: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
