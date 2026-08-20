@@ -178,7 +178,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      alert(`[ESCÁNER IMAP COMPLETADO] Se analizaron ${data.count} correo(s) de tu bandeja de entrada.`);
+      if (data.scanned_emails && data.scanned_emails.length > 0) {
+        data.scanned_emails.forEach(email => handleLiveEvent(email));
+      } else {
+        alert(`[ESCÁNER IMAP COMPLETADO] Se analizaron ${data.count} correo(s) de tu bandeja de entrada.`);
+      }
 
     } catch (err) {
       console.error('Inbox scan failed:', err);

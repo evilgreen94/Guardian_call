@@ -175,14 +175,21 @@ async def scan_inbox(limit: int = 5) -> Dict[str, Any]:
         results = listener.scan_recent_emails(limit=limit)
         scanned = []
         for msg_id, res in results:
-            scanned.append({
+            item_dict = {
+                "event_type": "REALTIME_EMAIL_ANALYSIS",
+                "source": "IMAP_MANUAL_SCAN",
                 "message_id": msg_id,
+                "sender": getattr(res.signals, "sender_email", None) or "Bandeja de Entrada Gmail",
+                "subject": f"Correo #{msg_id} de Gmail",
                 "risk_level": res.risk_assessment.level.value,
                 "decision": res.canary_decision.decision.value,
                 "reasons": res.risk_assessment.reasons,
                 "headline": res.warning_event.payload.get("headline") if res.warning_event else None,
                 "signals": res.signals.to_dict(),
-            })
+                "events": [e.to_dict() for e in res.events],
+            }
+            await broadcast_event(item_dict)
+            scanned.append(item_dict)
         return {
             "status": "success",
             "count": len(results),
