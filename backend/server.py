@@ -16,6 +16,15 @@ from fastapi.middleware.cors import CORSMiddleware
 # Ensure backend package directory is on sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from dotenv import load_dotenv
+
+env_file = Path(__file__).resolve().parent.parent / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+
+if not os.getenv("GOOGLE_API_KEY") and os.getenv("GEMINI_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = os.environ["GEMINI_API_KEY"]
+
 from guardian.events import InMemoryEventSink
 from guardian.pipeline import GuardianPipeline
 
