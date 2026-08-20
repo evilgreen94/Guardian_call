@@ -1,2 +1,4 @@
 google-adk
+fastapi
+uvicorn
 pytest

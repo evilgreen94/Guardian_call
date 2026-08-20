@@ -1,0 +1,11 @@
+{
+  "scenario_id": "legitimate_call_01",
+  "title": "Legitimate Appointment Confirmation Call",
+  "description": "Friendly call confirming an upcoming medical appointment without requesting credentials or codes.",
+  "dialogue": [
+    "Good morning, I am calling from Sanitas Medical Center to confirm your appointment for tomorrow at 10 AM with Dr. Garcia.",
+    "Please remember to bring your ID card and health insurance card with you."
+  ],
+  "expected_final_risk": "NORMAL",
+  "expected_warning_directive": null
+}

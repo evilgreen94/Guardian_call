@@ -1,0 +1,12 @@
+{
+  "scenario_id": "bank_otp_scam_01",
+  "title": "Fake Bank Fraud Department OTP Theft Attempt",
+  "description": "Scammer poses as bank fraud agent, creates urgency, and requests the user to read back a 6-digit SMS OTP code.",
+  "dialogue": [
+    "Hello, this is the security department from your bank. We noticed an unauthorized transfer attempt of 450 euros on your account.",
+    "To block this fraudulent transaction immediately, I just sent a security verification code to your mobile phone via SMS.",
+    "Please read me the six-digit code you just received so I can verify your identity and cancel the charge right now."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO DIGA ESE CÓDIGO"
+}
