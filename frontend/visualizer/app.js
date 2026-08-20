@@ -161,6 +161,34 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const btnScanInbox = document.getElementById('btn-scan-inbox');
+
+  btnScanInbox?.addEventListener('click', async () => {
+    btnScanInbox.disabled = true;
+    btnScanInbox.textContent = '[ ESCANEANDO GMAIL (IMAP)... ]';
+
+    try {
+      const response = await fetch('/api/v1/scan-inbox?limit=5', {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP error ${response.status}`);
+      }
+
+      const data = await response.json();
+      alert(`[ESCÁNER IMAP COMPLETADO] Se analizaron ${data.count} correo(s) de tu bandeja de entrada.`);
+
+    } catch (err) {
+      console.error('Inbox scan failed:', err);
+      alert(`Error de escaneo IMAP: ${err.message}`);
+    } finally {
+      btnScanInbox.disabled = false;
+      btnScanInbox.textContent = '[ 📩 ESCANEAR BANDEJA DE ENTRADA (IMAP) ]';
+    }
+  });
+
   // 5. Render Analysis Results
   function renderResults(data) {
     const { signals, risk_assessment, canary_decision, warning, events } = data;

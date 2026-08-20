@@ -165,6 +165,41 @@ def get_recent_events() -> Dict[str, Any]:
     return {"events": recent_events_cache}
 
 
+@app.post("/api/v1/scan-inbox", tags=["Analysis"])
+async def scan_inbox(limit: int = 5) -> Dict[str, Any]:
+    """Manually scan recent emails in Gmail inbox using IMAP and return analysis."""
+    from guardian.email_listener import EmailListener, EmailListenerError
+
+    try:
+        listener = EmailListener()
+        results = listener.scan_recent_emails(limit=limit)
+        scanned = []
+        for msg_id, res in results:
+            scanned.append({
+                "message_id": msg_id,
+                "risk_level": res.risk_assessment.level.value,
+                "decision": res.canary_decision.decision.value,
+                "reasons": res.risk_assessment.reasons,
+                "headline": res.warning_event.payload.get("headline") if res.warning_event else None,
+                "signals": res.signals.to_dict(),
+            })
+        return {
+            "status": "success",
+            "count": len(results),
+            "scanned_emails": scanned,
+        }
+    except EmailListenerError as err:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(err),
+        ) from err
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to scan inbox: {str(exc)}",
+        ) from exc
+
+
 @app.get("/api/v1/events/stream", tags=["Realtime Telemetry"])
 async def stream_events():
     """Server-Sent Events (SSE) endpoint for real-time frontend visualizer streaming."""

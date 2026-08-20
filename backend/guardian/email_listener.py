@@ -210,6 +210,45 @@ class EmailListener:
         except Exception as exc:
             raise EmailListenerError(f"Failed to fetch emails via IMAP: {str(exc)}") from exc
 
+    def scan_recent_emails(self, limit: int = 5) -> List[Tuple[str, PipelineResult]]:
+        """Connect to IMAP server, fetch recent N emails in INBOX, and process them through Guardian Pipeline.
+
+        Returns:
+            List of tuples (msg_id, PipelineResult)
+        """
+        if not self.username or not self.password:
+            raise EmailListenerError(
+                "IMAP credentials missing! Please configure IMAP_USER and IMAP_PASSWORD in your .env file."
+            )
+
+        try:
+            client = imaplib.IMAP4_SSL(self.imap_server, self.imap_port)
+            client.login(self.username, self.password)
+            client.select("INBOX")
+
+            # Search for all messages and take the last 'limit'
+            status_code, response = client.search(None, "ALL")
+            if status_code != "OK" or not response or not response[0]:
+                client.logout()
+                return []
+
+            msg_ids = response[0].split()
+            recent_ids = msg_ids[-limit:] if len(msg_ids) >= limit else msg_ids
+            results: List[Tuple[str, PipelineResult]] = []
+
+            for msg_id in recent_ids:
+                res_code, data = client.fetch(msg_id, "(BODY.PEEK[])")
+                if res_code == "OK" and data and isinstance(data[0], tuple):
+                    raw_bytes = data[0][1]
+                    result = self.process_raw_email(raw_bytes)
+                    results.append((msg_id.decode("utf-8"), result))
+
+            client.logout()
+            return results
+
+        except Exception as exc:
+            raise EmailListenerError(f"Failed to scan recent emails via IMAP: {str(exc)}") from exc
+
 
 def main() -> None:
     """CLI runner to start polling IMAP inbox continuously."""
