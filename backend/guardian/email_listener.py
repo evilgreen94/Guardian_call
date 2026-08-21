@@ -125,6 +125,7 @@ class EmailListener:
         self.password = password or os.getenv("IMAP_PASSWORD", "")
         self.pipeline = pipeline or GuardianPipeline()
         self.event_sink = event_sink
+        self.processed_msg_ids = set()
 
     def process_raw_email(self, raw_mime_bytes: bytes) -> PipelineResult:
         """Parse raw MIME email bytes and process through GuardianPipeline."""
@@ -198,12 +199,17 @@ class EmailListener:
             results: List[Tuple[str, PipelineResult]] = []
 
             for msg_id in msg_ids:
+                msg_id_str = msg_id.decode("utf-8")
+                if msg_id_str in self.processed_msg_ids:
+                    continue
+
                 fetch_flag = "(RFC822)" if mark_as_read else "(BODY.PEEK[])"
                 res_code, data = client.fetch(msg_id, fetch_flag)
                 if res_code == "OK" and data and isinstance(data[0], tuple):
                     raw_bytes = data[0][1]
                     result = self.process_raw_email(raw_bytes)
-                    results.append((msg_id.decode("utf-8"), result))
+                    self.processed_msg_ids.add(msg_id_str)
+                    results.append((msg_id_str, result))
 
             client.logout()
             return results

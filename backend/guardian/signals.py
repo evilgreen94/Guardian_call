@@ -56,20 +56,19 @@ def create_signals(
     )
 
 
-_URGENCY_KEYWORDS = ("urg", "blocked", "deleted", "expire", "wait", "minutes", "immediately", "don't wait")
-_FINANCIAL_KEYWORDS = ("payment", "fee", "storage", "gb")
-_SERVICE_THREAT_KEYWORDS = ("storage", "blocked", "deleted", "full", "removed")
-_SUBSCRIPTION_KEYWORDS = ("payment", "fee", "upgrade", "subscription")
-_LINK_KEYWORDS = ("http", "click", "link", "update", "www.")
-_DOMAIN_KEYWORDS = ("http", "link", "@")
-_OFFER_KEYWORDS = ("bonus", "offer", "gb")
-_COUNTDOWN_KEYWORDS = ("minute", "expire", "second")
-_TRIGGER_KEYWORDS = ("storage", "cloud", "blocked", "deleted", "full", "urg", "bonus", "expire", "http", "click", "otp", "password")
+_URGENCY_KEYWORDS = ("urgente", "urgent", "blocked", "bloquead", "deleted", "eliminad", "expire", "expirad", "immediately", "inmediatamen", "don't wait")
+_FINANCIAL_KEYWORDS = ("payment declined", "pago rechazado", "subscription fee", "cuota de suscripci", "bank account", "tarjeta", "wire transfer", "transferencia")
+_SERVICE_THREAT_KEYWORDS = ("storage full", "almacenamiento lleno", "photos will be removed", "account blocked", "cuenta bloqueada", "cuenta suspendida", "lost photos")
+_SUBSCRIPTION_KEYWORDS = ("payment declined", "pago rechazado", "renovacion obligatoria", "unpaid invoice", "factura impagada")
+_LINK_KEYWORDS = ("bit.ly", "tinyurl", "click here", "haga clic", "actualizar pago", "update payment", "verify-account")
+_DOMAIN_KEYWORDS = ("importican", "neuralgrid", "verify-bank", "security-alert-update", "temp-mail", "fake-domain")
+_OFFER_KEYWORDS = ("extra 50 gb", "50gb bonus", "descuento del 90%", "bonus storage", "free 100gb")
+_COUNTDOWN_KEYWORDS = ("expires in", "expira en", "24 hours left", "4 minutes")
+_TRIGGER_KEYWORDS = ("storage full", "photos will be removed", "payment declined", "account blocked", "cuenta bloqueada", "otp", "password", "clave", "transferencia", "giftcard")
 
 
 def text_keyword_flags(text: str) -> Dict[str, bool]:
     """Best-effort keyword flags for scam-adjacent language, used when structured
-
     signal extraction is unavailable (Gemini failure) or incomplete (OCR merge).
     Single source of truth for the heuristic keyword lists.
     """
@@ -91,10 +90,24 @@ def heuristic_signals_from_text(text: str) -> Optional[ScamSignals]:
     lower_t = text.lower()
     if not any(k in lower_t for k in _TRIGGER_KEYWORDS):
         return None
+
     flags = text_keyword_flags(text)
+    
+    identity = None
+    if any(k in lower_t for k in ["cloud", "storage", "google", "icloud", "photos", "drive"]):
+        identity = "cloud_service_or_bank"
+    elif any(k in lower_t for k in ["banco", "bank", "bbva", "santander", "caixabank"]):
+        identity = "banco"
+    elif any(k in lower_t for k in ["policia", "police", "guardia civil"]):
+        identity = "policia"
+
+    action = None
+    if flags.get("unverified_link_prompt") or "click" in lower_t or "update" in lower_t:
+        action = "click_link"
+
     return create_signals(
-        identity_claim="cloud_service_or_bank",
-        requested_action="click_link",
+        identity_claim=identity,
+        requested_action=action,
         **flags,
     )
 
