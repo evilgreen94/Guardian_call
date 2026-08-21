@@ -73,6 +73,9 @@
           <button type="button" class="btn btn-preset" id="btn-scan-inbox" style="border-color: var(--status-green); color: var(--status-green);">
             [ 📩 ESCANEAR BANDEJA DE ENTRADA (IMAP) ]
           </button>
+          <button type="button" class="btn btn-preset" id="btn-view-audit-log" style="border-color: #38bdf8; color: #38bdf8;">
+            [ 📜 VER HISTORIAL DE AUDITORÍA (DISK) ]
+          </button>
           <button type="button" class="btn btn-secondary" id="btn-clear">
             [ RESET TERMINAL ]
           </button>
@@ -164,6 +167,28 @@
             <span class="evt-time">[00:00:00]</span>
             <span class="evt-type">SYSTEM_READY</span>
             <span class="evt-payload">Awaiting input submission to emit backend domain events...</span>
+          </div>
+        </div>
+      </div>
+    <!-- BOTTOM ROW 3: PERSISTENT DISK AUDIT LOG TRAIL -->
+    <section class="panel panel-events grid-full" id="audit-log-section" style="margin-top: 1rem;">
+      <div class="panel-header" style="justify-content: space-between;">
+        <span class="panel-title">[ 05 // PERSISTENT AUDIT TRAIL LOGS (DATA/AUDIT_LOG.JSONL) ]</span>
+        <div>
+          <button type="button" class="btn btn-preset" id="btn-refresh-history" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.75rem; padding: 2px 8px;">
+            🔄 REFRESH DISK LOGS
+          </button>
+          <button type="button" class="btn btn-preset" id="btn-export-history" style="border-color: var(--status-green); color: var(--status-green); font-size: 0.75rem; padding: 2px 8px;">
+            💾 EXPORT JSON
+          </button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <div class="event-stream" id="audit-history-stream" style="max-height: 250px; overflow-y: auto;">
+          <div class="event-item event-empty">
+            <span class="evt-time">[LOGS]</span>
+            <span class="evt-type">AUDIT_LOG_STORE</span>
+            <span class="evt-payload">Click 'VER HISTORIAL DE AUDITORÍA' to load saved audit records from disk...</span>
           </div>
         </div>
       </div>

@@ -225,6 +225,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  const btnViewAuditLog = document.getElementById('btn-view-audit-log');
+  const btnRefreshHistory = document.getElementById('btn-refresh-history');
+  const btnExportHistory = document.getElementById('btn-export-history');
+  const auditHistoryStream = document.getElementById('audit-history-stream');
+  let currentAuditHistory = [];
+
+  async function loadAuditHistory() {
+    if (!auditHistoryStream) return;
+    try {
+      const res = await fetch('/api/v1/events/history?limit=100');
+      if (!res.ok) return;
+      const data = await res.json();
+      currentAuditHistory = data.events || [];
+
+      if (currentAuditHistory.length === 0) {
+        auditHistoryStream.innerHTML = `
+          <div class="event-item event-empty">
+            <span class="evt-time">[LOGS]</span>
+            <span class="evt-type">NO_LOGS</span>
+            <span class="evt-payload">No persistent audit log records found on disk.</span>
+          </div>`;
+        return;
+      }
+
+      auditHistoryStream.innerHTML = '';
+      currentAuditHistory.slice().reverse().forEach(evt => {
+        const item = document.createElement('div');
+        item.className = 'event-item';
+        const timeStr = evt.timestamp ? (evt.timestamp.split('T')[1]?.substring(0, 8) || '00:00:00') : '00:00:00';
+        const eventType = evt.event_type || 'EVENT';
+        const payloadStr = JSON.stringify(evt.payload || evt.signals || evt.reasons || evt);
+        item.innerHTML = `
+          <span class="evt-time">[${timeStr}]</span>
+          <span class="evt-type" style="color: #38bdf8;">${eventType}</span>
+          <span class="evt-payload">${payloadStr}</span>
+        `;
+        auditHistoryStream.appendChild(item);
+      });
+
+      document.getElementById('audit-log-section')?.scrollIntoView({ behavior: 'smooth' });
+
+    } catch (err) {
+      console.error('Failed to load audit history:', err);
+    }
+  }
+
+  btnViewAuditLog?.addEventListener('click', loadAuditHistory);
+  btnRefreshHistory?.addEventListener('click', loadAuditHistory);
+
+  btnExportHistory?.addEventListener('click', () => {
+    if (currentAuditHistory.length === 0) {
+      alert('No hay registros de auditoría para exportar.');
+      return;
+    }
+    const blob = new Blob([JSON.stringify(currentAuditHistory, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `guardian_audit_logs_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
   // 5. Render Analysis Results
   function renderResults(data) {
     const { signals, risk_assessment, canary_decision, warning, events } = data;

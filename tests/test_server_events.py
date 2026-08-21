@@ -60,3 +60,12 @@ def test_scan_inbox_endpoint(monkeypatch):
     assert data["count"] == 2
     assert data["scanned_emails"][0]["risk_level"] == "CRITICAL"
 
+
+def test_get_audit_history_endpoint():
+    res = client.get("/api/v1/events/history?limit=10")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert "events" in data
+    assert isinstance(data["events"], list)
+

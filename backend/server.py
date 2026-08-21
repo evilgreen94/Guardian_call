@@ -168,10 +168,20 @@ recent_events_cache: List[Dict[str, Any]] = []
 
 
 async def broadcast_event(event_data: Dict[str, Any]) -> None:
-    """Broadcast an event payload to all connected SSE browser clients."""
+    """Broadcast an event payload to all connected SSE browser clients and append to persistent audit log."""
     recent_events_cache.append(event_data)
     if len(recent_events_cache) > 50:
         recent_events_cache.pop(0)
+
+    # Persist event to disk audit log
+    try:
+        from pathlib import Path
+        log_file = Path("data/audit_log.jsonl")
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(event_data) + "\n")
+    except Exception:
+        pass
 
     # Dispatch to all active SSE queues
     for queue in list(event_subscribers):
@@ -192,6 +202,18 @@ async def publish_event(event_data: Dict[str, Any]) -> Dict[str, Any]:
 def get_recent_events() -> Dict[str, Any]:
     """Get recent real-time analysis events for initial UI hydration."""
     return {"events": recent_events_cache}
+
+
+@app.get("/api/v1/events/history", tags=["Realtime Telemetry"])
+def get_audit_history_endpoint(limit: int = 100) -> Dict[str, Any]:
+    """Get persistent audit log history saved on disk."""
+    try:
+        from backend.guardian.events import get_audit_history
+    except ImportError:
+        from guardian.events import get_audit_history
+
+    events = get_audit_history(limit=limit)
+    return {"status": "success", "count": len(events), "events": events}
 
 
 @app.post("/api/v1/scan-inbox", tags=["Analysis"])

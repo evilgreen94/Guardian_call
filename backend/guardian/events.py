@@ -54,3 +54,52 @@ class InMemoryEventSink:
     def clear(self) -> None:
         """Clear all stored events."""
         self._events.clear()
+
+
+class JsonFileEventSink:
+    """Persistent JSON lines file sink for auditing all domain events to disk."""
+
+    def __init__(self, file_path: str = "data/audit_log.jsonl") -> None:
+        import os
+        from pathlib import Path
+        self.file_path = Path(file_path)
+        self.file_path.parent.mkdir(parents=True, exist_ok=True)
+        self._in_memory = InMemoryEventSink()
+
+    def emit(self, event: GuardianEvent) -> None:
+        """Emit event to memory and append to persistent JSONL file."""
+        import json
+        self._in_memory.emit(event)
+        try:
+            with open(self.file_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(event.to_dict()) + "\n")
+        except Exception:
+            pass
+
+    def get_events(self) -> List[GuardianEvent]:
+        return self._in_memory.get_events()
+
+
+def get_audit_history(file_path: str = "data/audit_log.jsonl", limit: int = 100) -> List[Dict[str, Any]]:
+    """Retrieve persistent audit log history from disk."""
+    import json
+    from pathlib import Path
+
+    p = Path(file_path)
+    if not p.exists():
+        return []
+
+    events = []
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            for line in f:
+                line_str = line.strip()
+                if line_str:
+                    try:
+                        events.append(json.loads(line_str))
+                    except Exception:
+                        pass
+    except Exception:
+        return []
+
+    return events[-limit:] if len(events) >= limit else events
