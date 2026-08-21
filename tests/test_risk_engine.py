@@ -166,6 +166,33 @@ class TestRiskEngine(unittest.TestCase):
         self.assertIn(assessment.level, (RiskLevel.HIGH, RiskLevel.CRITICAL))
         self.assertIn("subscription_fee_claim", assessment.contributing_signals)
 
+    def test_suspicious_domain_phishing_records_contributing_signal(self) -> None:
+        """Verify the suspicious-domain phishing branch names its own deciding signal."""
+        signals = create_signals(
+            suspicious_domain=True,
+            unverified_link_prompt=True,
+            sender_email="alert@importican.de",
+        )
+        assessment = self.engine.evaluate(signals)
+        self.assertEqual(assessment.level, RiskLevel.CRITICAL)
+        self.assertIn("suspicious_domain", assessment.contributing_signals)
+        self.assertIn("unverified_link_prompt", assessment.contributing_signals)
+
+    def test_legitimate_verified_otp_flow_does_not_leak_unrelated_reasons(self) -> None:
+        """Explainability: a NORMAL verdict must not carry contextual reasons that didn't drive it."""
+        signals = create_signals(
+            otp_request=True,
+            requested_action="enter_in_app",
+            identity_claim="bank",
+            identity_verified=True,
+            financial_context=True,
+        )
+        assessment = self.engine.evaluate(signals)
+        self.assertEqual(assessment.level, RiskLevel.NORMAL)
+        reasons_text = " ".join(assessment.reasons).lower()
+        self.assertNotIn("financial context present", reasons_text)
+        self.assertNotIn("financial_context", assessment.contributing_signals)
+
 
 if __name__ == "__main__":
     unittest.main()
