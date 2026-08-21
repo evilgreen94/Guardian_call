@@ -9,7 +9,7 @@ import os
 import urllib.request
 from typing import Any, Dict, Optional
 
-from .events import EventSink, EventType, GuardianEvent
+from .events import EventType, GuardianEvent, InMemoryEventSink
 from .models import ActionType, CanaryDecision, PolicyDecision, RiskAssessment
 
 
@@ -86,7 +86,7 @@ class TrustedCircleNotifier:
 def execute_trusted_circle_notification(
     canary_decision: CanaryDecision,
     risk_assessment: RiskAssessment,
-    event_sink: EventSink,
+    event_sink: InMemoryEventSink,
     recipient_phone: str = "+34600000000",
     notifier: Optional[TrustedCircleNotifier] = None,
 ) -> Optional[GuardianEvent]:

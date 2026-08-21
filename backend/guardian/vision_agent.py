@@ -116,41 +116,6 @@ def _parse_vision_dict(data: Dict[str, Any]) -> VisionOcrResult:
     )
 
 
-def _offline_rapid_ocr_fallback(image_bytes: bytes) -> VisionOcrResult:
-    """Offline OCR fallback using RapidOCR / ONNX Runtime when Gemini LLM quota is hit or unreachable."""
-    try:
-        import re
-        from rapidocr_onnxruntime import RapidOCR
-
-        engine = RapidOCR()
-        result, _ = engine(image_bytes)
-        if not result:
-            return VisionOcrResult()
-
-        lines = [r[1] for r in result if r and len(r) > 1]
-        extracted_text = "\n".join(lines)
-        lower_t = extracted_text.lower()
-
-        # Parse sender email/domain if present in image text
-        email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', extracted_text)
-        sender_email = email_match.group(0) if email_match else None
-        sender_domain = sender_email.split('@')[1] if sender_email and '@' in sender_email else None
-
-        return VisionOcrResult(
-            extracted_text=extracted_text,
-            sender_email=sender_email,
-            sender_domain=sender_domain,
-            suspicious_domain_detected=bool(sender_domain and ("spam" in lower_t or len(sender_domain) > 15 or "importican" in sender_domain or "us" in sender_domain)),
-            special_offer_detected=any(k in lower_t for k in ["special offer", "bonus", "gb", "discount", "free"]),
-            countdown_timer_detected=any(k in lower_t for k in ["expire", "24 hours", "minute", "limited time"]),
-            visual_manipulation_suspected=any(k in lower_t for k in ["blocked", "storage", "full", "removed", "declined"]),
-            channel_detected="email_screenshot" if "storage" in lower_t or "email" in lower_t else "cloud_storage_alert",
-            key_visual_elements=["storage_full_alert", "update_button", "urgency_text"],
-        )
-    except Exception:
-        return VisionOcrResult()
-
-
 def process_image(
     image_bytes: bytes,
     mime_type: str = "image/png",
@@ -232,14 +197,7 @@ def process_image(
                         except Exception:
                             pass
 
-        fallback = _offline_rapid_ocr_fallback(image_bytes)
-        if fallback.extracted_text:
-            return fallback
-
         return VisionOcrResult()
 
     except Exception:
-        fallback = _offline_rapid_ocr_fallback(image_bytes)
-        if fallback.extracted_text:
-            return fallback
         return VisionOcrResult()

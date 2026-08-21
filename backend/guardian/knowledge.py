@@ -1,10 +1,10 @@
 """Structured scam taxonomy and domain knowledge base for Guardian Call.
 
-Provides programmatic access to scam categories, attacker tactics, detection
-heuristics, and prompt context helpers for Gemini LLM agents and Risk Engine.
+Provides programmatic access to scam categories and prompt context helpers
+for Gemini LLM agents and Risk Engine.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 
 SCAM_TAXONOMY: Dict[str, Dict[str, Any]] = {
@@ -129,40 +129,6 @@ SCAM_TAXONOMY: Dict[str, Dict[str, Any]] = {
         "default_directive": "NO TRANSFERIR FONDOS A OTRA CUENTA",
     },
 }
-
-
-ATTACKER_TACTICS: List[Dict[str, str]] = [
-    {
-        "name": "Authority & Trust Hijacking",
-        "description": "Caller claims to represent trusted institution (Bank, Police, Microsoft, Government).",
-    },
-    {
-        "name": "Urgency & Panic Inductions",
-        "description": "Imposes extreme artificial time limits (e.g. 5 minutes) to disable critical thinking.",
-    },
-    {
-        "name": "Forced Isolation & Secrecy",
-        "description": "Demands user not hang up, talk to family, or consult bank teller.",
-    },
-    {
-        "name": "Credential & Key Extraction",
-        "description": "Requests SMS OTP, passwords, PINs, or IBAN numbers.",
-    },
-    {
-        "name": "Device Takeover",
-        "description": "Coerces user to download remote management software (AnyDesk, TeamViewer).",
-    },
-]
-
-
-def get_scam_category(category_id: str) -> Optional[Dict[str, Any]]:
-    """Retrieve details for a specific scam category."""
-    return SCAM_TAXONOMY.get(category_id)
-
-
-def get_all_scam_categories() -> List[Dict[str, Any]]:
-    """Get list of all supported scam categories."""
-    return list(SCAM_TAXONOMY.values())
 
 
 def get_few_shot_examples() -> str:

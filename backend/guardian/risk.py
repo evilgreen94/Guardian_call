@@ -125,15 +125,6 @@ class RiskEngine:
                 reasons.insert(0, "Legitimate OTP flow detected (user not asked to reveal code)")
             contributing.append("otp_request")
 
-        elif is_unverified_link:
-            contributing.append("unverified_link_prompt")
-            if signals.urgency or has_unverified_claim or signals.financial_context:
-                level = RiskLevel.HIGH
-                reasons.insert(0, "Enlace externo no verificado en contexto urgente o financiero sospechoso")
-            else:
-                level = RiskLevel.SUSPICIOUS
-                reasons.insert(0, "Solicitud de clic en enlace externo no verificado")
-
         elif has_unverified_claim and (signals.urgency or signals.financial_context):
             level = RiskLevel.SUSPICIOUS
             reasons.insert(0, "Suspicious combination of unverified identity and pressure/financial context")

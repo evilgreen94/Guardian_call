@@ -173,21 +173,11 @@ def extract_signals(text: str, runner: Optional[Runner] = None) -> ScamSignals:
 
     except Exception as exc:
         # Heuristic fallback parser when LLM quota is exhausted or API is unreachable
-        lower_t = text.lower()
-        if any(k in lower_t for k in ["storage", "cloud", "blocked", "deleted", "full", "urg", "bonus", "expire", "http", "click", "otp", "password"]):
-            from .signals import create_signals
-            return create_signals(
-                identity_claim="cloud_service_or_bank",
-                service_cancellation_threat=any(k in lower_t for k in ["storage", "blocked", "deleted", "full", "removed"]),
-                subscription_fee_claim=any(k in lower_t for k in ["payment", "fee", "upgrade", "subscription"]),
-                unverified_link_prompt=any(k in lower_t for k in ["http", "click", "link", "update"]),
-                urgency=any(k in lower_t for k in ["urg", "blocked", "deleted", "expire", "wait", "minutes"]),
-                financial_context=any(k in lower_t for k in ["payment", "fee", "storage", "gb"]),
-                suspicious_domain=any(k in lower_t for k in ["http", "link", "@"]),
-                special_offer_hook=any(k in lower_t for k in ["bonus", "offer", "gb"]),
-                countdown_timer=any(k in lower_t for k in ["minute", "expire", "second"]),
-                requested_action="click_link",
-            )
+        from .signals import heuristic_signals_from_text
+
+        fallback = heuristic_signals_from_text(text)
+        if fallback is not None:
+            return fallback
         if isinstance(exc, SignalExtractionError):
             raise
         raise SignalExtractionError(f"Failed to extract signals from text: {str(exc)}") from exc

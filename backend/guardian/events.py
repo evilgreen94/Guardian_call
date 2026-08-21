@@ -1,8 +1,8 @@
 """Structured domain events and event sink for Guardian Call."""
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Protocol
+from typing import Any, Dict, List
 
 
 class EventType:
@@ -30,19 +30,7 @@ class GuardianEvent:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert event to dictionary."""
-        return {
-            "event_type": self.event_type,
-            "payload": self.payload,
-            "timestamp": self.timestamp,
-        }
-
-
-class EventSink(Protocol):
-    """Protocol for event consumers and stream processors."""
-
-    def emit(self, event: GuardianEvent) -> None:
-        """Publish a domain event."""
-        ...
+        return asdict(self)
 
 
 class InMemoryEventSink:

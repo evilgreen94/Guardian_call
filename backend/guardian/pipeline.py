@@ -6,7 +6,7 @@ from typing import List, Optional
 from .actions import execute_warning_action
 from .agent import SignalExtractionError, extract_signals
 from .canary import CanaryPolicy
-from .events import EventSink, EventType, GuardianEvent, InMemoryEventSink
+from .events import EventType, GuardianEvent, InMemoryEventSink
 from .models import (
     ActionType,
     CanaryDecision,
@@ -43,7 +43,7 @@ class GuardianPipeline:
         self,
         signals: ScamSignals,
         risk_assessment: RiskAssessment,
-        sink: EventSink,
+        sink: InMemoryEventSink,
     ) -> PipelineResult:
         """Private helper to execute Canary evaluation, actions, and package PipelineResult."""
         canary_decision = self.canary_policy.evaluate_action(
@@ -92,7 +92,7 @@ class GuardianPipeline:
                 event_sink=sink,
             )
 
-        all_events = sink.get_events() if isinstance(sink, InMemoryEventSink) else []
+        all_events = sink.get_events()
 
         return PipelineResult(
             signals=signals,
@@ -105,7 +105,7 @@ class GuardianPipeline:
     def process_signals(
         self,
         signals: ScamSignals,
-        event_sink: Optional[EventSink] = None,
+        event_sink: Optional[InMemoryEventSink] = None,
     ) -> PipelineResult:
         """Process structured scam signals through Risk Engine, Canary, and Action execution.
 
@@ -138,7 +138,7 @@ class GuardianPipeline:
     def process_text(
         self,
         text: str,
-        event_sink: Optional[EventSink] = None,
+        event_sink: Optional[InMemoryEventSink] = None,
     ) -> PipelineResult:
         """Process raw conversational text input through Gemini signal extraction and Guardian M0 pipeline.
 
@@ -216,7 +216,7 @@ class GuardianPipeline:
         self,
         image_bytes: bytes,
         mime_type: str = "image/png",
-        event_sink: Optional[EventSink] = None,
+        event_sink: Optional[InMemoryEventSink] = None,
     ) -> PipelineResult:
         """Process image/screenshot input through Google ADK vision agent and Guardian pipeline."""
         sink = event_sink or InMemoryEventSink()
@@ -261,21 +261,21 @@ class GuardianPipeline:
             or ocr_result.visual_manipulation_suspected
             or ocr_result.sender_email
         ):
-            from .signals import create_signals
-            lower_text = extracted_text.lower()
+            from .signals import create_signals, text_keyword_flags
+            flags = text_keyword_flags(extracted_text)
             merged_signals = create_signals(
                 identity_claim=result.signals.identity_claim or (ocr_result.channel_detected if ocr_result.channel_detected != "unknown" else None),
                 identity_verified=result.signals.identity_verified,
-                financial_context=result.signals.financial_context or ("payment" in lower_text or "fee" in lower_text or "upgrade" in lower_text),
-                urgency=result.signals.urgency or ocr_result.countdown_timer_detected or ("urg" in lower_text or "blocked" in lower_text or "deleted" in lower_text or "immediately" in lower_text or "expire" in lower_text or "don't wait" in lower_text),
+                financial_context=result.signals.financial_context or flags["financial_context"],
+                urgency=result.signals.urgency or ocr_result.countdown_timer_detected or flags["urgency"],
                 secrecy_request=result.signals.secrecy_request,
                 otp_request=result.signals.otp_request,
                 password_request=result.signals.password_request,
                 transfer_request=result.signals.transfer_request,
                 remote_access_request=result.signals.remote_access_request,
-                service_cancellation_threat=result.signals.service_cancellation_threat or ("storage" in lower_text or "blocked" in lower_text or "deleted" in lower_text or "full" in lower_text or "removed" in lower_text),
-                subscription_fee_claim=result.signals.subscription_fee_claim or ("payment-declined" in lower_text or "subscription" in lower_text or "upgrade" in lower_text),
-                unverified_link_prompt=result.signals.unverified_link_prompt or ("http" in lower_text or "www." in lower_text or "update" in lower_text or "click" in lower_text),
+                service_cancellation_threat=result.signals.service_cancellation_threat or flags["service_cancellation_threat"],
+                subscription_fee_claim=result.signals.subscription_fee_claim or flags["subscription_fee_claim"],
+                unverified_link_prompt=result.signals.unverified_link_prompt or flags["unverified_link_prompt"],
                 sender_email=result.signals.sender_email or ocr_result.sender_email,
                 suspicious_domain=result.signals.suspicious_domain or ocr_result.suspicious_domain_detected or ocr_result.visual_manipulation_suspected,
                 special_offer_hook=result.signals.special_offer_hook or ocr_result.special_offer_detected,

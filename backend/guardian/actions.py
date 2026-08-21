@@ -1,7 +1,7 @@
 """Action handlers for authorized Guardian Call interventions."""
 
 from typing import List, Optional
-from .events import EventSink, EventType, GuardianEvent
+from .events import EventType, GuardianEvent, InMemoryEventSink
 from .models import ActionType, CanaryDecision, PolicyDecision, RiskAssessment, RiskLevel
 
 
@@ -29,7 +29,7 @@ def format_warning_directives(risk_assessment: RiskAssessment) -> List[str]:
 def execute_warning_action(
     canary_decision: CanaryDecision,
     risk_assessment: RiskAssessment,
-    event_sink: EventSink,
+    event_sink: InMemoryEventSink,
 ) -> Optional[GuardianEvent]:
     """Execute the warn_user action if explicitly authorized by Canary."""
     # Strict Canary check: Consequential action must not bypass Canary authorization

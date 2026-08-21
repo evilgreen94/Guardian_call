@@ -56,6 +56,49 @@ def create_signals(
     )
 
 
+_URGENCY_KEYWORDS = ("urg", "blocked", "deleted", "expire", "wait", "minutes", "immediately", "don't wait")
+_FINANCIAL_KEYWORDS = ("payment", "fee", "storage", "gb")
+_SERVICE_THREAT_KEYWORDS = ("storage", "blocked", "deleted", "full", "removed")
+_SUBSCRIPTION_KEYWORDS = ("payment", "fee", "upgrade", "subscription")
+_LINK_KEYWORDS = ("http", "click", "link", "update", "www.")
+_DOMAIN_KEYWORDS = ("http", "link", "@")
+_OFFER_KEYWORDS = ("bonus", "offer", "gb")
+_COUNTDOWN_KEYWORDS = ("minute", "expire", "second")
+_TRIGGER_KEYWORDS = ("storage", "cloud", "blocked", "deleted", "full", "urg", "bonus", "expire", "http", "click", "otp", "password")
+
+
+def text_keyword_flags(text: str) -> Dict[str, bool]:
+    """Best-effort keyword flags for scam-adjacent language, used when structured
+
+    signal extraction is unavailable (Gemini failure) or incomplete (OCR merge).
+    Single source of truth for the heuristic keyword lists.
+    """
+    lower_t = text.lower()
+    return {
+        "urgency": any(k in lower_t for k in _URGENCY_KEYWORDS),
+        "financial_context": any(k in lower_t for k in _FINANCIAL_KEYWORDS),
+        "service_cancellation_threat": any(k in lower_t for k in _SERVICE_THREAT_KEYWORDS),
+        "subscription_fee_claim": any(k in lower_t for k in _SUBSCRIPTION_KEYWORDS),
+        "unverified_link_prompt": any(k in lower_t for k in _LINK_KEYWORDS),
+        "suspicious_domain": any(k in lower_t for k in _DOMAIN_KEYWORDS),
+        "special_offer_hook": any(k in lower_t for k in _OFFER_KEYWORDS),
+        "countdown_timer": any(k in lower_t for k in _COUNTDOWN_KEYWORDS),
+    }
+
+
+def heuristic_signals_from_text(text: str) -> Optional[ScamSignals]:
+    """Guess ScamSignals from keywords alone. Returns None if nothing scam-adjacent matched."""
+    lower_t = text.lower()
+    if not any(k in lower_t for k in _TRIGGER_KEYWORDS):
+        return None
+    flags = text_keyword_flags(text)
+    return create_signals(
+        identity_claim="cloud_service_or_bank",
+        requested_action="click_link",
+        **flags,
+    )
+
+
 def signals_from_dict(data: Dict[str, Any]) -> ScamSignals:
     """Construct a ScamSignals instance from a dictionary."""
     return create_signals(

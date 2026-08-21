@@ -14,6 +14,7 @@ import time
 from dataclasses import dataclass
 import sys
 from pathlib import Path
+from typing import List, Optional, Tuple
 
 backend_dir = Path(__file__).resolve().parent.parent
 if str(backend_dir) not in sys.path:
@@ -27,10 +28,10 @@ if env_file.exists():
     load_dotenv(env_file)
 
 try:
-    from .events import EventSink, InMemoryEventSink
+    from .events import InMemoryEventSink
     from .pipeline import GuardianPipeline, PipelineResult
 except ImportError:
-    from guardian.events import EventSink, InMemoryEventSink
+    from guardian.events import InMemoryEventSink
     from guardian.pipeline import GuardianPipeline, PipelineResult
 
 
@@ -116,7 +117,7 @@ class EmailListener:
         username: Optional[str] = None,
         password: Optional[str] = None,
         pipeline: Optional[GuardianPipeline] = None,
-        event_sink: Optional[EventSink] = None,
+        event_sink: Optional[InMemoryEventSink] = None,
     ) -> None:
         self.imap_server = imap_server or os.getenv("IMAP_SERVER", "imap.gmail.com")
         self.imap_port = imap_port or int(os.getenv("IMAP_PORT", "993"))

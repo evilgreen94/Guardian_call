@@ -66,12 +66,7 @@ class RiskAssessment:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert risk assessment to dictionary."""
-        return {
-            "level": self.level.value,
-            "reasons": list(self.reasons),
-            "contributing_signals": list(self.contributing_signals),
-            "timestamp": self.timestamp,
-        }
+        return asdict(self)
 
 
 @dataclass(frozen=True)
@@ -85,10 +80,4 @@ class CanaryDecision:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert Canary decision to dictionary."""
-        return {
-            "action": self.action.value,
-            "decision": self.decision.value,
-            "reason": self.reason,
-            "risk_level": self.risk_level.value,
-            "timestamp": self.timestamp,
-        }
+        return asdict(self)
