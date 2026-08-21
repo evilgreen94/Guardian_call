@@ -13,8 +13,13 @@ from pydantic import BaseModel, Field
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 
-# Ensure backend package directory is on sys.path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Ensure repository root directory and backend directory are on sys.path
+root_dir = str(Path(__file__).resolve().parent.parent)
+backend_dir = str(Path(__file__).resolve().parent)
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
 
 from dotenv import load_dotenv
 
@@ -192,7 +197,7 @@ def get_recent_events() -> Dict[str, Any]:
 @app.post("/api/v1/scan-inbox", tags=["Analysis"])
 async def scan_inbox(limit: int = 5) -> Dict[str, Any]:
     """Manually scan recent emails in Gmail inbox using IMAP and return analysis."""
-    from guardian.email_listener import EmailListener, EmailListenerError
+    from backend.guardian.email_listener import EmailListener, EmailListenerError
 
     try:
         listener = EmailListener()
