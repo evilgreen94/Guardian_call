@@ -28,6 +28,22 @@ def test_health_check_endpoints() -> None:
         assert data["framework"] == "google-adk"
 
 
+def test_list_scenarios_endpoint() -> None:
+    """Verify /api/v1/scenarios returns every synthetic demo scenario with the expected fields."""
+    response = client.get("/api/v1/scenarios")
+    assert response.status_code == 200
+    scenarios = response.json()["scenarios"]
+
+    assert len(scenarios) == 15
+    for scenario in scenarios:
+        assert scenario["id"]
+        assert scenario["title"]
+        assert isinstance(scenario["dialogue"], list) and len(scenario["dialogue"]) > 0
+
+    ids = [s["id"] for s in scenarios]
+    assert "mfa_fatigue_it_helpdesk_01" in ids
+
+
 @patch("guardian.pipeline.extract_signals")
 def test_analyze_endpoint_success(mock_extract) -> None:
     """Verify POST /api/v1/analyze processes text input and returns structured response."""

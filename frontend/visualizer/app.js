@@ -10,9 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAnalyze = document.getElementById('btn-analyze');
   const btnClear = document.getElementById('btn-clear');
   
-  const btnPresetOtp = document.getElementById('btn-preset-otp');
-  const btnPresetLegit = document.getElementById('btn-preset-legit');
   const btnPresetFailsafe = document.getElementById('btn-preset-failsafe');
+  const scenarioSelect = document.getElementById('scenario-select');
+  const scenarioRiskBadge = document.getElementById('scenario-risk-badge');
   
   const valRiskLevel = document.getElementById('val-risk-level');
   const valCanaryDecision = document.getElementById('val-canary-decision');
@@ -25,12 +25,44 @@ document.addEventListener('DOMContentLoaded', () => {
   const signalsGrid = document.getElementById('signals-grid');
   const eventStream = document.getElementById('event-stream');
 
-  // Preset Scenario Strings
-  const PRESETS = {
-    otp: "Hola, le llamamos del departamento de seguridad del banco. Detectamos un intento de transferencia sospechoso de 450 euros. Para cancelarlo inmediatamente, dígame el código de verificación de 6 dígitos que le acabamos de enviar por SMS.",
-    legit: "Buenos días, le llamamos de Centro Médico Sanitas para confirmar su cita de mañana a las 10:00 AM con el Dr. García. Recuerde traer su documento de identidad y tarjeta sanitaria.",
-    failsafe: "FAILSAFE_TEST_TRIGGER_API_SIMULATION"
-  };
+  // Fail-safe preset: not a real scenario, just triggers the extraction-failure code path
+  const FAILSAFE_TEXT = "FAILSAFE_TEST_TRIGGER_API_SIMULATION";
+
+  // Full scenario dataset (id -> {dialogue, expected_final_risk}), populated from /api/v1/scenarios
+  let scenarios = {};
+
+  async function loadScenarios() {
+    try {
+      const res = await fetch('/api/v1/scenarios');
+      const data = await res.json();
+      scenarios = {};
+      scenarioSelect.innerHTML = '<option value="">[ SELECCIONA UN ESCENARIO... ]</option>';
+      (data.scenarios || []).forEach(sc => {
+        scenarios[sc.id] = sc;
+        const opt = document.createElement('option');
+        opt.value = sc.id;
+        opt.textContent = sc.title;
+        scenarioSelect.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('Failed to load scenarios:', err);
+      scenarioSelect.innerHTML = '<option value="">[ NO SE PUDIERON CARGAR ESCENARIOS ]</option>';
+    }
+  }
+  loadScenarios();
+
+  scenarioSelect?.addEventListener('change', () => {
+    const sc = scenarios[scenarioSelect.value];
+    scenarioRiskBadge.textContent = '';
+    scenarioRiskBadge.className = 'scenario-risk-badge';
+    if (!sc) return;
+
+    inputText.value = sc.dialogue.join(' ');
+    if (sc.expected_final_risk) {
+      scenarioRiskBadge.textContent = `RIESGO ESPERADO: ${sc.expected_final_risk}`;
+      scenarioRiskBadge.classList.add(`risk-${sc.expected_final_risk.toLowerCase()}`);
+    }
+  });
 
   // 1. Clock Update
   function updateClock() {
@@ -40,17 +72,12 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(updateClock, 1000);
   updateClock();
 
-  // 2. Scenario Presets
-  btnPresetOtp?.addEventListener('click', () => {
-    inputText.value = PRESETS.otp;
-  });
-
-  btnPresetLegit?.addEventListener('click', () => {
-    inputText.value = PRESETS.legit;
-  });
-
+  // 2. Fail-safe Preset (triggers the extraction-failure code path, not a real scenario)
   btnPresetFailsafe?.addEventListener('click', () => {
-    inputText.value = PRESETS.failsafe;
+    inputText.value = FAILSAFE_TEXT;
+    scenarioSelect.value = '';
+    scenarioRiskBadge.textContent = '';
+    scenarioRiskBadge.className = 'scenario-risk-badge';
   });
 
   let selectedFile = null;
@@ -92,6 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFile = null;
     if (imageInput) imageInput.value = '';
     if (fileNameDisplay) fileNameDisplay.textContent = '';
+    if (scenarioSelect) scenarioSelect.value = '';
+    if (scenarioRiskBadge) {
+      scenarioRiskBadge.textContent = '';
+      scenarioRiskBadge.className = 'scenario-risk-badge';
+    }
     resetStatusDisplay();
   });
 

@@ -284,6 +284,27 @@ textarea:focus {
   margin-top: 4px;
 }
 
+.scenario-select {
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 320px;
+}
+
+.scenario-risk-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid var(--panel-border);
+  color: var(--text-muted);
+}
+.scenario-risk-badge.risk-normal { color: var(--status-green); border-color: var(--status-green); }
+.scenario-risk-badge.risk-suspicious { color: var(--caution-amber); border-color: var(--caution-amber); }
+.scenario-risk-badge.risk-high,
+.scenario-risk-badge.risk-critical { color: var(--hazard-red); border-color: var(--hazard-red); }
+
 .actions-bar {
   display: flex;
   gap: 10px;

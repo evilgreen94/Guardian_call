@@ -43,12 +43,10 @@
         
         <div class="presets-toolbar">
           <span class="label">PRESET SCENARIOS:</span>
-          <button type="button" class="btn btn-preset" id="btn-preset-otp">
-            [ SCENARIO: BANK OTP SCAM ]
-          </button>
-          <button type="button" class="btn btn-preset" id="btn-preset-legit">
-            [ SCENARIO: LEGITIMATE CALL ]
-          </button>
+          <select class="btn btn-preset scenario-select" id="scenario-select">
+            <option value="">[ LOADING SCENARIOS... ]</option>
+          </select>
+          <span class="scenario-risk-badge" id="scenario-risk-badge"></span>
           <button type="button" class="btn btn-preset" id="btn-preset-failsafe">
             [ SCENARIO: FAIL-SAFE TEST ]
           </button>

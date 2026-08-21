@@ -76,6 +76,30 @@ class AnalyzeResponse(BaseModel):
     events: List[Dict[str, Any]]
 
 
+SCENARIOS_DIR = Path(__file__).resolve().parent.parent / "scenarios"
+
+
+@app.get("/api/v1/scenarios", tags=["Analysis"])
+def list_scenarios() -> Dict[str, Any]:
+    """List synthetic demo scenarios (scam and legitimate) for the visualizer preset selector."""
+    import json
+
+    scenarios = []
+    for path in sorted(SCENARIOS_DIR.glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        scenarios.append({
+            "id": data.get("scenario_id", path.stem),
+            "title": data.get("title", path.stem),
+            "description": data.get("description", ""),
+            "dialogue": data.get("dialogue", []),
+            "expected_final_risk": data.get("expected_final_risk"),
+        })
+    return {"scenarios": scenarios}
+
+
 @app.get("/health", tags=["System"])
 @app.get("/api/v1/health", tags=["System"])
 def health_check() -> Dict[str, Any]:
