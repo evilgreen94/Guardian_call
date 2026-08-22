@@ -1,0 +1,12 @@
+{
+  "scenario_id": "bank_otp_scam_01",
+  "title": "Robo de Código SMS OTP por Falso Departamento de Fraude",
+  "description": "El estafador se hace pasar por el banco, genera alarma sobre un cargo no autorizado y pide el código SMS de 6 dígitos para cancelarlo.",
+  "dialogue": [
+    "Hola, le llamo del Departamento de Seguridad de su banco. Hemos detectado un intento de transferencia no autorizada de 450 euros en su cuenta.",
+    "Para cancelar esta operación fraudulenta de inmediato, le acabo de enviar un código de verificación de seguridad a su móvil por SMS.",
+    "Por favor, dígame el código de seis dígitos que acaba de recibir para verificar su identidad y anular el cobro ahora mismo."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO DIGA ESE CÓDIGO"
+}

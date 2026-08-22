@@ -1,0 +1,12 @@
+{
+  "scenario_id": "tech_support_anydesk_01",
+  "title": "Falso Soporte Técnico de Windows y Acceso Remoto AnyDesk",
+  "description": "El estafador suplanta al equipo de soporte de Microsoft, afirma que el ordenador del usuario transmite malware y exige instalar AnyDesk.",
+  "dialogue": [
+    "Hola, le llamamos del departamento de soporte técnico de Microsoft Windows. Hemos recibido alertas urgentes de infección por virus en su dirección IP.",
+    "Si no desinfectamos su equipo de inmediato, su banca online y archivos personales quedarán completamente bloqueados.",
+    "Por favor, entre ahora mismo a la página anydesk.com, instale el programa de asistencia remota y dígame el código de 9 dígitos para conectarnos."
+  ],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO PERMITA ACCESO REMOTO A SU DISPOSITIVO"
+}
