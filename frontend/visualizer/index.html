@@ -3,190 +3,146 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guardian Call GC-80 Workstation</title>
+  <title>Guardian Call GC-80 Signal Instrument</title>
   <link rel="stylesheet" href="/visualizer/styles.css">
 </head>
 <body>
-  <div class="gc80-shell">
-    <header class="gc80-header" aria-label="Guardian Call workstation status">
+  <div class="instrument-surface">
+    <header class="system-header" aria-label="Guardian Call system header">
       <div class="unit-mark">
-        <span class="unit-glyph">GC</span>
         <span>GC-80</span>
         <span>UNIT 04</span>
       </div>
-      <div class="title-bank">
+      <div class="system-title">
         <h1>GUARDIAN CALL INSTRUMENTS</h1>
         <p>GC-80 PROTECTIVE CALL WORKSTATION</p>
       </div>
-      <div class="status-bank">
+      <div class="system-status">
         <span><b>STREAM</b><output id="stream-status" class="state state-eval">CONNECTING</output></span>
         <span><b>SYSTEM</b><output id="system-status" class="state state-ok">ONLINE</output></span>
         <span><b>TIME</b><output id="sys-clock">00:00:00 UTC</output></span>
       </div>
     </header>
 
-    <nav class="mode-rail" aria-label="Workstation mode selector">
+    <nav class="mode-line" aria-label="Workstation mode line">
       <span>MODE SELECT</span>
       <span class="active-mode">[ EXECUTION ]</span>
       <span>REGISTER</span>
       <span>CANARY</span>
       <span>LOG</span>
-      <span class="policy-label">POLICY ENGINE&nbsp;&nbsp; CANARY AUTHORITY v0.1</span>
+      <span>POLICY ENGINE&nbsp;&nbsp; CANARY AUTHORITY v0.1</span>
     </nav>
 
-    <main class="workstation-matrix">
-      <section class="pane conversation-pane" aria-labelledby="conversation-title">
-        <div class="pane-title">
-          <h2 id="conversation-title">EXECUTION / CONVERSATION BUFFER</h2>
-          <output id="expected-risk-tag" class="scenario-target"></output>
+    <main class="signal-instrument">
+      <section class="conversation-zone" aria-labelledby="conversation-title">
+        <div class="zone-title">
+          <h2 id="conversation-title">CONVERSATION BUFFER</h2>
+          <output id="expected-risk-tag"></output>
         </div>
-        <div class="conversation-toolbar">
+        <div class="input-line">
           <label for="scenario-select">SCENARIO</label>
           <select id="scenario-select">
             <option value="">[ LOADING SCENARIOS ]</option>
           </select>
         </div>
         <textarea id="input-text" spellcheck="false" placeholder="Paste or select a synthetic conversation transcript..."></textarea>
-        <div class="command-line-footer">
+        <div class="command-line">
           <span>INPUT SOURCE: MANUAL PASTE</span>
           <span id="input-state">IDLE</span>
-        </div>
-        <div class="command-buttons" aria-label="Analysis commands">
           <button type="button" id="btn-analyze">EXECUTE ANALYSIS</button>
           <button type="button" id="btn-clear">RESET BUFFER</button>
         </div>
       </section>
 
-      <section class="pane sequence-pane" aria-labelledby="sequence-title">
-        <div class="pane-title">
-          <h2 id="sequence-title">PROTECTION SEQUENCE RAIL</h2>
+      <section class="rail-zone" aria-labelledby="rail-title">
+        <div class="zone-title">
+          <h2 id="rail-title">LIVE SIGNAL RAIL</h2>
+          <output id="rail-state">AWAITING INPUT</output>
         </div>
-        <div class="sequence-rail" aria-label="Canonical Guardian Call execution sequence">
-          <div class="seq-node" id="node-call">
+        <div class="pipeline-rail point-idle" id="pipeline-rail" aria-label="Guardian Call live execution rail">
+          <div class="rail-line" aria-hidden="true"></div>
+          <div class="canary-boundary" aria-hidden="true"></div>
+          <div class="data-point" id="data-point" aria-hidden="true"></div>
+
+          <div class="rail-node node-call">
             <span>CALL</span>
-            <output id="pipe-call-state" class="seq-state state-muted">-</output>
-            <small>RECEIVED</small>
-            <time id="pipe-call-time">--:--:--</time>
+            <output id="pipe-call-state">-</output>
           </div>
-          <i>&gt;</i>
-          <div class="seq-node" id="node-gemini">
+          <div class="rail-node node-gemini">
             <span>GEMINI</span>
-            <output id="pipe-gemini-state" class="seq-state state-muted">-</output>
-            <small>EXTRACTED</small>
-            <time id="pipe-gemini-time">--:--:--</time>
+            <output id="pipe-gemini-state">-</output>
           </div>
-          <i>&gt;</i>
-          <div class="seq-node" id="node-risk">
-            <span>RISK ENGINE</span>
-            <output id="pipe-risk-state" class="seq-state state-ok">NORMAL</output>
-            <small>ASSESSMENT</small>
-            <time id="pipe-risk-time">--:--:--</time>
+          <div class="rail-node node-risk">
+            <span>RISK</span>
+            <output id="pipe-risk-state" class="state state-ok">NORMAL</output>
           </div>
-          <i>&gt;</i>
-          <div class="seq-node" id="gate-canary">
+          <div class="rail-node node-canary">
             <span>CANARY</span>
-            <output id="pipe-canary-state" class="seq-state state-deny">DENY</output>
-            <small>POLICY</small>
-            <time id="pipe-canary-time">--:--:--</time>
+            <output id="pipe-canary-state" class="state state-deny">DENY</output>
           </div>
-          <i>&gt;</i>
-          <div class="seq-node" id="node-intervention">
-            <span>INTERVENTION</span>
-            <output id="pipe-action-state" class="seq-state state-muted">-</output>
-            <small id="pipe-action-label">NO ACTION</small>
-            <time id="pipe-action-time">--:--:--</time>
+          <div class="rail-node node-action">
+            <span>ACTION</span>
+            <output id="pipe-action-state">-</output>
           </div>
-        </div>
-        <div class="risk-readout">
-          <h3>RISK ASSESSMENT REASONS</h3>
-          <ol id="reasons-telemetry">
-            <li class="empty">No risk assessment recorded.</li>
-          </ol>
         </div>
       </section>
 
-      <section class="pane register-pane" aria-labelledby="register-title">
-        <div class="pane-title">
-          <h2 id="register-title">ACTIVE SIGNAL REGISTER</h2>
-          <span>ASSERTED = TRUE/NOT EMPTY&nbsp;&nbsp; CLEARED = FALSE/EMPTY</span>
+      <section class="risk-zone" aria-labelledby="risk-title">
+        <div class="zone-title">
+          <h2 id="risk-title">RISK</h2>
+          <output id="risk-level-readout" class="state state-ok">NORMAL</output>
         </div>
-        <table class="register-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>SIGNAL FIELD</th>
-              <th>STATE</th>
-              <th>NORMALIZED VALUE</th>
-              <th>LEVEL</th>
-            </tr>
-          </thead>
-          <tbody id="signal-register-body">
-            <tr><td colspan="5" class="empty">Awaiting ScamSignals output.</td></tr>
-          </tbody>
-        </table>
+        <ol id="reasons-telemetry" class="reason-lines">
+          <li class="empty">No risk assessment recorded.</li>
+        </ol>
+        <div class="contributing-lines">
+          <h3>CONTRIBUTING SIGNALS</h3>
+          <div id="contributing-signals">-</div>
+        </div>
       </section>
 
-      <section class="pane canary-pane" aria-labelledby="canary-title">
-        <div class="pane-title">
-          <h2 id="canary-title">CANARY AUTHORITY UNIT</h2>
+      <section class="register-zone" aria-labelledby="register-title">
+        <div class="zone-title">
+          <h2 id="register-title">SIGNAL REGISTER</h2>
+          <span>square = asserted&nbsp;&nbsp; dot = cleared</span>
         </div>
-        <div class="canary-grid">
-          <div class="policy-decision">
-            <span>POLICY DECISION</span>
-            <output id="canary-decision" class="state state-deny">DENY</output>
-          </div>
-          <dl class="authority-register">
-            <div>
-              <dt>RISK LEVEL</dt>
-              <dd id="canary-risk-level">-</dd>
-            </div>
-            <div>
-              <dt>ACTION</dt>
-              <dd id="canary-action">-</dd>
-            </div>
-            <div>
-              <dt>INTERVENTION</dt>
-              <dd id="canary-intervention">NONE</dd>
-            </div>
-          </dl>
-          <div class="decision-context">
-            <h3>DECISION CONTEXT</h3>
-            <dl>
-              <div>
-                <dt>ENGINE VERSION</dt>
-                <dd>0.1.0</dd>
-              </div>
-              <div>
-                <dt>EVALUATION TIME</dt>
-                <dd id="canary-time">--:--:-- UTC</dd>
-              </div>
-              <div>
-                <dt>SUMMARY</dt>
-                <dd id="canary-reason">No Canary evaluation recorded.</dd>
-              </div>
-            </dl>
-          </div>
-          <div class="safe-crt" aria-label="Protected user output standby">
-            <div class="crt-screen">
-              <p>No warning to user.</p>
-              <p>Conversation continues without interruption.</p>
-            </div>
-            <dl>
-              <div><dt>CRT MODE</dt><dd id="crt-mode">SAFE</dd></div>
-              <div><dt>OUTPUT</dt><dd id="crt-output">NONE</dd></div>
-            </dl>
-          </div>
+        <div id="signal-register-body" class="signal-register">
+          <p class="empty">Awaiting ScamSignals output.</p>
         </div>
+      </section>
+
+      <section class="canary-zone" aria-labelledby="canary-title">
+        <div class="zone-title">
+          <h2 id="canary-title">CANARY AUTHORITY</h2>
+        </div>
+        <dl class="canary-readout">
+          <div>
+            <dt>ACTION</dt>
+            <dd id="canary-action">-</dd>
+          </div>
+          <div>
+            <dt>DECISION</dt>
+            <dd id="canary-decision" class="state state-deny">DENY</dd>
+          </div>
+          <div>
+            <dt>RISK</dt>
+            <dd id="canary-risk-level">-</dd>
+          </div>
+          <div>
+            <dt>POLICY</dt>
+            <dd id="canary-reason">No Canary evaluation recorded.</dd>
+          </div>
+        </dl>
       </section>
     </main>
 
-    <section class="event-printer" aria-labelledby="audit-title">
-      <div class="printer-title">
-        <h2 id="audit-title">DOMAIN EVENT LINE PRINTER</h2>
+    <section class="event-tty" aria-labelledby="event-title">
+      <div class="event-title-line">
+        <h2 id="event-title">DOMAIN EVENT TTY</h2>
         <output id="event-line-count">LINES 001</output>
       </div>
-      <div class="printer-head">
-        <span>TIME (UTC)</span>
+      <div class="event-head">
+        <span>TIME</span>
         <span>EVENT</span>
         <span>DETAILS</span>
       </div>
@@ -200,16 +156,13 @@
     </section>
 
     <div class="warning-interrupt" id="warning-interrupt" aria-labelledby="user-title" aria-hidden="true">
-      <div class="interrupt-frame">
-        <div class="pane-title">
-          <h2 id="user-title">CANARY // USER PROTECTION INTERRUPT</h2>
-        </div>
-        <div class="user-preview" id="user-preview">
-          <output id="placard-headline">NO USER_WARNING EVENT</output>
-          <div class="directive-bank" id="placard-directives">
-            <p class="empty">No authorized user-warning directives emitted.</p>
-          </div>
-        </div>
+      <div class="interrupt-title">
+        <h2 id="user-title">CANARY INTERRUPT</h2>
+        <button type="button" id="warning-close" aria-label="Acknowledge user warning interrupt">[ ACK ]</button>
+      </div>
+      <output id="placard-headline">NO USER_WARNING EVENT</output>
+      <div class="directive-bank" id="placard-directives">
+        <p class="empty">No authorized user-warning directives emitted.</p>
       </div>
     </div>
   </div>

@@ -1,6 +1,6 @@
 /**
- * Guardian Call GC-80 workstation client.
- * Dynamic values are rendered only from REST responses or SSE domain events.
+ * Guardian Call GC-80 signal instrument client.
+ * The moving point advances only from real REST/SSE domain events.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -26,46 +26,92 @@ document.addEventListener('DOMContentLoaded', () => {
   const scenarioSelect = document.getElementById('scenario-select');
   const expectedRiskTag = document.getElementById('expected-risk-tag');
 
+  const rail = document.getElementById('pipeline-rail');
+  const railState = document.getElementById('rail-state');
   const pipeCallState = document.getElementById('pipe-call-state');
   const pipeGeminiState = document.getElementById('pipe-gemini-state');
   const pipeRiskState = document.getElementById('pipe-risk-state');
   const pipeCanaryState = document.getElementById('pipe-canary-state');
   const pipeActionState = document.getElementById('pipe-action-state');
-  const pipeActionLabel = document.getElementById('pipe-action-label');
-  const pipeCallTime = document.getElementById('pipe-call-time');
-  const pipeGeminiTime = document.getElementById('pipe-gemini-time');
-  const pipeRiskTime = document.getElementById('pipe-risk-time');
-  const pipeCanaryTime = document.getElementById('pipe-canary-time');
-  const pipeActionTime = document.getElementById('pipe-action-time');
 
+  const riskLevelReadout = document.getElementById('risk-level-readout');
   const reasonsTelemetry = document.getElementById('reasons-telemetry');
+  const contributingSignals = document.getElementById('contributing-signals');
   const signalRegisterBody = document.getElementById('signal-register-body');
 
   const canaryAction = document.getElementById('canary-action');
   const canaryDecision = document.getElementById('canary-decision');
   const canaryRiskLevel = document.getElementById('canary-risk-level');
   const canaryReason = document.getElementById('canary-reason');
-  const canaryIntervention = document.getElementById('canary-intervention');
-  const canaryTime = document.getElementById('canary-time');
-  const crtMode = document.getElementById('crt-mode');
-  const crtOutput = document.getElementById('crt-output');
 
   const warningInterrupt = document.getElementById('warning-interrupt');
-  const userPreview = document.getElementById('user-preview');
+  const warningClose = document.getElementById('warning-close');
   const placardHeadline = document.getElementById('placard-headline');
   const placardDirectives = document.getElementById('placard-directives');
+
   const eventStreamTerminal = document.getElementById('event-stream-terminal');
   const eventLineCount = document.getElementById('event-line-count');
 
   let scenarios = {};
   let printedLines = 0;
+  let visualQueue = [];
+  let visualProcessing = false;
+  let visualRunId = 0;
+  let sseLive = false;
+  const VISUAL_STEP_MS = 450;
+  const RAIL_POINTS = {
+    idle: { x: '6%', color: 'var(--text-dim)' },
+    call: { x: '6%', color: 'var(--amber)' },
+    'gemini-pending': { x: '18%', color: 'var(--amber)' },
+    gemini: { x: '26%', color: 'var(--green)' },
+    risk: { x: '51%', color: 'var(--amber)' },
+    canary: { x: '75.5%', color: 'var(--amber)' },
+    crossed: { x: '84%', color: 'var(--green)' },
+    action: { x: '94%', color: 'var(--red)' },
+    denied: { x: '75.5%', color: 'var(--red)' },
+  };
 
   function setText(element, text) {
     if (element) element.textContent = text;
   }
 
-  function setStateClass(element, baseClass, stateClass) {
+  function setClass(element, baseClass, stateClass) {
     if (element) element.className = `${baseClass} ${stateClass}`.trim();
+  }
+
+  function setRailPoint(position) {
+    if (!rail) return;
+    const point = RAIL_POINTS[position] || RAIL_POINTS.idle;
+    rail.className = `pipeline-rail point-${position}`;
+    rail.style.setProperty('--point-x', point.x);
+    rail.style.setProperty('--point-color', point.color);
+  }
+
+  function setPendingExtractionState() {
+    setText(inputState, 'RUNNING');
+    setText(railState, 'GEMINI PROCESSING');
+    setText(pipeCallState, 'RX');
+    setText(pipeGeminiState, 'PROCESSING');
+    setClass(pipeGeminiState, 'state', 'state-eval');
+    setRailPoint('gemini-pending');
+  }
+
+  function enqueueVisualEvent(evt) {
+    if (!evt || !evt.event_type || evt.event_type === 'STREAM_CONNECTED') return;
+    visualQueue.push({ evt, runId: visualRunId });
+    processVisualQueue();
+  }
+
+  async function processVisualQueue() {
+    if (visualProcessing) return;
+    visualProcessing = true;
+    while (visualQueue.length > 0) {
+      const { evt, runId } = visualQueue.shift();
+      if (runId !== visualRunId) continue;
+      applyEventToInstrument(evt);
+      await new Promise((resolve) => setTimeout(resolve, VISUAL_STEP_MS));
+    }
+    visualProcessing = false;
   }
 
   function classForRisk(level) {
@@ -111,31 +157,23 @@ document.addEventListener('DOMContentLoaded', () => {
   updateClock();
 
   function resetPipeline() {
+    setRailPoint('idle');
+    setText(railState, 'AWAITING INPUT');
     setText(pipeCallState, '-');
-    setStateClass(pipeCallState, 'seq-state', 'state-muted');
     setText(pipeGeminiState, '-');
-    setStateClass(pipeGeminiState, 'seq-state', 'state-muted');
     setText(pipeRiskState, 'NORMAL');
-    setStateClass(pipeRiskState, 'seq-state', 'state-ok');
+    setClass(pipeRiskState, 'state', 'state-ok');
     setText(pipeCanaryState, 'DENY');
-    setStateClass(pipeCanaryState, 'seq-state', 'state-deny');
+    setClass(pipeCanaryState, 'state', 'state-deny');
     setText(pipeActionState, '-');
-    setStateClass(pipeActionState, 'seq-state', 'state-muted');
-    setText(pipeActionLabel, 'NO ACTION');
-    [pipeCallTime, pipeGeminiTime, pipeRiskTime, pipeCanaryTime, pipeActionTime].forEach((node) => {
-      setText(node, '--:--:--');
-    });
   }
 
   function resetRegister() {
     signalRegisterBody.textContent = '';
-    const row = document.createElement('tr');
-    const cell = document.createElement('td');
-    cell.colSpan = 5;
-    cell.className = 'empty';
-    cell.textContent = 'Awaiting ScamSignals output.';
-    row.appendChild(cell);
-    signalRegisterBody.appendChild(row);
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = 'Awaiting ScamSignals output.';
+    signalRegisterBody.appendChild(empty);
   }
 
   function resetReasons() {
@@ -144,30 +182,31 @@ document.addEventListener('DOMContentLoaded', () => {
     item.className = 'empty';
     item.textContent = 'No risk assessment recorded.';
     reasonsTelemetry.appendChild(item);
+    setText(contributingSignals, '-');
   }
 
   function resetCanary() {
     setText(canaryAction, '-');
     setText(canaryDecision, 'DENY');
-    setStateClass(canaryDecision, 'state', 'state-deny');
+    setClass(canaryDecision, 'state', 'state-deny');
     setText(canaryRiskLevel, '-');
     setText(canaryReason, 'No Canary evaluation recorded.');
-    setText(canaryIntervention, 'NONE');
-    setText(canaryTime, '--:--:-- UTC');
-    setText(crtMode, 'SAFE');
-    setText(crtOutput, 'NONE');
   }
 
-  function resetUserWarning() {
+  function resetWarning() {
     warningInterrupt?.classList.remove('warning-interrupt-active');
     warningInterrupt?.setAttribute('aria-hidden', 'true');
-    userPreview.className = 'user-preview';
     setText(placardHeadline, 'NO USER_WARNING EVENT');
     placardDirectives.textContent = '';
     const empty = document.createElement('p');
     empty.className = 'empty';
     empty.textContent = 'No authorized user-warning directives emitted.';
     placardDirectives.appendChild(empty);
+  }
+
+  function closeWarningInterrupt() {
+    warningInterrupt?.classList.remove('warning-interrupt-active');
+    warningInterrupt?.setAttribute('aria-hidden', 'true');
   }
 
   function resetAuditLog() {
@@ -182,14 +221,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (clearScenario) scenarioSelect.value = '';
     if (clearScenario) {
       setText(expectedRiskTag, '');
-      expectedRiskTag.className = 'scenario-target';
+      expectedRiskTag.className = '';
     }
+    visualRunId += 1;
+    visualQueue = [];
     setText(inputState, 'IDLE');
     resetPipeline();
     resetRegister();
     resetReasons();
     resetCanary();
-    resetUserWarning();
+    resetWarning();
     resetAuditLog();
   }
 
@@ -226,29 +267,17 @@ document.addEventListener('DOMContentLoaded', () => {
   scenarioSelect?.addEventListener('change', () => {
     const scenario = scenarios[scenarioSelect.value];
     setText(expectedRiskTag, '');
-    expectedRiskTag.className = 'scenario-target';
-
+    expectedRiskTag.className = '';
     if (!scenario) return;
 
     inputText.value = (scenario.dialogue || []).join(' ');
     if (scenario.expected_final_risk) {
       setText(expectedRiskTag, `EXPECTED: ${scenario.expected_final_risk}`);
-      expectedRiskTag.className = `scenario-target ${classForRisk(scenario.expected_final_risk)}`;
+      expectedRiskTag.className = classForRisk(scenario.expected_final_risk);
     }
   });
 
   btnClear?.addEventListener('click', () => resetWorkstation());
-
-  function createMeter(asserted) {
-    const meter = document.createElement('span');
-    meter.className = 'level-meter';
-    for (let i = 0; i < 6; i += 1) {
-      const block = document.createElement('i');
-      if (asserted && i < 2) block.className = 'on';
-      meter.appendChild(block);
-    }
-    return meter;
-  }
 
   function renderSignals(signals) {
     signalRegisterBody.textContent = '';
@@ -257,28 +286,23 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    SIGNAL_FIELDS.forEach((field, index) => {
+    SIGNAL_FIELDS.forEach((field) => {
       const value = signals[field];
       const asserted = isAsserted(value);
-      const row = document.createElement('tr');
+      const row = document.createElement('div');
+      row.className = 'signal-row';
 
-      const idCell = document.createElement('td');
-      idCell.textContent = String(index + 1).padStart(2, '0');
+      const mark = document.createElement('span');
+      mark.className = `signal-mark ${asserted ? 'state-asserted' : 'state-cleared'}`;
+      mark.textContent = asserted ? '\u25a0' : '.';
 
-      const fieldCell = document.createElement('td');
-      fieldCell.textContent = field;
+      const key = document.createElement('span');
+      key.textContent = field;
 
-      const stateCell = document.createElement('td');
-      stateCell.textContent = asserted ? 'ASSERTED' : 'CLEARED';
-      stateCell.className = asserted ? 'state-asserted' : 'state-cleared';
+      const val = document.createElement('span');
+      val.textContent = formatValue(value);
 
-      const valueCell = document.createElement('td');
-      valueCell.textContent = formatValue(value);
-
-      const meterCell = document.createElement('td');
-      meterCell.appendChild(createMeter(asserted));
-
-      row.append(idCell, fieldCell, stateCell, valueCell, meterCell);
+      row.append(mark, key, val);
       signalRegisterBody.appendChild(row);
     });
   }
@@ -304,49 +328,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!riskAssessment) return;
     const level = riskAssessment.level || 'NORMAL';
     setText(pipeRiskState, level);
-    setStateClass(pipeRiskState, 'seq-state', classForRisk(level));
+    setClass(pipeRiskState, 'state', classForRisk(level));
+    setText(riskLevelReadout, level);
+    setClass(riskLevelReadout, 'state', classForRisk(level));
     renderReasons(riskAssessment.reasons || []);
+    setText(contributingSignals, (riskAssessment.contributing_signals || []).join('  ') || '-');
   }
 
   function renderCanary(decision) {
     if (!decision) return;
     const policyDecision = decision.decision || 'DENY';
     setText(pipeCanaryState, policyDecision);
-    setStateClass(pipeCanaryState, 'seq-state', classForDecision(policyDecision));
-
+    setClass(pipeCanaryState, 'state', classForDecision(policyDecision));
     setText(canaryAction, decision.action || '-');
     setText(canaryDecision, policyDecision);
-    setStateClass(canaryDecision, 'state', classForDecision(policyDecision));
+    setClass(canaryDecision, 'state', classForDecision(policyDecision));
     setText(canaryRiskLevel, decision.risk_level || '-');
     setText(canaryReason, decision.reason || '-');
-    setText(canaryTime, `${eventTime(decision.timestamp)} UTC`);
   }
 
   function renderWarning(warning) {
     const payload = warning && warning.payload ? warning.payload : null;
     if (!payload) {
-      resetUserWarning();
+      resetWarning();
       return;
     }
 
     warningInterrupt?.classList.add('warning-interrupt-active');
     warningInterrupt?.setAttribute('aria-hidden', 'false');
-    userPreview.className = 'user-preview warning-active';
     setText(placardHeadline, payload.headline || 'USER_WARNING');
-    setText(crtMode, payload.severity || 'WARNING');
-    setText(crtOutput, 'USER_WARNING');
-    setText(canaryIntervention, 'USER_WARNING');
     placardDirectives.textContent = '';
 
     const directives = Array.isArray(payload.directives) ? payload.directives : [];
-    if (directives.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'empty';
-      empty.textContent = 'USER_WARNING event contained no directives.';
-      placardDirectives.appendChild(empty);
-      return;
-    }
-
     directives.forEach((directive) => {
       const line = document.createElement('output');
       line.className = 'directive-line';
@@ -358,50 +371,40 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderAnalysisData(data) {
     if (data.error) {
       setText(inputState, 'ERROR');
+      setRailPoint('gemini');
       setText(pipeCallState, 'RX');
-      setStateClass(pipeCallState, 'seq-state', 'state-eval');
       setText(pipeGeminiState, 'FAIL');
-      setStateClass(pipeGeminiState, 'seq-state', 'state-error');
-      setText(pipeRiskState, 'HALT');
-      setStateClass(pipeRiskState, 'seq-state', 'state-muted');
-      setText(pipeCanaryState, '-');
-      setStateClass(pipeCanaryState, 'seq-state', 'state-muted');
-      setText(pipeActionState, '-');
-      setStateClass(pipeActionState, 'seq-state', 'state-muted');
+      setClass(pipeGeminiState, 'state', 'state-error');
       renderReasons([data.error]);
       resetCanary();
-      resetUserWarning();
+      resetWarning();
       return;
     }
 
     setText(inputState, 'COMPLETE');
     setText(pipeCallState, 'RX');
-    setStateClass(pipeCallState, 'seq-state', 'state-eval');
-    setText(pipeGeminiState, 'OK');
-    setStateClass(pipeGeminiState, 'seq-state', 'state-ok');
+    setText(pipeGeminiState, 'EXTRACTED');
+    setClass(pipeGeminiState, 'state', 'state-ok');
     renderSignals(data.signals);
     renderRisk(data.risk_assessment);
     renderCanary(data.canary_decision);
 
     if (data.warning) {
-      setText(pipeActionState, 'USER');
-      setText(pipeActionLabel, 'USER_WARNING');
-      setStateClass(pipeActionState, 'seq-state', 'state-critical');
+      setText(pipeActionState, 'USER_WARNING');
+      setRailPoint('action');
       renderWarning(data.warning);
     } else {
       const decision = data.canary_decision && data.canary_decision.decision;
       setText(pipeActionState, '-');
-      setText(pipeActionLabel, decision === 'ALLOW' ? 'AUTHORIZED' : 'NO ACTION');
-      setStateClass(pipeActionState, 'seq-state', decision === 'ALLOW' ? 'state-allow' : 'state-muted');
-      resetUserWarning();
+      setRailPoint(decision === 'ALLOW' ? 'crossed' : 'denied');
+      resetWarning();
     }
   }
 
   function summarizeEvent(evt) {
     const payload = evt.payload || {};
-
     if (evt.event_type === 'INPUT_RECEIVED') {
-      return `Conversation input acquired len=${payload.input_length || 0} type=${payload.input_type || 'text'}`;
+      return `len=${payload.input_length || 0} type=${payload.input_type || 'text'}`;
     }
     if (evt.event_type === 'SIGNAL_DETECTED') {
       const sigs = payload.signals || {};
@@ -411,13 +414,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return active.length > 0 ? active.join(' ') : 'active=0';
     }
     if (evt.event_type === 'RISK_UPDATED') {
-      return `Risk level: ${payload.level || '-'} reasons=${Array.isArray(payload.reasons) ? payload.reasons.length : 0}`;
+      return `${payload.level || '-'} reasons=${Array.isArray(payload.reasons) ? payload.reasons.length : 0}`;
     }
     if (evt.event_type === 'CANARY_EVALUATION') {
-      return `Decision: ${payload.decision || '-'} action=${payload.action || '-'}`;
+      return `${payload.decision || '-'} action=${payload.action || '-'}`;
     }
     if (evt.event_type === 'ACTION_ALLOWED' || evt.event_type === 'ACTION_DENIED') {
-      return `Action: ${payload.action || '-'} reason=${payload.reason || '-'}`;
+      return `action=${payload.action || '-'} reason=${payload.reason || '-'}`;
     }
     if (evt.event_type === 'USER_WARNING') {
       return `headline=${payload.headline || '-'} directives=${Array.isArray(payload.directives) ? payload.directives.length : 0}`;
@@ -461,51 +464,48 @@ document.addEventListener('DOMContentLoaded', () => {
     appendLogRow(eventTime(evt.timestamp), evt.event_type, summarizeEvent(evt));
   }
 
-  function applyEventToWorkstation(evt) {
+  function applyEventToInstrument(evt) {
     if (!evt || !evt.event_type) return;
     const payload = evt.payload || {};
-    const time = eventTime(evt.timestamp);
 
     if (evt.event_type === 'INPUT_RECEIVED') {
       setText(inputState, 'RUNNING');
+      setText(railState, 'CALL INPUT RECEIVED');
       setText(pipeCallState, 'RX');
-      setStateClass(pipeCallState, 'seq-state', 'state-eval');
-      setText(pipeCallTime, time);
+      if (pipeGeminiState?.textContent !== 'PROCESSING') {
+        setRailPoint('call');
+      }
     } else if (evt.event_type === 'SIGNAL_DETECTED') {
-      setText(pipeGeminiState, 'OK');
-      setStateClass(pipeGeminiState, 'seq-state', 'state-ok');
-      setText(pipeGeminiTime, time);
+      setText(railState, 'GEMINI SIGNALS EXTRACTED');
+      setText(pipeGeminiState, 'EXTRACTED');
+      setClass(pipeGeminiState, 'state', 'state-ok');
+      setRailPoint('gemini');
       renderSignals(payload.signals);
     } else if (evt.event_type === 'RISK_UPDATED') {
-      setText(pipeRiskTime, time);
+      setText(railState, 'RISK UPDATED');
+      setRailPoint('risk');
       renderRisk(payload);
     } else if (evt.event_type === 'CANARY_EVALUATION') {
-      setText(pipeCanaryTime, time);
+      setText(railState, 'CANARY EVALUATION');
+      setRailPoint('canary');
       renderCanary(payload);
     } else if (evt.event_type === 'ACTION_ALLOWED') {
-      setText(pipeActionState, 'USER');
-      setText(pipeActionLabel, 'AUTHORIZED');
-      setStateClass(pipeActionState, 'seq-state', 'state-allow');
-      setText(pipeActionTime, time);
-      setText(canaryIntervention, payload.action || 'warn_user');
+      setText(railState, 'CANARY ALLOW - BOUNDARY CROSSED');
+      setRailPoint('crossed');
     } else if (evt.event_type === 'ACTION_DENIED') {
+      setText(railState, 'CANARY DENY - BOUNDARY STOP');
+      setRailPoint('denied');
       setText(pipeActionState, '-');
-      setText(pipeActionLabel, 'NO ACTION');
-      setStateClass(pipeActionState, 'seq-state', 'state-muted');
-      setText(pipeActionTime, time);
-      setText(canaryIntervention, 'NONE');
     } else if (evt.event_type === 'USER_WARNING') {
-      setText(pipeActionState, 'USER');
-      setText(pipeActionLabel, 'USER_WARNING');
-      setStateClass(pipeActionState, 'seq-state', 'state-critical');
-      setText(pipeActionTime, time);
+      setText(railState, 'USER WARNING EMITTED');
+      setRailPoint('action');
+      setText(pipeActionState, 'USER_WARNING');
       renderWarning(evt);
     } else if (evt.event_type === 'EXTRACTION_FAILED') {
       setText(inputState, 'ERROR');
+      setText(railState, 'EXTRACTION FAILED');
       setText(pipeGeminiState, 'FAIL');
-      setStateClass(pipeGeminiState, 'seq-state', 'state-error');
-      setText(pipeRiskState, 'HALT');
-      setStateClass(pipeRiskState, 'seq-state', 'state-muted');
+      setClass(pipeGeminiState, 'state', 'state-error');
       renderReasons([payload.message || payload.error_type || 'Extraction failed.']);
     }
   }
@@ -513,32 +513,38 @@ document.addEventListener('DOMContentLoaded', () => {
   function initSSE() {
     try {
       const evtSource = new EventSource('/api/v1/events/stream');
-
       evtSource.onopen = () => {
+        sseLive = true;
         setText(streamStatus, 'LIVE');
-        setStateClass(streamStatus, 'state', 'state-ok');
+        setClass(streamStatus, 'state', 'state-ok');
       };
-
       evtSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           appendRealDomainEvent(data);
-          applyEventToWorkstation(data);
+          enqueueVisualEvent(data);
         } catch (err) {
           console.error('Failed to parse SSE event:', err);
         }
       };
-
       evtSource.onerror = () => {
+        sseLive = false;
         setText(streamStatus, 'OFFLINE');
-        setStateClass(streamStatus, 'state', 'state-deny');
+        setClass(streamStatus, 'state', 'state-deny');
       };
     } catch (err) {
       console.warn('SSE stream connection failed:', err);
+      sseLive = false;
       setText(streamStatus, 'OFFLINE');
-      setStateClass(streamStatus, 'state', 'state-deny');
+      setClass(streamStatus, 'state', 'state-deny');
     }
   }
+
+  warningClose?.addEventListener('click', closeWarningInterrupt);
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeWarningInterrupt();
+  });
 
   btnAnalyze?.addEventListener('click', async () => {
     const text = inputText.value.trim();
@@ -548,7 +554,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     resetWorkstation({ clearInput: false, clearScenario: false });
-    setText(inputState, 'RUNNING');
+    setPendingExtractionState();
     btnAnalyze.disabled = true;
     btnAnalyze.textContent = 'RUNNING';
 
@@ -565,7 +571,12 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      renderAnalysisData(data);
+      if (!sseLive && Array.isArray(data.events)) {
+        data.events.forEach((evt) => {
+          appendRealDomainEvent(evt);
+          enqueueVisualEvent(evt);
+        });
+      }
     } catch (err) {
       console.error('Pipeline execution error:', err);
       alert(`Pipeline error: ${err.message}`);
