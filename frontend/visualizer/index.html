@@ -3,144 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guardian Call — Observability & Telemetry Visualizer</title>
+  <title>Guardian Call GC-80 Workstation</title>
   <link rel="stylesheet" href="/visualizer/styles.css">
 </head>
 <body>
-
-  <!-- TELEMETRY HEADER -->
-  <header class="telemetry-header">
-    <div class="header-branding">
-      <span class="system-tag">SYS::GUARDIAN_CALL_M0</span>
-      <h1 class="system-title">GUARDIAN CALL // TELEMETRY TERMINAL</h1>
-    </div>
-    <div class="header-status">
-      <span class="metric"><span class="label">LIVE SSE STREAM:</span> <span class="val val-connecting" id="stream-status">CONNECTING...</span></span>
-      <span class="metric"><span class="label">SYSTEM STATUS:</span> <span class="val val-ok" id="system-status">ACTIVE</span></span>
-      <span class="metric clock"><span class="label">SYS_TIME:</span> <span class="val" id="sys-clock">00:00:00 UTC</span></span>
-    </div>
-  </header>
-
-  <!-- MAIN TERMINAL GRID -->
-  <main class="grid-container">
-
-    <!-- LEFT COLUMN: INPUT TERMINAL & PRESETS -->
-    <section class="panel panel-input">
-      <div class="panel-header">
-        <span class="panel-title">[ 01 // INPUT CONVERSATION TELEMETRY ]</span>
-        <span class="panel-tag">CONVERSATIONAL FEED</span>
+  <div class="gc80-shell">
+    <header class="gc80-header" aria-label="Guardian Call workstation status">
+      <div class="unit-mark">
+        <span class="unit-glyph">GC</span>
+        <span>GC-80</span>
+        <span>UNIT 04</span>
       </div>
-      <div class="panel-body">
-        
-        <div class="presets-toolbar">
-          <label for="scenario-select" class="label">PRESET SCENARIO:</label>
-          <select class="scenario-select" id="scenario-select">
-            <option value="">[ CARGANDO ESCENARIOS... ]</option>
+      <div class="title-bank">
+        <h1>GUARDIAN CALL INSTRUMENTS</h1>
+        <p>GC-80 PROTECTIVE CALL WORKSTATION</p>
+      </div>
+      <div class="status-bank">
+        <span><b>STREAM</b><output id="stream-status" class="state state-eval">CONNECTING</output></span>
+        <span><b>SYSTEM</b><output id="system-status" class="state state-ok">ONLINE</output></span>
+        <span><b>TIME</b><output id="sys-clock">00:00:00 UTC</output></span>
+      </div>
+    </header>
+
+    <nav class="mode-rail" aria-label="Workstation mode selector">
+      <span>MODE SELECT</span>
+      <span class="active-mode">[ EXECUTION ]</span>
+      <span>REGISTER</span>
+      <span>CANARY</span>
+      <span>LOG</span>
+      <span class="policy-label">POLICY ENGINE&nbsp;&nbsp; CANARY AUTHORITY v0.1</span>
+    </nav>
+
+    <main class="workstation-matrix">
+      <section class="pane conversation-pane" aria-labelledby="conversation-title">
+        <div class="pane-title">
+          <h2 id="conversation-title">EXECUTION / CONVERSATION BUFFER</h2>
+          <output id="expected-risk-tag" class="scenario-target"></output>
+        </div>
+        <div class="conversation-toolbar">
+          <label for="scenario-select">SCENARIO</label>
+          <select id="scenario-select">
+            <option value="">[ LOADING SCENARIOS ]</option>
           </select>
-          <span class="scenario-risk-badge" id="scenario-risk-badge"></span>
         </div>
-
-        <div class="input-wrapper">
-          <label for="input-text" class="input-label">&gt; TRANSCRIPCIÓN CONVERSACIONAL:</label>
-          <textarea id="input-text" rows="5" placeholder="Escriba o pegue la transcripción aquí... (ej. 'Dime el código de 6 dígitos que te llegó por SMS...')"></textarea>
+        <textarea id="input-text" spellcheck="false" placeholder="Paste or select a synthetic conversation transcript..."></textarea>
+        <div class="command-line-footer">
+          <span>INPUT SOURCE: MANUAL PASTE</span>
+          <span id="input-state">IDLE</span>
         </div>
-
-        <div class="actions-bar">
-          <button type="button" class="btn btn-primary" id="btn-analyze">
-            [ RUN ANALYSIS ]
-          </button>
-          <button type="button" class="btn btn-secondary" id="btn-clear">
-            [ RESET TERMINAL ]
-          </button>
+        <div class="command-buttons" aria-label="Analysis commands">
+          <button type="button" id="btn-analyze">EXECUTE ANALYSIS</button>
+          <button type="button" id="btn-clear">RESET BUFFER</button>
         </div>
+      </section>
 
-      </div>
-    </section>
-
-    <!-- RIGHT COLUMN: LIVE RISK ENGINE & CANARY DECISION -->
-    <section class="panel panel-status">
-      <div class="panel-header">
-        <span class="panel-title">[ 02 // RISK ENGINE & CANARY AUTHORITY ]</span>
-        <span class="panel-tag">POLICY DECISION MATRIX</span>
-      </div>
-      <div class="panel-body">
-        
-        <div class="status-grid">
-          <!-- RISK LEVEL DISPLAY -->
-          <div class="status-card" id="card-risk-level">
-            <span class="card-label">RISK LEVEL</span>
-            <div class="card-value val-normal" id="val-risk-level">NORMAL</div>
+      <section class="pane sequence-pane" aria-labelledby="sequence-title">
+        <div class="pane-title">
+          <h2 id="sequence-title">PROTECTION SEQUENCE RAIL</h2>
+        </div>
+        <div class="sequence-rail" aria-label="Canonical Guardian Call execution sequence">
+          <div class="seq-node" id="node-call">
+            <span>CALL</span>
+            <output id="pipe-call-state" class="seq-state state-muted">-</output>
+            <small>RECEIVED</small>
+            <time id="pipe-call-time">--:--:--</time>
           </div>
-
-          <!-- CANARY DECISION DISPLAY -->
-          <div class="status-card" id="card-canary-decision">
-            <span class="card-label">CANARY POLICY DECISION</span>
-            <div class="card-value val-deny" id="val-canary-decision">DENY</div>
+          <i>&gt;</i>
+          <div class="seq-node" id="node-gemini">
+            <span>GEMINI</span>
+            <output id="pipe-gemini-state" class="seq-state state-muted">-</output>
+            <small>EXTRACTED</small>
+            <time id="pipe-gemini-time">--:--:--</time>
+          </div>
+          <i>&gt;</i>
+          <div class="seq-node" id="node-risk">
+            <span>RISK ENGINE</span>
+            <output id="pipe-risk-state" class="seq-state state-ok">NORMAL</output>
+            <small>ASSESSMENT</small>
+            <time id="pipe-risk-time">--:--:--</time>
+          </div>
+          <i>&gt;</i>
+          <div class="seq-node" id="gate-canary">
+            <span>CANARY</span>
+            <output id="pipe-canary-state" class="seq-state state-deny">DENY</output>
+            <small>POLICY</small>
+            <time id="pipe-canary-time">--:--:--</time>
+          </div>
+          <i>&gt;</i>
+          <div class="seq-node" id="node-intervention">
+            <span>INTERVENTION</span>
+            <output id="pipe-action-state" class="seq-state state-muted">-</output>
+            <small id="pipe-action-label">NO ACTION</small>
+            <time id="pipe-action-time">--:--:--</time>
           </div>
         </div>
-
-        <!-- REASONS LIST -->
-        <div class="reasons-box">
-          <span class="box-label">EXPLAINABLE RISK REASONS:</span>
-          <ul id="list-risk-reasons" class="reasons-list">
-            <li class="empty-state">No active risk signals evaluated yet.</li>
-          </ul>
+        <div class="risk-readout">
+          <h3>RISK ASSESSMENT REASONS</h3>
+          <ol id="reasons-telemetry">
+            <li class="empty">No risk assessment recorded.</li>
+          </ol>
         </div>
+      </section>
 
-        <!-- GUARDIAN USER WARNING OVERLAY (PROTECTED USER UI) -->
-        <div class="user-warning-banner" id="user-warning-banner" style="display: none;">
-          <div class="warning-header">
-            <span class="warning-symbol">⚠️</span>
-            <span class="warning-headline" id="warning-headline">POSIBLE ESTAFA</span>
+      <section class="pane register-pane" aria-labelledby="register-title">
+        <div class="pane-title">
+          <h2 id="register-title">ACTIVE SIGNAL REGISTER</h2>
+          <span>ASSERTED = TRUE/NOT EMPTY&nbsp;&nbsp; CLEARED = FALSE/EMPTY</span>
+        </div>
+        <table class="register-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>SIGNAL FIELD</th>
+              <th>STATE</th>
+              <th>NORMALIZED VALUE</th>
+              <th>LEVEL</th>
+            </tr>
+          </thead>
+          <tbody id="signal-register-body">
+            <tr><td colspan="5" class="empty">Awaiting ScamSignals output.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="pane canary-pane" aria-labelledby="canary-title">
+        <div class="pane-title">
+          <h2 id="canary-title">CANARY AUTHORITY UNIT</h2>
+        </div>
+        <div class="canary-grid">
+          <div class="policy-decision">
+            <span>POLICY DECISION</span>
+            <output id="canary-decision" class="state state-deny">DENY</output>
           </div>
-          <div class="warning-body">
-            <div class="warning-directives" id="warning-directives">
-              <!-- Directives rendered dynamically -->
+          <dl class="authority-register">
+            <div>
+              <dt>RISK LEVEL</dt>
+              <dd id="canary-risk-level">-</dd>
             </div>
+            <div>
+              <dt>ACTION</dt>
+              <dd id="canary-action">-</dd>
+            </div>
+            <div>
+              <dt>INTERVENTION</dt>
+              <dd id="canary-intervention">NONE</dd>
+            </div>
+          </dl>
+          <div class="decision-context">
+            <h3>DECISION CONTEXT</h3>
+            <dl>
+              <div>
+                <dt>ENGINE VERSION</dt>
+                <dd>0.1.0</dd>
+              </div>
+              <div>
+                <dt>EVALUATION TIME</dt>
+                <dd id="canary-time">--:--:-- UTC</dd>
+              </div>
+              <div>
+                <dt>SUMMARY</dt>
+                <dd id="canary-reason">No Canary evaluation recorded.</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="safe-crt" aria-label="Protected user output standby">
+            <div class="crt-screen">
+              <p>No warning to user.</p>
+              <p>Conversation continues without interruption.</p>
+            </div>
+            <dl>
+              <div><dt>CRT MODE</dt><dd id="crt-mode">SAFE</dd></div>
+              <div><dt>OUTPUT</dt><dd id="crt-output">NONE</dd></div>
+            </dl>
           </div>
         </div>
+      </section>
+    </main>
 
+    <section class="event-printer" aria-labelledby="audit-title">
+      <div class="printer-title">
+        <h2 id="audit-title">DOMAIN EVENT LINE PRINTER</h2>
+        <output id="event-line-count">LINES 001</output>
       </div>
-    </section>
-
-    <!-- BOTTOM ROW 1: SIGNALS MATRIX -->
-    <section class="panel panel-signals grid-full">
-      <div class="panel-header">
-        <span class="panel-title">[ 03 // EXTRACTED SCAM SIGNALS ]</span>
-        <span class="panel-tag">STRUCTURED GEMINI SIGNALS</span>
+      <div class="printer-head">
+        <span>TIME (UTC)</span>
+        <span>EVENT</span>
+        <span>DETAILS</span>
       </div>
-      <div class="panel-body">
-        <div class="signals-grid" id="signals-grid">
-          <!-- Signals rendered dynamically -->
+      <div class="audit-log" role="log" aria-live="polite" id="event-stream-terminal">
+        <div class="log-entry log-empty">
+          <span class="log-time">00:00:00</span>
+          <span class="log-event">SYSTEM_READY</span>
+          <span class="log-payload">Awaiting backend domain events.</span>
         </div>
       </div>
     </section>
 
-    <!-- BOTTOM ROW 2: LIVE BACKEND EVENT STREAM TRAIL -->
-    <section class="panel panel-events grid-full">
-      <div class="panel-header">
-        <span class="panel-title">[ 04 // REAL-TIME DOMAIN EVENT STREAM TRAIL ]</span>
-        <span class="panel-tag">LIVE SSE PIPELINE LOG</span>
-      </div>
-      <div class="panel-body">
-        <div class="event-stream" id="event-stream">
-          <div class="event-item event-empty">
-            <span class="evt-time">[00:00:00]</span>
-            <span class="evt-type">SYSTEM_READY</span>
-            <span class="evt-payload">Awaiting conversational input to stream pipeline domain events...</span>
+    <div class="warning-interrupt" id="warning-interrupt" aria-labelledby="user-title" aria-hidden="true">
+      <div class="interrupt-frame">
+        <div class="pane-title">
+          <h2 id="user-title">CANARY // USER PROTECTION INTERRUPT</h2>
+        </div>
+        <div class="user-preview" id="user-preview">
+          <output id="placard-headline">NO USER_WARNING EVENT</output>
+          <div class="directive-bank" id="placard-directives">
+            <p class="empty">No authorized user-warning directives emitted.</p>
           </div>
         </div>
       </div>
-    </section>
-
-  </main>
-
-  <!-- FOOTER METADATA -->
-  <footer class="telemetry-footer">
-    <span>GUARDIAN CALL // ALL THINGS AGENTIC HACKATHON 2026</span>
-    <span>EXTRACTION: GEMINI SIGNAL EXTRACTOR</span>
-    <span>AUTHORITY: CANARY POLICY ENGINE</span>
-  </footer>
+    </div>
+  </div>
 
   <script src="/visualizer/app.js"></script>
 </body>
