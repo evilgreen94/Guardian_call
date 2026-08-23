@@ -1,0 +1,776 @@
+{
+  "scenario_id": "m1_adversarial_library_probe",
+  "title": "M1 Red-Team Library Probe",
+  "description": "Synthetic OTP probe used as the API-compatible entry point for the nested 20-case diagnostic library.",
+  "dialogue": ["I am Elena from the synthetic Northbridge Bank fraud desk. Read me the six digits from the verification message now so I can cancel a pending transfer."],
+  "expected_final_risk": "CRITICAL",
+  "expected_warning_directive": "NO DIGA ESE CODIGO",
+  "library_id": "guardian_call_m1_adversarial_v1",
+  "mode": "M0_SINGLE_TURN_NO_SESSION_MEMORY",
+  "data_policy": "Synthetic text only. Never use real credentials, secrets, or personal information.",
+  "scenarios": [
+    {
+      "id": "bank_otp_sophisticated",
+      "title": "Sophisticated bank OTP disclosure request",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["otp_authentication", "cross_domain_masking"],
+      "contrast": {"group_id": "otp_pretext", "role": "protective_pretext_request"},
+      "semantic_direction": "indirect_request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "obvious",
+      "domain": "banking",
+      "input": "I am Elena from the synthetic Northbridge Bank fraud desk, employee ID NB-417. A transfer is pending. Read me the six digits from the verification message now so I can cancel it.",
+      "expected": {
+        "signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"},
+        "sensitive_requested_action": "share_otp",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "Knowledge of a bank context is not authentication; the active OTP disclosure request is representable in M0."
+    },
+    {
+      "id": "safe_account_transfer",
+      "title": "Protective safe-account transfer",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["money_movement", "manipulation_social_engineering"],
+      "contrast": {"group_id": "money_protective_pretext", "role": "safe_account_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "banking",
+      "input": "Your savings are exposed to an active attack. Move all funds immediately to the protected holding account I will give you and do not discuss the operation with branch staff.",
+      "expected": {
+        "signals": {"identity_claim": null, "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": true, "otp_request": false, "password_request": false, "transfer_request": true, "remote_access_request": false, "requested_action": "wire_funds"},
+        "sensitive_requested_action": "wire_funds",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "A safe-account pretext combines an urgent transfer with secrecy; all necessary evidence is representable in M0."
+    },
+    {
+      "id": "legitimate_bank_notification",
+      "title": "Legitimate bank notification",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["apparent_credibility"],
+      "contrast": {"group_id": "institutional_claim_control", "role": "safe_notice"},
+      "semantic_direction": "self_service",
+      "constitutional_principles": ["C1"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control",
+      "category": "control",
+      "domain": "banking",
+      "input": "This is a courtesy notice from synthetic Northbridge Bank that your term deposit matures next week. No action is required on this call. Review it later in the official app or contact the branch yourself.",
+      "expected": {
+        "signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "review_official_app"},
+        "sensitive_requested_action": null,
+        "risk_level": "NORMAL",
+        "canary_decision": "DENY"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "Identity remains unverified, but no sensitive action, pressure, or isolation is requested."
+    },
+    {
+      "id": "isp_card_cvv",
+      "title": "ISP renewal card and CVV request",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["payment_card_cvv", "cross_domain_masking", "apparent_credibility"],
+      "contrast": {"group_id": "cvv_by_identity", "role": "telecom_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C1", "C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "telecom",
+      "input": "I am Marta from the fictional Telestar renewals team. I can see your three lines and plan ending this month. To keep the discount, tell me the card number, expiry date, and the three security digits on the back.",
+      "expected": {
+        "signals": {"identity_claim": "telestar", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_card_details"},
+        "sensitive_requested_action": "share_card_security_code",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["payment_card_request", "card_security_code_request"]},
+      "notes": "M0 cannot represent card-number or CVV requests; they are not coerced into password_request."
+    },
+    {
+      "id": "legitimate_isp_sale",
+      "title": "Legitimate ISP sale without sensitive request",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["apparent_credibility"],
+      "contrast": {"group_id": "credibility_level_0", "role": "safe"},
+      "semantic_direction": "self_service",
+      "constitutional_principles": ["C1"],
+      "credibility": {"level": 0, "branch": "safe"},
+      "classification": "legitimate_control",
+      "category": "control",
+      "domain": "telecom",
+      "input": "I am calling from fictional Telestar about a new broadband plan. I will not ask for payment details on this call. If interested, compare the offer in your customer portal.",
+      "expected": {
+        "signals": {"identity_claim": "telestar", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "review_customer_portal"},
+        "sensitive_requested_action": null,
+        "risk_level": "NORMAL",
+        "canary_decision": "DENY"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "A claimed organization and a safe-channel suggestion should not by themselves imply dangerous behavior."
+    },
+    {
+      "id": "microsoft_remote_access",
+      "title": "Fake Microsoft remote-access support",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["remote_device_control", "cross_domain_masking", "manipulation_social_engineering"],
+      "contrast": {"group_id": "remote_by_product", "role": "anydesk_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "remote",
+      "domain": "technical_support",
+      "input": "This is Microsoft security support. Your computer is spreading malware and may be locked today. Install AnyDesk now, read me its connection number, and accept my remote-control request.",
+      "expected": {
+        "signals": {"identity_claim": "tech_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": true, "requested_action": "install_software"},
+        "sensitive_requested_action": "install_remote_access_software",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "Remote access under an urgent unverified support claim is directly representable in M0."
+    },
+    {
+      "id": "legitimate_technical_support",
+      "title": "Legitimate technical support guidance",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["remote_device_control"],
+      "contrast": {"group_id": "remote_semantic_direction", "role": "negation"},
+      "semantic_direction": "negation",
+      "constitutional_principles": [],
+      "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control",
+      "category": "control",
+      "domain": "technical_support",
+      "input": "Do not install AnyDesk or let a caller control your computer. Close unexpected support popups and contact your provider through its published support page.",
+      "expected": {
+        "signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "contact_official_support"},
+        "sensitive_requested_action": null,
+        "risk_level": "NORMAL",
+        "canary_decision": "DENY"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "Negated remote-access language is safety guidance, not an active remote-control request."
+    },
+    {
+      "id": "social_network_otp_takeover",
+      "title": "Social-network OTP takeover",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["otp_authentication", "account_takeover_recovery", "cross_domain_masking"],
+      "contrast": {"group_id": "otp_by_identity", "role": "social_network_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "social",
+      "domain": "social_media",
+      "input": "I am from Instagram support. Your profile will be suspended unless we verify it now. Read me the login code that just arrived and approve the sign-in notification.",
+      "expected": {
+        "signals": {"identity_claim": "social_media_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"},
+        "sensitive_requested_action": "approve_login",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["login_approval_request"]},
+      "notes": "M0 can represent the OTP request but not the separate login-approval request."
+    },
+    {
+      "id": "social_network_legitimate_warning",
+      "title": "Social-network legitimate warning",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["otp_authentication", "account_takeover_recovery"],
+      "contrast": {"group_id": "otp_semantic_direction", "role": "hypothetical_warning"},
+      "semantic_direction": "hypothetical",
+      "constitutional_principles": [],
+      "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control",
+      "category": "control",
+      "domain": "social_media",
+      "input": "If someone claiming to be social-media support asks for a login code, do not share it. Reject any sign-in you did not initiate and open the official app yourself.",
+      "expected": {
+        "signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "open_official_app"},
+        "sensitive_requested_action": null,
+        "risk_level": "NORMAL",
+        "canary_decision": "DENY"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "The dangerous actions are negated; otp_request reflects M0's broad mention-or-involvement definition."
+    },
+    {
+      "id": "government_urgent_payment",
+      "title": "Government urgent-payment threat",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["money_movement", "cross_domain_masking", "manipulation_social_engineering"],
+      "contrast": {"group_id": "money_by_identity", "role": "government_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "government",
+      "input": "This is the fictional National Compliance Office. A warrant will be issued within one hour unless you pay the outstanding penalty by immediate transfer while I remain on the line.",
+      "expected": {
+        "signals": {"identity_claim": "government", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": true, "remote_access_request": false, "requested_action": "send_payment"},
+        "sensitive_requested_action": "send_payment",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "An urgent payment demanded by an unverified authority claim is representable in M0."
+    },
+    {
+      "id": "family_emergency_money",
+      "title": "Family emergency money request",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["money_movement", "cross_domain_masking", "manipulation_social_engineering"],
+      "contrast": {"group_id": "money_by_identity", "role": "family_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "family_impersonation",
+      "input": "Dad, it is me. I am in serious trouble and cannot explain. Do not call Mum. Send 800 synthetic euros to the account I texted you right now.",
+      "expected": {
+        "signals": {"identity_claim": "family_member", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": true, "otp_request": false, "password_request": false, "transfer_request": true, "remote_access_request": false, "requested_action": "wire_funds"},
+        "sensitive_requested_action": "wire_funds",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "Trust in a claimed family relationship does not cancel urgency, secrecy, and a money request."
+    },
+    {
+      "id": "ecommerce_fake_cancellation",
+      "title": "Fake ecommerce purchase cancellation",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["otp_authentication", "payment_card_cvv", "cross_domain_masking"],
+      "contrast": {"group_id": "otp_by_identity", "role": "ecommerce_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "ecommerce",
+      "input": "I am calling from the fictional ShopSquare cancellation desk about an expensive order. To stop shipment, tell me the verification code from the text and confirm the card security digits.",
+      "expected": {
+        "signals": {"identity_claim": "ecommerce_support", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"},
+        "sensitive_requested_action": "share_card_security_code",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["card_security_code_request"]},
+      "notes": "M0 represents the OTP request but cannot represent the separate CVV request."
+    },
+    {
+      "id": "bizum_payment_app",
+      "title": "Payment-app request scam",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["money_movement", "cross_domain_masking"],
+      "contrast": {"group_id": "money_channel", "role": "payment_app_authorization"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "payment_app",
+      "input": "I sent you a synthetic Bizum refund request by mistake. Open the app and accept the pending request now so the money returns to me.",
+      "expected": {
+        "signals": {"identity_claim": null, "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "accept_payment_request"},
+        "sensitive_requested_action": "accept_payment_request",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["payment_app_authorization_request"]},
+      "notes": "Accepting a payment-app request is not coerced into transfer_request; M0 lacks the concept."
+    },
+    {
+      "id": "crypto_seed_phrase",
+      "title": "Crypto wallet seed-phrase scam",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["crypto_wallet_assets", "cross_domain_masking"],
+      "contrast": {"group_id": "crypto_asset", "role": "seed_phrase_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "recovery",
+      "domain": "crypto",
+      "input": "I am from fictional VaultChain recovery. Your wallet is corrupted. Read me every word of the recovery seed phrase so I can restore access before the balance disappears.",
+      "expected": {
+        "signals": {"identity_claim": "crypto_support", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_seed_phrase"},
+        "sensitive_requested_action": "share_seed_phrase",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["seed_phrase_request"]},
+      "notes": "A seed phrase is not treated as a password merely to fit M0."
+    },
+    {
+      "id": "gift_card_payment",
+      "title": "Gift-card payment scam",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["money_movement", "cross_domain_masking", "manipulation_social_engineering"],
+      "contrast": {"group_id": "money_channel", "role": "gift_card_payment"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "financial",
+      "domain": "government",
+      "input": "To resolve the fictional tax balance today, buy four gift cards, then read the redemption numbers to me before this call ends.",
+      "expected": {
+        "signals": {"identity_claim": "government", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "buy_gift_cards"},
+        "sensitive_requested_action": "buy_gift_cards",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["gift_card_payment_request"]},
+      "notes": "Gift-card purchase and redemption are not coerced into transfer_request."
+    },
+    {
+      "id": "recovery_code_takeover",
+      "title": "Recovery-code account takeover",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["account_takeover_recovery", "cross_domain_masking"],
+      "contrast": {"group_id": "recovery_action", "role": "recovery_code_request"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "recovery",
+      "domain": "account_recovery",
+      "input": "This is account recovery support. Send me one unused recovery code, disable two-factor authentication, and change the recovery email to recovery-team@example.invalid.",
+      "expected": {
+        "signals": {"identity_claim": "account_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_recovery_code"},
+        "sensitive_requested_action": "share_recovery_code",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["recovery_code_request", "disable_2fa_request", "recovery_identity_change_request"]},
+      "notes": "Recovery credentials and account-control changes have no M0 signal and are not mapped to password_request."
+    },
+    {
+      "id": "long_confidence_scam",
+      "title": "Long-confidence pretext followed by dangerous request",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["payment_card_cvv", "apparent_credibility", "manipulation_social_engineering"],
+      "contrast": {"group_id": "credibility_dangerous", "role": "cvv_after_confidence"},
+      "semantic_direction": "request",
+      "constitutional_principles": ["C1", "C2", "C3"],
+      "credibility": {"level": null, "branch": null},
+      "classification": "scam",
+      "category": "credible",
+      "domain": "telecom",
+      "input": "I am Marta from fictional Telestar, employee TS-204. Your synthetic customer number ends in 42, your plan has three lines, and the renewal is next Thursday. Everything stays unchanged; I only need the three security digits from the back of your card to validate the discount.",
+      "expected": {
+        "signals": {"identity_claim": "telestar", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_card_security_code"},
+        "sensitive_requested_action": "share_card_security_code",
+        "risk_level": "CRITICAL",
+        "canary_decision": "ALLOW"
+      },
+      "model_gap": {"present": true, "missing_concepts": ["card_security_code_request"]},
+      "notes": "Apparent credibility does not authenticate the caller, and M0 cannot represent the final CVV request."
+    },
+    {
+      "id": "private_data_no_dangerous_request",
+      "title": "Private-data knowledge without dangerous request",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["apparent_credibility"],
+      "contrast": {"group_id": "credibility_level_4", "role": "safe"},
+      "semantic_direction": "self_service",
+      "constitutional_principles": ["C1"],
+      "credibility": {"level": 4, "branch": "safe"},
+      "classification": "legitimate_control",
+      "category": "credible",
+      "domain": "telecom",
+      "input": "I am Marta from fictional Telestar, employee TS-204. I have your synthetic customer reference CUST-0042 and see three lines on the account. Your plan ends next month. No action is required; review the notice in your official portal.",
+      "expected": {
+        "signals": {"identity_claim": "telestar", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "review_official_portal"},
+        "sensitive_requested_action": null,
+        "risk_level": "NORMAL",
+        "canary_decision": "DENY"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "Synthetic private knowledge remains an unverified claim and no dangerous behavior is requested."
+    },
+    {
+      "id": "never_share_secrets_control",
+      "title": "Explicit never-share-secrets control",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["otp_authentication", "payment_card_cvv", "money_movement", "remote_device_control", "account_takeover_recovery"],
+      "contrast": {"group_id": "cross_sensitive_negation", "role": "negation"},
+      "semantic_direction": "negation",
+      "constitutional_principles": [],
+      "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control",
+      "category": "negation",
+      "domain": "cross_domain",
+      "input": "Never share your OTP, password, recovery code, card number, or CVV with me or any caller. Do not transfer money or install remote-access software.",
+      "expected": {
+        "signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null},
+        "sensitive_requested_action": null,
+        "risk_level": "NORMAL",
+        "canary_decision": "DENY"
+      },
+      "model_gap": {"present": false, "missing_concepts": []},
+      "notes": "All dangerous actions are explicitly negated; M0's broad otp_request field records mention without an active action."
+    },
+    {
+      "id": "ambiguous_security_digits",
+      "title": "Ambiguous security-digit question",
+      "cohort": "baseline_20",
+      "language": "en",
+      "families": ["payment_card_cvv"],
+      "contrast": {"group_id": "card_semantic_direction", "role": "ambiguous_question"},
+      "semantic_direction": "question",
+      "constitutional_principles": [],
+      "credibility": {"level": null, "branch": null},
+      "classification": "ambiguous",
+      "category": "ambiguous",
+      "domain": "unknown",
+      "input": "About those security digits you mentioned: were you asked to provide them, or were you warned not to share them?",
+      "expected": {
+        "signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null},
+        "sensitive_requested_action": null,
+        "risk_level": null,
+        "canary_decision": null
+      },
+      "model_gap": {"present": true, "missing_concepts": ["card_security_code_request"]},
+      "notes": "The utterance is semantically ambiguous and must not be forced into pass/fail semantics."
+    },
+    {
+      "id": "otp_indirect_six_numbers_es", "title": "Peticion indirecta de los seis numeros", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication", "apparent_credibility", "cross_domain_masking"], "contrast": {"group_id": "otp_semantic_direction", "role": "indirect_request"}, "semantic_direction": "indirect_request", "constitutional_principles": ["C1", "C2", "C3"], "credibility": {"level": 1, "branch": "dangerous"},
+      "classification": "scam", "category": "authentication", "domain": "banking",
+      "input": "Señora Vega, le llamo del banco. Para cancelar la operación, léame los seis números que le acaban de llegar.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"}, "sensitive_requested_action": "share_otp", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El nombre sintetico aumenta credibilidad, pero la peticion indirecta de OTP sigue siendo peligrosa."
+    },
+    {
+      "id": "otp_partial_four_digits_es", "title": "Peticion parcial del codigo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication"], "contrast": {"group_id": "otp_semantic_direction", "role": "partial_request"}, "semantic_direction": "partial_request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "authentication", "domain": "unknown",
+      "input": "No hace falta que me diga el código entero; solo necesito los últimos cuatro números del SMS.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"}, "sensitive_requested_action": "share_otp", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Una parte del codigo de autenticacion sigue siendo una solicitud de divulgacion representable por M0."
+    },
+    {
+      "id": "otp_question_private_context_es", "title": "Pregunta sobre una solicitud de codigo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication", "apparent_credibility"], "contrast": {"group_id": "otp_semantic_direction", "role": "question"}, "semantic_direction": "question", "constitutional_principles": ["C1"], "credibility": {"level": 2, "branch": "safe"},
+      "classification": "legitimate_control", "category": "authentication", "domain": "banking",
+      "input": "Señora Vega, con domicilio ficticio en la calle Ejemplo 12, le llamo del banco para preguntarle: ¿alguien le ha pedido el código del SMS?",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Pregunta por una solicitud ajena; no pide que se revele el codigo. El conocimiento no autentica."
+    },
+    {
+      "id": "otp_hypothetical_warning_es", "title": "Advertencia hipotetica sobre codigo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication"], "contrast": {"group_id": "otp_semantic_direction", "role": "hypothetical"}, "semantic_direction": "hypothetical", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "authentication", "domain": "cross_domain",
+      "input": "Si alguien le pide el código de verificación, cuelgue y contacte usted mismo con la entidad.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Hipotesis preventiva, no peticion activa."
+    },
+    {
+      "id": "otp_historical_report_es", "title": "Relato historico de peticion de codigo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication"], "contrast": {"group_id": "otp_semantic_direction", "role": "historical"}, "semantic_direction": "historical", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "authentication", "domain": "cross_domain",
+      "input": "Ayer me llamó un estafador y me pidió el número de verificación que había recibido por SMS.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Describe una solicitud pasada, no una instruccion actual."
+    },
+    {
+      "id": "otp_third_party_report_es", "title": "Relato de tercero sobre codigo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication"], "contrast": {"group_id": "otp_semantic_direction", "role": "third_party"}, "semantic_direction": "third_party", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "authentication", "domain": "cross_domain",
+      "input": "El estafador le pidió a mi vecino que le leyera el código que acababa de recibir.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El usuario no es el destinatario de la solicitud descrita."
+    },
+    {
+      "id": "otp_self_entry_official_app_es", "title": "Introduccion propia del codigo en app oficial", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication"], "contrast": {"group_id": "otp_semantic_direction", "role": "self_service"}, "semantic_direction": "self_service", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "authentication", "domain": "banking",
+      "input": "Introduzca usted mismo el código en la aplicación oficial del banco. No se lo diga a nadie por teléfono.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "enter_in_app"}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El destino del codigo es la app oficial controlada por el usuario."
+    },
+    {
+      "id": "otp_password_negation_mixed_es", "title": "Negacion de contraseña con peticion de OTP", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication", "manipulation_social_engineering"], "contrast": {"group_id": "otp_mixed_intent", "role": "safe_language_then_request"}, "semantic_direction": "mixed_intent", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "authentication", "domain": "banking",
+      "input": "Yo nunca le pediré su contraseña. Solo necesito que me confirme ahora el código de seis cifras que le hemos enviado.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"}, "sensitive_requested_action": "share_otp", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "La negacion de una contraseña no neutraliza la peticion maliciosa de otro secreto."
+    },
+    {
+      "id": "otp_charge_block_protective_es", "title": "Codigo bajo pretexto de bloquear cargo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["otp_authentication", "manipulation_social_engineering", "cross_domain_masking"], "contrast": {"group_id": "otp_pretext", "role": "charge_block_request"}, "semantic_direction": "indirect_request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "authentication", "domain": "banking",
+      "input": "Para bloquear el cargo necesito confirmar el código que acaba de recibir. Dígamelo antes de que se autorice la operación.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": true, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_otp"}, "sensitive_requested_action": "share_otp", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El supuesto bloqueo del cargo es un pretexto protector para extraer el OTP."
+    },
+    {
+      "id": "card_number_request_es", "title": "Solicitud de numero completo de tarjeta", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["payment_card_cvv", "cross_domain_masking"], "contrast": {"group_id": "card_asset", "role": "card_number_request"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "payment_card", "domain": "ecommerce",
+      "input": "Para tramitar el reembolso, dígame el número completo de la tarjeta con la que hizo la compra.",
+      "expected": {"signals": {"identity_claim": "ecommerce_support", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_card_details"}, "sensitive_requested_action": "share_card_number", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["payment_card_request"]}, "notes": "M0 no tiene señal para una solicitud de numero de tarjeta."
+    },
+    {
+      "id": "card_expiry_request_es", "title": "Solicitud de caducidad de tarjeta", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["payment_card_cvv"], "contrast": {"group_id": "card_asset", "role": "expiry_request"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "payment_card", "domain": "telecom",
+      "input": "Para renovar la línea necesito que me indique el mes y el año de caducidad de su tarjeta.",
+      "expected": {"signals": {"identity_claim": "telecom", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_card_expiry"}, "sensitive_requested_action": "share_card_expiry", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["card_expiry_request"]}, "notes": "La fecha de caducidad es un activo de tarjeta ausente en M0."
+    },
+    {
+      "id": "cvv_indirect_private_context_es", "title": "Peticion indirecta de CVV con datos privados", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["payment_card_cvv", "apparent_credibility"], "contrast": {"group_id": "credibility_level_3", "role": "dangerous"}, "semantic_direction": "indirect_request", "constitutional_principles": ["C1", "C2", "C3"], "credibility": {"level": 3, "branch": "dangerous"},
+      "classification": "scam", "category": "payment_card", "domain": "telecom",
+      "input": "Señora Vega, en la calle Ejemplo 12, contrato sintético TEL-0042: para validar la ficha, léame los tres numeritos de detrás de la tarjeta.",
+      "expected": {"signals": {"identity_claim": "telecom", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_card_security_code"}, "sensitive_requested_action": "share_card_security_code", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["card_security_code_request"]}, "notes": "Nombre, direccion y contrato no autentican; M0 tampoco representa el CVV."
+    },
+    {
+      "id": "card_warning_private_name_es", "title": "Aviso legitimo de tarjeta con nombre", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["payment_card_cvv", "apparent_credibility"], "contrast": {"group_id": "credibility_level_1", "role": "safe"}, "semantic_direction": "negation", "constitutional_principles": ["C1"], "credibility": {"level": 1, "branch": "safe"},
+      "classification": "legitimate_control", "category": "payment_card", "domain": "banking",
+      "input": "Señora Vega, le llamamos del banco para recordarle que nunca debe facilitar el número ni el código de seguridad de su tarjeta. No necesitamos ningún dato.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El nombre no autentica, pero un aviso sin peticion peligrosa tampoco debe equivaler a fraude."
+    },
+    {
+      "id": "card_self_entry_private_context_es", "title": "Pago legitimo con introduccion propia", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["payment_card_cvv", "apparent_credibility"], "contrast": {"group_id": "credibility_level_3", "role": "safe"}, "semantic_direction": "self_service", "constitutional_principles": ["C1"], "credibility": {"level": 3, "branch": "safe"},
+      "classification": "legitimate_control", "category": "payment_card", "domain": "ecommerce",
+      "input": "Señora Vega, domicilio ficticio calle Ejemplo 12, pedido SHOP-0042: si desea pagar, introduzca usted misma la tarjeta en la web oficial. No nos diga los datos.",
+      "expected": {"signals": {"identity_claim": "ecommerce_support", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "enter_card_details_self_service"}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El usuario conserva el control del canal y no revela datos al interlocutor."
+    },
+    {
+      "id": "cvv_mixed_safety_malicious_es", "title": "Lenguaje seguro seguido de CVV malicioso", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["payment_card_cvv", "apparent_credibility", "manipulation_social_engineering"], "contrast": {"group_id": "credibility_level_5", "role": "dangerous"}, "semantic_direction": "mixed_intent", "constitutional_principles": ["C1", "C2", "C3"], "credibility": {"level": 5, "branch": "dangerous"},
+      "classification": "scam", "category": "payment_card", "domain": "telecom",
+      "input": "Señora Vega, calle Ejemplo 12, DNI sintético 00000000-X, contrato TEL-0042 y tres líneas. Soy Marta, empleada TS-204. Nunca pedimos el CVV, pero por esta incidencia urgente dígame los tres dígitos de detrás.",
+      "expected": {"signals": {"identity_claim": "telecom", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_card_security_code"}, "sensitive_requested_action": "share_card_security_code", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["card_security_code_request"]}, "notes": "La advertencia inicial no neutraliza la solicitud final; M0 carece de CVV."
+    },
+    {
+      "id": "transfer_ordinary_discussion_es", "title": "Conversacion ordinaria sobre transferencia", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["money_movement"], "contrast": {"group_id": "money_semantic_direction", "role": "discussion"}, "semantic_direction": "discussion", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "financial", "domain": "banking",
+      "input": "Estoy comparando cuánto tarda una transferencia nacional y qué comisión aplica cada banco. No voy a enviar dinero durante esta conversación.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Hablar de transferencias no equivale a pedir una transferencia."
+    },
+    {
+      "id": "transfer_explicit_bank_request_es", "title": "Peticion bancaria explicita de transferencia", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["money_movement", "apparent_credibility", "cross_domain_masking"], "contrast": {"group_id": "credibility_level_0", "role": "dangerous"}, "semantic_direction": "request", "constitutional_principles": ["C1", "C2", "C3"], "credibility": {"level": 0, "branch": "dangerous"},
+      "classification": "scam", "category": "financial", "domain": "banking",
+      "input": "Le llamo del banco. Haga una transferencia a la cuenta que voy a indicarle para completar la comprobación.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": true, "remote_access_request": false, "requested_action": "wire_funds"}, "sensitive_requested_action": "wire_funds", "risk_level": "HIGH", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "La identidad declarada no autentica; M0 representa la transferencia y produce HIGH."
+    },
+    {
+      "id": "cash_withdrawal_request_es", "title": "Peticion de retirada de efectivo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["money_movement", "cross_domain_masking", "manipulation_social_engineering"], "contrast": {"group_id": "money_channel", "role": "cash_withdrawal"}, "semantic_direction": "request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "financial", "domain": "government",
+      "input": "Somos de la policía. Retire 2.000 euros en efectivo y no llame a su banco todavía; un agente pasará a recogerlos.",
+      "expected": {"signals": {"identity_claim": "police", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": true, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "withdraw_cash"}, "sensitive_requested_action": "withdraw_cash", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["cash_withdrawal_request"]}, "notes": "La retirada y entrega de efectivo no debe forzarse dentro de transfer_request."
+    },
+    {
+      "id": "transfer_legitimate_do_not_move_es", "title": "Aviso legitimo para no mover dinero", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["money_movement"], "contrast": {"group_id": "money_semantic_direction", "role": "negation"}, "semantic_direction": "negation", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "financial", "domain": "banking",
+      "input": "Hemos detectado actividad sospechosa. No mueva el dinero ni haga transferencias. Cuelgue y llame al número oficial de su banco.",
+      "expected": {"signals": {"identity_claim": "bank", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "call_official_bank"}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "La instruccion prohibe mover fondos y dirige a un canal independiente."
+    },
+    {
+      "id": "remote_teamviewer_private_context_es", "title": "TeamViewer con nombre y direccion", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["remote_device_control", "apparent_credibility", "cross_domain_masking"], "contrast": {"group_id": "credibility_level_2", "role": "dangerous"}, "semantic_direction": "request", "constitutional_principles": ["C1", "C2", "C3"], "credibility": {"level": 2, "branch": "dangerous"},
+      "classification": "scam", "category": "device_control", "domain": "technical_support",
+      "input": "Señora Vega, tenemos registrada la dirección ficticia calle Ejemplo 12. Instale TeamViewer para que soporte pueda entrar en su ordenador.",
+      "expected": {"signals": {"identity_claim": "tech_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": true, "requested_action": "install_software"}, "sensitive_requested_action": "install_remote_access_software", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Datos privados sinteticos no autentican y la solicitud remota sigue siendo representable."
+    },
+    {
+      "id": "remote_generic_support_es", "title": "Software remoto generico", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["remote_device_control"], "contrast": {"group_id": "remote_by_product", "role": "generic_software"}, "semantic_direction": "request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "device_control", "domain": "technical_support",
+      "input": "Soy del servicio técnico. Descargue la aplicación de asistencia remota y deme el identificador para conectarme.",
+      "expected": {"signals": {"identity_claim": "tech_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": true, "requested_action": "install_software"}, "sensitive_requested_action": "install_remote_access_software", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "La señal no depende de una marca concreta."
+    },
+    {
+      "id": "remote_accept_control_es", "title": "Aceptacion de control remoto", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["remote_device_control"], "contrast": {"group_id": "remote_action", "role": "accept_control"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "device_control", "domain": "technical_support",
+      "input": "Pulse aceptar cuando aparezca la solicitud de control remoto; tenemos que actuar ahora.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": true, "requested_action": "grant_remote_access"}, "sensitive_requested_action": "grant_remote_access", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Conceder control es acceso remoto aunque no se nombre una aplicacion."
+    },
+    {
+      "id": "remote_screen_share_es", "title": "Solicitud de compartir pantalla", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["remote_device_control", "account_takeover_recovery"], "contrast": {"group_id": "remote_action", "role": "screen_share"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "device_control", "domain": "email_support",
+      "input": "Comparta la pantalla del móvil para que pueda ver el proceso de recuperación de su cuenta.",
+      "expected": {"signals": {"identity_claim": "email_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_screen"}, "sensitive_requested_action": "share_screen", "risk_level": "HIGH", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["screen_share_request"]}, "notes": "Compartir pantalla sin control del dispositivo no se fuerza dentro de remote_access_request."
+    },
+    {
+      "id": "remote_historical_report_es", "title": "Relato historico de acceso remoto", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["remote_device_control"], "contrast": {"group_id": "remote_semantic_direction", "role": "historical"}, "semantic_direction": "historical", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "device_control", "domain": "technical_support",
+      "input": "El mes pasado un falso técnico me convenció para instalar un programa remoto, pero ya lo desinstalé.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Un relato pasado no es una peticion presente de acceso."
+    },
+    {
+      "id": "remote_mixed_emergency_es", "title": "Excepcion urgente para acceso remoto", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["remote_device_control", "manipulation_social_engineering"], "contrast": {"group_id": "remote_mixed_intent", "role": "warning_then_request"}, "semantic_direction": "mixed_intent", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "device_control", "domain": "technical_support",
+      "input": "Nunca necesitamos acceso remoto en circunstancias normales, pero esto es una emergencia: instale la aplicación para que eliminemos el malware y no cuelgue.",
+      "expected": {"signals": {"identity_claim": "tech_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": true, "requested_action": "install_software"}, "sensitive_requested_action": "install_remote_access_software", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El lenguaje tranquilizador no anula la peticion final de acceso."
+    },
+    {
+      "id": "login_approval_private_context_es", "title": "Aprobacion de inicio con contexto privado", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery", "apparent_credibility", "cross_domain_masking"], "contrast": {"group_id": "credibility_level_4", "role": "dangerous"}, "semantic_direction": "request", "constitutional_principles": ["C1", "C2", "C3"], "credibility": {"level": 4, "branch": "dangerous"},
+      "classification": "scam", "category": "account_takeover", "domain": "social_media",
+      "input": "Somos del soporte de Instagram. Vemos su cuenta sintética @vega_demo, el plan Creator y el aviso de acceso de hoy. Pulse aceptar cuando aparezca la solicitud.",
+      "expected": {"signals": {"identity_claim": "social_media_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "approve_login"}, "sensitive_requested_action": "approve_login", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["login_approval_request"]}, "notes": "Detalles de la cuenta no autentican y M0 no representa aprobaciones de inicio."
+    },
+    {
+      "id": "recovery_email_change_es", "title": "Cambio de correo de recuperacion", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery"], "contrast": {"group_id": "recovery_action", "role": "change_email"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "account_takeover", "domain": "email_support",
+      "input": "Cambie ahora el correo de recuperación por soporte-seguro@example.invalid para que podamos proteger la cuenta.",
+      "expected": {"signals": {"identity_claim": "email_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "change_recovery_email"}, "sensitive_requested_action": "change_recovery_email", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["recovery_email_change_request"]}, "notes": "El cambio de identidad de recuperacion no existe en ScamSignals M0."
+    },
+    {
+      "id": "recovery_phone_change_es", "title": "Cambio de telefono de recuperacion", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery"], "contrast": {"group_id": "recovery_action", "role": "change_phone"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "account_takeover", "domain": "social_media",
+      "input": "Para desbloquear el perfil, sustituya su teléfono de recuperación por el número sintético que le voy a indicar.",
+      "expected": {"signals": {"identity_claim": "social_media_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "change_recovery_phone"}, "sensitive_requested_action": "change_recovery_phone", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["recovery_phone_change_request"]}, "notes": "M0 no representa cambios del telefono de recuperacion."
+    },
+    {
+      "id": "disable_2fa_request_es", "title": "Peticion para desactivar doble factor", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery"], "contrast": {"group_id": "recovery_action", "role": "disable_2fa"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "account_takeover", "domain": "email_support",
+      "input": "Entre en seguridad y desactive temporalmente la verificación en dos pasos para que soporte pueda restaurar el acceso.",
+      "expected": {"signals": {"identity_claim": "email_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "disable_2fa"}, "sensitive_requested_action": "disable_2fa", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["disable_2fa_request"]}, "notes": "Desactivar 2FA es control de cuenta ausente en M0."
+    },
+    {
+      "id": "password_reset_link_request_es", "title": "Enlace de restablecimiento dirigido", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery"], "contrast": {"group_id": "recovery_action", "role": "click_reset_link"}, "semantic_direction": "request", "constitutional_principles": ["C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "account_takeover", "domain": "email_support",
+      "input": "Abra el enlace de restablecimiento que acabo de enviarle y siga conmigo en línea; no use la página habitual.",
+      "expected": {"signals": {"identity_claim": "email_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "click_password_reset_link"}, "sensitive_requested_action": "click_password_reset_link", "risk_level": "HIGH", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["password_reset_link_request"]}, "notes": "El enlace de recuperacion dirigido por el interlocutor no tiene señal M0."
+    },
+    {
+      "id": "login_reject_legitimate_es", "title": "Aviso legitimo para rechazar acceso", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery"], "contrast": {"group_id": "login_approval_direction", "role": "negation"}, "semantic_direction": "negation", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "account_takeover", "domain": "social_media",
+      "input": "Rechace cualquier solicitud de inicio de sesión que no haya iniciado usted y cambie la contraseña desde la aplicación oficial.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "reject_login"}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "La instruccion conserva el control del usuario y rechaza la autorizacion."
+    },
+    {
+      "id": "self_service_recovery_full_context_es", "title": "Recuperacion propia con contexto completo", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["account_takeover_recovery", "apparent_credibility"], "contrast": {"group_id": "credibility_level_5", "role": "safe"}, "semantic_direction": "self_service", "constitutional_principles": ["C1"], "credibility": {"level": 5, "branch": "safe"},
+      "classification": "legitimate_control", "category": "account_takeover", "domain": "email_support",
+      "input": "Señora Vega, calle Ejemplo 12, DNI sintético 00000000-X, cuenta MAIL-0042 e incidente INC-17. Soy el agente CL-204. No me facilite nada: recupere usted la cuenta desde la web oficial.",
+      "expected": {"signals": {"identity_claim": "email_support", "identity_verified": false, "financial_context": false, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "self_service_recovery"}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El conocimiento exhaustivo no autentica, pero tampoco convierte una instruccion segura en fraude."
+    },
+    {
+      "id": "cloud_recovery_code_request_en", "title": "Cloud support recovery-code request", "cohort": "contrastive_expansion_v1", "language": "en",
+      "families": ["account_takeover_recovery", "cross_domain_masking"], "contrast": {"group_id": "recovery_by_identity", "role": "cloud_support"}, "semantic_direction": "request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "account_takeover", "domain": "cloud_support",
+      "input": "This is cloud support. Send me one unused recovery code so I can prevent the account from being deleted.",
+      "expected": {"signals": {"identity_claim": "cloud_support", "identity_verified": false, "financial_context": false, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_recovery_code"}, "sensitive_requested_action": "share_recovery_code", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["recovery_code_request"]}, "notes": "English cross-language control for an unsupported recovery credential."
+    },
+    {
+      "id": "crypto_private_key_request_es", "title": "Peticion de clave privada", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["crypto_wallet_assets"], "contrast": {"group_id": "crypto_asset", "role": "private_key_request"}, "semantic_direction": "request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "crypto", "domain": "crypto",
+      "input": "Soy del soporte de la cartera. Envíeme la clave privada para comprobar por qué no aparecen sus fondos.",
+      "expected": {"signals": {"identity_claim": "crypto_support", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_private_key"}, "sensitive_requested_action": "share_private_key", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["private_key_request"]}, "notes": "Una clave privada no se fuerza dentro de password_request."
+    },
+    {
+      "id": "crypto_wallet_recovery_phrase_en", "title": "Wallet recovery-phrase request", "cohort": "contrastive_expansion_v1", "language": "en",
+      "families": ["crypto_wallet_assets", "cross_domain_masking"], "contrast": {"group_id": "crypto_asset", "role": "wallet_recovery_phrase"}, "semantic_direction": "request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "crypto", "domain": "crypto",
+      "input": "I am from wallet support. Read the complete recovery phrase so I can move the wallet out of quarantine.",
+      "expected": {"signals": {"identity_claim": "crypto_support", "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": "share_seed_phrase"}, "sensitive_requested_action": "share_seed_phrase", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": true, "missing_concepts": ["seed_phrase_request"]}, "notes": "English lexical variant for a wallet secret absent from M0."
+    },
+    {
+      "id": "crypto_seed_warning_es", "title": "Aviso legitimo sobre frase semilla", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["crypto_wallet_assets"], "contrast": {"group_id": "crypto_semantic_direction", "role": "negation"}, "semantic_direction": "negation", "constitutional_principles": [], "credibility": {"level": null, "branch": null},
+      "classification": "legitimate_control", "category": "crypto", "domain": "crypto",
+      "input": "Nunca comparta la frase semilla ni la clave privada. El soporte legítimo no se las pedirá y debe recuperarse desde su propia cartera.",
+      "expected": {"signals": {"identity_claim": null, "identity_verified": false, "financial_context": true, "urgency": false, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": false, "remote_access_request": false, "requested_action": null}, "sensitive_requested_action": null, "risk_level": "NORMAL", "canary_decision": "DENY"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "Menciona activos criptograficos en una prohibicion; no hay solicitud de divulgacion."
+    },
+    {
+      "id": "crypto_send_request_es", "title": "Compra y envio urgente de cripto", "cohort": "contrastive_expansion_v1", "language": "es",
+      "families": ["money_movement", "crypto_wallet_assets", "cross_domain_masking", "manipulation_social_engineering"], "contrast": {"group_id": "money_channel", "role": "crypto_send"}, "semantic_direction": "request", "constitutional_principles": ["C2", "C3"], "credibility": {"level": null, "branch": null},
+      "classification": "scam", "category": "financial", "domain": "crypto",
+      "input": "Soy del soporte de su plataforma. Compre criptomonedas ahora y envíelas a la cartera segura que voy a dictarle antes de que bloqueen la cuenta.",
+      "expected": {"signals": {"identity_claim": "crypto_support", "identity_verified": false, "financial_context": true, "urgency": true, "secrecy_request": false, "otp_request": false, "password_request": false, "transfer_request": true, "remote_access_request": false, "requested_action": "send_crypto"}, "sensitive_requested_action": "send_crypto", "risk_level": "CRITICAL", "canary_decision": "ALLOW"},
+      "model_gap": {"present": false, "missing_concepts": []}, "notes": "El envio de un activo financiero a una cartera indicada se proyecta honestamente como transfer_request."
+    }
+  ],
+  "variant_sets": {
+    "otp": ["Tell me the one-time code.", "Read me the code from the message.", "Confirm the six digits that just arrived.", "What numbers came in the verification text?", "I need the login verification number."],
+    "password": ["Tell me your account password.", "Read out the secret you use to sign in.", "I need your login credential to continue.", "Confirm the password for the account.", "Give me the phrase you type on the login screen."],
+    "cvv": ["Read me the CVV.", "Tell me what is printed on the back of the card.", "Confirm the three card security digits.", "I need the short security number beside the signature strip.", "Provide the CVC to validate the card."],
+    "remote": ["Install AnyDesk and accept my connection.", "Share your screen so I can fix the issue.", "Approve the remote-control request.", "Download this support tool and give me its connection number.", "Let me control the computer temporarily."],
+    "transfer": ["Transfer the money to this safe account.", "Move your savings temporarily so they remain protected.", "Send the funds to the holding account now.", "Wire the balance before the attackers can reach it.", "Make an immediate payment to secure the account."]
+  }
+}
