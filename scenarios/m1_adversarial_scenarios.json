@@ -766,6 +766,236 @@
       "model_gap": {"present": false, "missing_concepts": []}, "notes": "El envio de un activo financiero a una cartera indicada se proyecta honestamente como transfer_request."
     }
   ],
+  "v2_mappings": {
+    "bank_otp_sophisticated": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": ["EMPLOYEE_ID", "TRANSACTION_DETAILS"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "INDIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "safe_account_transfer": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["BANKING"], "interaction_acts": [{"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}], "manipulation": ["FEAR_THREAT", "ISOLATION", "PROTECTIVE_PRETEXT", "SECRECY", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "legitimate_bank_notification": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": ["ACCOUNT_DETAILS"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "REVIEW", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}, {"action": "CONTACT", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "isp_card_cvv": {
+      "signals": {"identity_pretext": {"claims": ["TELECOM"], "knowledge_categories": ["SUBSCRIPTION_DETAILS"]}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_NUMBER"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_EXPIRY"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["REWARD", "SCARCITY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "legitimate_isp_sale": {
+      "signals": {"identity_pretext": {"claims": ["TELECOM"], "knowledge_categories": []}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "REVIEW", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "microsoft_remote_access": {
+      "signals": {"identity_pretext": {"claims": ["TECH_SUPPORT"], "knowledge_categories": []}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["AUTHORITY_PRESSURE", "FEAR_THREAT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "legitimate_technical_support": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "CONTACT", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "social_network_otp_takeover": {
+      "signals": {"identity_pretext": {"claims": ["SOCIAL_PLATFORM"], "knowledge_categories": []}, "contexts": ["SOCIAL_MEDIA"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}, {"action": "AUTHORIZE", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "LOGIN_APPROVAL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "THIRD_PARTY"}], "manipulation": ["FEAR_THREAT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "social_network_legitimate_warning": {
+      "signals": {"identity_pretext": {"claims": ["SOCIAL_PLATFORM"], "knowledge_categories": []}, "contexts": ["SOCIAL_MEDIA"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "WARNING", "actor": "USER", "destination": "CALLER"}, {"action": "REJECT", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "LOGIN_APPROVAL"}, "semantic_direction": "HYPOTHETICAL", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "NAVIGATE", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "government_urgent_payment": {
+      "signals": {"identity_pretext": {"claims": ["GOVERNMENT_AUTHORITY"], "knowledge_categories": []}, "contexts": ["GOVERNMENT"], "interaction_acts": [{"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}], "manipulation": ["AUTHORITY_PRESSURE", "FEAR_THREAT", "KEEP_ON_CALL", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "family_emergency_money": {
+      "signals": {"identity_pretext": {"claims": ["FAMILY_MEMBER"], "knowledge_categories": []}, "contexts": ["FAMILY"], "interaction_acts": [{"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}], "manipulation": ["EMOTIONAL_EMERGENCY", "ISOLATION", "SECRECY", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "ecommerce_fake_cancellation": {
+      "signals": {"identity_pretext": {"claims": ["ECOMMERCE"], "knowledge_categories": ["TRANSACTION_DETAILS"]}, "contexts": ["ECOMMERCE"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "bizum_payment_app": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["PAYMENT_APP"], "interaction_acts": [{"action": "AUTHORIZE", "asset": {"category": "ECONOMIC_VALUE", "subtype": "PAYMENT_APP_PAYMENT"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "THIRD_PARTY"}], "manipulation": ["REWARD", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "crypto_seed_phrase": {
+      "signals": {"identity_pretext": {"claims": ["CRYPTO_SUPPORT"], "knowledge_categories": []}, "contexts": ["CRYPTO", "ACCOUNT_RECOVERY"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "SEED_PHRASE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["FEAR_THREAT", "PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "gift_card_payment": {
+      "signals": {"identity_pretext": {"claims": ["GOVERNMENT_AUTHORITY"], "knowledge_categories": []}, "contexts": ["GOVERNMENT"], "interaction_acts": [{"action": "PURCHASE", "asset": {"category": "ECONOMIC_VALUE", "subtype": "GIFT_CARD"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "GIFT_CARD_REDEMPTION_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["AUTHORITY_PRESSURE", "KEEP_ON_CALL", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "recovery_code_takeover": {
+      "signals": {"identity_pretext": {"claims": ["ACCOUNT_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "RECOVERY_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}, {"action": "CHANGE_SECURITY", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "TWO_FACTOR_SETTING"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}, {"action": "CHANGE_SECURITY", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "RECOVERY_EMAIL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "long_confidence_scam": {
+      "signals": {"identity_pretext": {"claims": ["TELECOM"], "knowledge_categories": ["CUSTOMER_ID", "EMPLOYEE_ID", "SUBSCRIPTION_DETAILS"]}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["REWARD", "SCARCITY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "private_data_no_dangerous_request": {
+      "signals": {"identity_pretext": {"claims": ["TELECOM"], "knowledge_categories": ["CUSTOMER_ID", "EMPLOYEE_ID", "SUBSCRIPTION_DETAILS"]}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "REVIEW", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "never_share_secrets_control": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": [], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "PASSWORD"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "RECOVERY_CODE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_NUMBER"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}, {"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "USER_CONTROLLED"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "ambiguous_security_digits": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": [], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "UNSPECIFIED_SECURITY_CODE"}, "semantic_direction": "QUESTION", "actor": "UNKNOWN", "destination": "UNKNOWN"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": true, "reason": "The utterance does not resolve whether the security digits were requested or mentioned in a warning."}
+    },
+    "otp_indirect_six_numbers_es": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": ["NAME"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "INDIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_partial_four_digits_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": [], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "PARTIAL_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_question_private_context_es": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": ["ADDRESS", "NAME"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "QUESTION", "actor": "USER", "destination": "UNKNOWN"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_hypothetical_warning_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": [], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "HYPOTHETICAL", "actor": "USER", "destination": "CALLER"}, {"action": "CONTACT", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_historical_report_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": [], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "HISTORICAL", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_third_party_report_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": [], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "THIRD_PARTY", "actor": "THIRD_PARTY", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_self_entry_official_app_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["BANKING"], "interaction_acts": [{"action": "ENTER", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_password_negation_mixed_es": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": []}, "contexts": ["BANKING"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "PASSWORD"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "otp_charge_block_protective_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": ["TRANSACTION_DETAILS"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "OTP"}, "semantic_direction": "INDIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "card_number_request_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": ["TRANSACTION_DETAILS"]}, "contexts": ["ECOMMERCE"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_NUMBER"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["REWARD"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "card_expiry_request_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": ["SUBSCRIPTION_DETAILS"]}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_EXPIRY"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "cvv_indirect_private_context_es": {
+      "signals": {"identity_pretext": {"claims": ["TELECOM"], "knowledge_categories": ["ADDRESS", "CUSTOMER_ID", "NAME"]}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "INDIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "card_warning_private_name_es": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": ["NAME"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_NUMBER"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "card_self_entry_private_context_es": {
+      "signals": {"identity_pretext": {"claims": ["ECOMMERCE"], "knowledge_categories": ["ADDRESS", "NAME", "TRANSACTION_DETAILS"]}, "contexts": ["ECOMMERCE"], "interaction_acts": [{"action": "ENTER", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_NUMBER"}, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}, {"action": "DISCLOSE", "asset": {"category": "PAYMENT_CARD_DATA", "subtype": "CARD_NUMBER"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "cvv_mixed_safety_malicious_es": {
+      "signals": {"identity_pretext": {"claims": ["TELECOM"], "knowledge_categories": ["ADDRESS", "CUSTOMER_ID", "EMPLOYEE_ID", "GOVERNMENT_ID", "NAME", "SUBSCRIPTION_DETAILS"]}, "contexts": ["TELECOM"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "CARD_SECURITY_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "transfer_ordinary_discussion_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["BANKING"], "interaction_acts": [{"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "DISCUSSION", "actor": "USER", "destination": "UNKNOWN"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "transfer_explicit_bank_request_es": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": []}, "contexts": ["BANKING"], "interaction_acts": [{"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "cash_withdrawal_request_es": {
+      "signals": {"identity_pretext": {"claims": ["POLICE"], "knowledge_categories": []}, "contexts": ["GOVERNMENT"], "interaction_acts": [{"action": "WITHDRAW", "asset": {"category": "ECONOMIC_VALUE", "subtype": "CASH"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "CASH"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "THIRD_PARTY"}], "manipulation": ["AUTHORITY_PRESSURE", "ISOLATION", "SECRECY", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "transfer_legitimate_do_not_move_es": {
+      "signals": {"identity_pretext": {"claims": ["BANK"], "knowledge_categories": ["TRANSACTION_DETAILS"]}, "contexts": ["BANKING"], "interaction_acts": [{"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "FIAT_FUNDS"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}, {"action": "CONTACT", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "remote_teamviewer_private_context_es": {
+      "signals": {"identity_pretext": {"claims": ["TECH_SUPPORT"], "knowledge_categories": ["ADDRESS", "NAME"]}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "remote_generic_support_es": {
+      "signals": {"identity_pretext": {"claims": ["TECH_SUPPORT"], "knowledge_categories": []}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "remote_accept_control_es": {
+      "signals": {"identity_pretext": {"claims": ["TECH_SUPPORT"], "knowledge_categories": []}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "remote_screen_share_es": {
+      "signals": {"identity_pretext": {"claims": ["EMAIL_CLOUD_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "EMAIL_CLOUD"], "interaction_acts": [{"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "SCREEN_CONTENT"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "remote_historical_report_es": {
+      "signals": {"identity_pretext": {"claims": ["TECH_SUPPORT"], "knowledge_categories": []}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "HISTORICAL", "actor": "USER", "destination": "USER_CONTROLLED"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "remote_mixed_emergency_es": {
+      "signals": {"identity_pretext": {"claims": ["TECH_SUPPORT"], "knowledge_categories": []}, "contexts": ["TECH_SUPPORT"], "interaction_acts": [{"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "INSTALL", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_SOFTWARE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "GRANT_ACCESS", "asset": {"category": "DEVICE_ACCESS", "subtype": "REMOTE_CONTROL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["FEAR_THREAT", "KEEP_ON_CALL", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "login_approval_private_context_es": {
+      "signals": {"identity_pretext": {"claims": ["SOCIAL_PLATFORM"], "knowledge_categories": ["ACCOUNT_DETAILS", "INCIDENT_DETAILS", "SUBSCRIPTION_DETAILS"]}, "contexts": ["SOCIAL_MEDIA"], "interaction_acts": [{"action": "AUTHORIZE", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "LOGIN_APPROVAL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "THIRD_PARTY"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "recovery_email_change_es": {
+      "signals": {"identity_pretext": {"claims": ["EMAIL_CLOUD_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "EMAIL_CLOUD"], "interaction_acts": [{"action": "CHANGE_SECURITY", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "RECOVERY_EMAIL"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "recovery_phone_change_es": {
+      "signals": {"identity_pretext": {"claims": ["SOCIAL_PLATFORM"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "SOCIAL_MEDIA"], "interaction_acts": [{"action": "CHANGE_SECURITY", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "RECOVERY_PHONE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "disable_2fa_request_es": {
+      "signals": {"identity_pretext": {"claims": ["EMAIL_CLOUD_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "EMAIL_CLOUD"], "interaction_acts": [{"action": "CHANGE_SECURITY", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "TWO_FACTOR_SETTING"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "password_reset_link_request_es": {
+      "signals": {"identity_pretext": {"claims": ["EMAIL_CLOUD_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "EMAIL_CLOUD"], "interaction_acts": [{"action": "NAVIGATE", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "PASSWORD_RESET_LINK"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "THIRD_PARTY"}], "manipulation": ["ISOLATION", "KEEP_ON_CALL", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "login_reject_legitimate_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "SOCIAL_MEDIA"], "interaction_acts": [{"action": "REJECT", "asset": {"category": "ACCOUNT_CONTROL", "subtype": "LOGIN_APPROVAL"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "CHANGE_SECURITY", "asset": {"category": "SECRET", "subtype": "PASSWORD"}, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "self_service_recovery_full_context_es": {
+      "signals": {"identity_pretext": {"claims": ["EMAIL_CLOUD_SUPPORT"], "knowledge_categories": ["ACCOUNT_DETAILS", "ADDRESS", "EMPLOYEE_ID", "GOVERNMENT_ID", "INCIDENT_DETAILS", "NAME"]}, "contexts": ["ACCOUNT_RECOVERY", "EMAIL_CLOUD"], "interaction_acts": [{"action": "NAVIGATE", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "OFFICIAL_SELF_SERVICE"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "cloud_recovery_code_request_en": {
+      "signals": {"identity_pretext": {"claims": ["EMAIL_CLOUD_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "EMAIL_CLOUD"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "RECOVERY_CODE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["FEAR_THREAT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "crypto_private_key_request_es": {
+      "signals": {"identity_pretext": {"claims": ["CRYPTO_SUPPORT"], "knowledge_categories": ["ACCOUNT_DETAILS"]}, "contexts": ["CRYPTO"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "PRIVATE_KEY"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "crypto_wallet_recovery_phrase_en": {
+      "signals": {"identity_pretext": {"claims": ["CRYPTO_SUPPORT"], "knowledge_categories": []}, "contexts": ["ACCOUNT_RECOVERY", "CRYPTO"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "SEED_PHRASE"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "CALLER"}], "manipulation": ["PROTECTIVE_PRETEXT"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "crypto_seed_warning_es": {
+      "signals": {"identity_pretext": {"claims": [], "knowledge_categories": []}, "contexts": ["CRYPTO"], "interaction_acts": [{"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "SEED_PHRASE"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "DISCLOSE", "asset": {"category": "SECRET", "subtype": "PRIVATE_KEY"}, "semantic_direction": "NEGATION", "actor": "USER", "destination": "CALLER"}, {"action": "REVIEW", "asset": null, "semantic_direction": "SELF_SERVICE", "actor": "USER", "destination": "USER_CONTROLLED"}], "manipulation": []},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    },
+    "crypto_send_request_es": {
+      "signals": {"identity_pretext": {"claims": ["CRYPTO_SUPPORT"], "knowledge_categories": ["ACCOUNT_DETAILS"]}, "contexts": ["CRYPTO"], "interaction_acts": [{"action": "PURCHASE", "asset": {"category": "ECONOMIC_VALUE", "subtype": "CRYPTO_ASSET"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "USER_CONTROLLED"}, {"action": "TRANSFER", "asset": {"category": "ECONOMIC_VALUE", "subtype": "CRYPTO_ASSET"}, "semantic_direction": "DIRECT_REQUEST", "actor": "USER", "destination": "EXTERNAL_ACCOUNT"}], "manipulation": ["FEAR_THREAT", "PROTECTIVE_PRETEXT", "URGENCY"]},
+      "identity_assurance": "UNVERIFIED", "ambiguity": {"present": false, "reason": null}
+    }
+  },
   "variant_sets": {
     "otp": ["Tell me the one-time code.", "Read me the code from the message.", "Confirm the six digits that just arrived.", "What numbers came in the verification text?", "I need the login verification number."],
     "password": ["Tell me your account password.", "Read out the secret you use to sign in.", "I need your login credential to continue.", "Confirm the password for the account.", "Give me the phrase you type on the login screen."],
