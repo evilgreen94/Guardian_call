@@ -66,11 +66,13 @@ This specification defines two major strategic enhancements for Guardian Call:
 
 ## 3. Detailed Component Specifications
 
-### 3.1 Live Audio Telemetry (`frontend/visualizer/app.js` & `index.html`)
+### 3.1 Live Audio Telemetry & Real-Time Transcription (`frontend/visualizer/app.js` & `index.html`)
 
 - **Browser Audio Listener:** Implements continuous recognition using `webkitSpeechRecognition` / `SpeechRecognition` when `[ 🎤 INICIAR MIC EN VIVO ]` is toggled.
+- **Real-Time Live Transcription Box:** Adds a dedicated CRT telemetry panel `[ 🎙️ STREAM DE TRANSCRIPCIÓN DE AUDIO EN VIVO ]` in `index.html` that renders spoken text character-by-character as recognized in real time, with auto-scrolling and timestamp headers (`[HH:MM:SS - VOICE STREAM]`).
+- **Automatic Analysis Dispatch:** As interim speech fragments finalize, text is automatically populated into the evaluation buffer and dispatched to `/api/v1/analyze` with `session_id`.
 - **Session Continuity:** Maintains a stable `session_id` in `localStorage` across speech bursts so multi-turn context accumulates correctly in `CallSessionStore`.
-- **UI State Indicators:** Updates mic status indicator: `MIC: INACTIVO` -> `[ 🔴 ESCUCHANDO EN VIVO... ]` with live transcript preview and status pulse.
+- **UI State Indicators:** Updates mic status indicator: `MIC: INACTIVO` -> `[ 🔴 ESCUCHANDO Y TRANSCRIBIENDO EN VIVO... ]` with audio pulse frequency bar.
 
 ### 3.2 ScamTrap Counter-Deception Agent (`backend/guardian/scamtrap.py`)
 
