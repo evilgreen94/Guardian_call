@@ -95,6 +95,31 @@ class GuardianPipeline:
                 event_sink=sink,
             )
 
+        # Evaluate and execute ACTIVATE_SCAMTRAP under Canary policy
+        scamtrap_decision = self.canary_policy.evaluate_action(
+            risk_assessment=risk_assessment,
+            action=ActionType.ACTIVATE_SCAMTRAP,
+        )
+        if scamtrap_decision.decision == PolicyDecision.ALLOW:
+            sink.emit(
+                GuardianEvent(
+                    event_type=EventType.SCAMTRAP_ACTIVATED,
+                    payload={
+                        "action": ActionType.ACTIVATE_SCAMTRAP.value,
+                        "decision": scamtrap_decision.decision.value,
+                        "reason": scamtrap_decision.reason,
+                    },
+                )
+            )
+            from .scamtrap import run_scamtrap_agent
+            intel = run_scamtrap_agent(getattr(signals, "raw_text", "") or "Threat detected")
+            sink.emit(
+                GuardianEvent(
+                    event_type=EventType.INTELLIGENCE_EXTRACTED,
+                    payload=intel.model_dump(),
+                )
+            )
+
         all_events = sink.get_events()
 
         return PipelineResult(

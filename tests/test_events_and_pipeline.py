@@ -59,6 +59,8 @@ class TestEventsAndPipeline(unittest.TestCase):
             EventType.ACTION_ALLOWED,
             EventType.USER_WARNING,
             EventType.TRUSTED_CONTACT_NOTIFIED,
+            EventType.SCAMTRAP_ACTIVATED,
+            EventType.INTELLIGENCE_EXTRACTED,
         ]
         self.assertEqual(event_types, expected_sequence)
 
@@ -218,6 +220,8 @@ class TestEventsAndPipeline(unittest.TestCase):
             EventType.ACTION_ALLOWED,
             EventType.USER_WARNING,
             EventType.TRUSTED_CONTACT_NOTIFIED,
+            EventType.SCAMTRAP_ACTIVATED,
+            EventType.INTELLIGENCE_EXTRACTED,
         ]
         self.assertEqual(event_types, expected_sequence)
         self.assertEqual(events[0].payload, {"text_length": len(text_input)})
@@ -252,6 +256,8 @@ class TestEventsAndPipeline(unittest.TestCase):
             EventType.CANARY_EVALUATION,
             EventType.ACTION_ALLOWED,
             EventType.USER_WARNING,
+            EventType.SCAMTRAP_ACTIVATED,
+            EventType.INTELLIGENCE_EXTRACTED,
         ]
         self.assertEqual(event_types, expected_sequence)
 
@@ -259,6 +265,23 @@ class TestEventsAndPipeline(unittest.TestCase):
         failed_event = sink.get_events_by_type(EventType.SIGNAL_EXTRACTION_FAILED)[0]
         self.assertEqual(failed_event.payload, {"reason": "signal_extraction_failed"})
         self.assertNotIn("Gemini API connection error", str(failed_event.payload))
+
+    def test_scamtrap_executed_under_critical_risk(self) -> None:
+        """Verify ScamTrap events are emitted when risk level authorizes activation."""
+        pipeline = GuardianPipeline()
+        sink = InMemoryEventSink()
+        critical_signals = create_signals(
+            otp_request=True,
+            requested_action="share_otp",
+            identity_claim="bank",
+            identity_verified=False,
+            urgency=True,
+            financial_context=True,
+        )
+        res = pipeline.process_signals(critical_signals, event_sink=sink)
+        event_types = [e.event_type for e in sink.get_events()]
+        self.assertIn(EventType.SCAMTRAP_ACTIVATED, event_types)
+        self.assertIn(EventType.INTELLIGENCE_EXTRACTED, event_types)
 
 
 if __name__ == "__main__":
