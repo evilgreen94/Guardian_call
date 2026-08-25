@@ -449,6 +449,11 @@ async def analyze_image(file: UploadFile = File(...)) -> AnalyzeResponse:
         ) from exc
 
 
+if frontend_dir.exists():
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="static_root")
+
+
 if __name__ == "__main__":
     import uvicorn
 
