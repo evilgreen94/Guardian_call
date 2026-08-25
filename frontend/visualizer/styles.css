@@ -826,3 +826,69 @@ textarea:focus {
   font-weight: 900;
 }
 
+/* LIVE AUDIO TRANSCRIPTION BOX & SCAMTRAP PANEL */
+.live-transcription-box {
+  margin-top: 10px;
+  background-color: #050505;
+  border: 1px solid var(--status-green);
+  padding: 10px;
+}
+.live-transcription-header {
+  font-size: 11px;
+  color: var(--status-green);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.live-transcription-content {
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 12px;
+  color: #e5e5e5;
+  white-space: pre-wrap;
+  background-color: #000000;
+  padding: 8px;
+  border: 1px solid #1f2937;
+}
+
+.scamtrap-panel {
+  background-color: #0f0b00;
+  border: 2px solid #f59e0b;
+  padding: 12px;
+  margin-top: 10px;
+}
+.scamtrap-header {
+  font-size: 12px;
+  font-weight: 800;
+  color: #f59e0b;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
+.scamtrap-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stalling-label, .intel-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.stalling-text {
+  font-size: 13px;
+  color: #fbbf24;
+  background-color: #000000;
+  padding: 8px;
+  border-left: 3px solid #f59e0b;
+  margin: 4px 0 8px 0;
+}
+.intel-matrix {
+  background-color: #000000;
+  border: 1px dashed #f59e0b;
+  padding: 8px;
+}
+.intel-item {
+  font-size: 11px;
+  color: #d1d5db;
+  margin-top: 4px;
+}
+

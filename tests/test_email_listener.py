@@ -40,8 +40,9 @@ def test_parse_mime_email():
     assert "50 GB bonus storage" in parsed.body_text
 
 
+@patch("backend.guardian.email_listener.EmailListener._publish_to_server")
 @patch("backend.guardian.pipeline.extract_signals")
-def test_email_listener_process_single_email(mock_extract_signals):
+def test_email_listener_process_single_email(mock_extract_signals, mock_publish):
     """Test EmailListener.process_email passes message through GuardianPipeline and triggers warning."""
     from backend.guardian.signals import create_signals
 

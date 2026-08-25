@@ -65,6 +65,13 @@
             </button>
             <span class="mic-status" id="mic-status">MIC: INACTIVO</span>
           </div>
+          <!-- REAL-TIME LIVE AUDIO TRANSCRIPTION STREAM BOX -->
+          <div class="live-transcription-box" id="live-transcription-box" style="display: none;">
+            <div class="live-transcription-header">> 🎙️ STREAM DE TRANSCRIPCIÓN DE AUDIO EN VIVO:</div>
+            <div class="live-transcription-content" id="live-transcription-content">
+              <span class="transcript-placeholder">[ ESPERANDO ENTRADA DE VOZ... HABLA AL MICRÓFONO ]</span>
+            </div>
+          </div>
         </div>
 
         <div class="image-upload-wrapper">
@@ -169,6 +176,25 @@
           <div class="realtime-details">
             <div><span class="detail-label">REMITENTE:</span> <span id="realtime-sender" class="detail-val">-</span></div>
             <div><span class="detail-label">ASUNTO:</span> <span id="realtime-subject" class="detail-val">-</span></div>
+          </div>
+        </div>
+
+        <!-- SCAMTRAP HONEY-AGENT COUNTERMEASURE PANEL -->
+        <div class="scamtrap-panel" id="scamtrap-panel" style="display: none;">
+          <div class="scamtrap-header">[ 🍯 SCAMTRAP HONEY-AGENT // COUNTERMEASURE ACTIVE ]</div>
+          <div class="scamtrap-body">
+            <div class="stalling-box">
+              <span class="stalling-label">> RESPUESTA TÁCTICA DE DISTRACCIÓN:</span>
+              <p class="stalling-text" id="stalling-text">"Espere un momento por favor, se me ha congelado la pantalla..."</p>
+              <button type="button" class="btn btn-preset" id="btn-copy-stalling" style="border-color: #f59e0b; color: #f59e0b;">
+                [ 📋 COPIAR RESPUESTA TÁCTICA ]
+              </button>
+            </div>
+            <div class="intel-matrix">
+              <span class="intel-label">> INTELIGENCIA TÁCTICA EXTRAÍDA:</span>
+              <div id="intel-urls" class="intel-item">URLs: Ninguna</div>
+              <div id="intel-ibans" class="intel-item">IBANs: Ninguno</div>
+            </div>
           </div>
         </div>
 

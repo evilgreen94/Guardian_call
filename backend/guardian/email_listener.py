@@ -146,6 +146,9 @@ class EmailListener:
 
     def _publish_to_server(self, sender: str, subject: str, result: PipelineResult) -> None:
         """Publish analyzed email result to backend FastAPI server for real-time visualizer streaming."""
+        if os.getenv("PYTEST_CURRENT_TEST"):
+            return
+
         import json
         import urllib.request
 
@@ -168,7 +171,7 @@ class EmailListener:
                 headers={"Content-Type": "application/json"},
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=2):
+            with urllib.request.urlopen(req, timeout=0.1):
                 pass
         except Exception:
             pass

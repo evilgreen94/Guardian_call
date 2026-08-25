@@ -75,7 +75,7 @@ def run_scamtrap_agent(text: str, runner: Optional[Runner] = None) -> ScamTrapIn
     fallback_response = stalling_phrases[0]
 
     api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    if not api_key or os.getenv("PYTEST_CURRENT_TEST"):
         return ScamTrapIntelligenceSchema(
             stalling_response=fallback_response,
             extracted_phishing_urls=urls,

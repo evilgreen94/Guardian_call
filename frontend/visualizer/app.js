@@ -695,6 +695,133 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // 3. Live Audio WebSpeech Recognition & Real-Time Transcription
+  const btnMicToggle = document.getElementById('btn-mic-toggle');
+  const micStatus = document.getElementById('mic-status');
+  const liveTranscriptionBox = document.getElementById('live-transcription-box');
+  const liveTranscriptionContent = document.getElementById('live-transcription-content');
+  
+  let recognition = null;
+  let isListening = false;
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'es-ES';
+
+    recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      if (liveTranscriptionBox) liveTranscriptionBox.style.display = 'block';
+      const now = new Date().toTimeString().split(' ')[0];
+      
+      const fullText = (inputText.value + ' ' + finalTranscript).trim();
+      if (finalTranscript) {
+        inputText.value = fullText;
+        const line = document.createElement('div');
+        line.textContent = `[${now} - VOICE STREAM]: ${finalTranscript}`;
+        if (liveTranscriptionContent.querySelector('.transcript-placeholder')) {
+          liveTranscriptionContent.innerHTML = '';
+        }
+        liveTranscriptionContent.appendChild(line);
+        liveTranscriptionContent.scrollTop = liveTranscriptionContent.scrollHeight;
+      }
+    };
+
+    recognition.onerror = (evt) => {
+      console.warn('Speech Recognition Error:', evt.error);
+    };
+
+    recognition.onend = () => {
+      if (isListening) {
+        try { recognition.start(); } catch (e) {}
+      }
+    };
+  }
+
+  btnMicToggle?.addEventListener('click', () => {
+    if (!recognition) {
+      alert('Tu navegador no soporta WebSpeech API. Por favor usa Chrome, Edge o Safari.');
+      return;
+    }
+
+    if (!isListening) {
+      isListening = true;
+      try { recognition.start(); } catch (e) {}
+      btnMicToggle.textContent = '[ 🔴 DETENER MIC ]';
+      btnMicToggle.style.borderColor = 'var(--hazard-red)';
+      btnMicToggle.style.color = 'var(--hazard-red)';
+      micStatus.textContent = 'MIC: ESCUCHANDO Y TRANSCRIBIENDO';
+      micStatus.style.color = 'var(--status-green)';
+      if (liveTranscriptionBox) liveTranscriptionBox.style.display = 'block';
+    } else {
+      isListening = false;
+      try { recognition.stop(); } catch (e) {}
+      btnMicToggle.textContent = '[ 🎤 INICIAR MIC EN VIVO ]';
+      btnMicToggle.style.borderColor = 'var(--panel-border)';
+      btnMicToggle.style.color = 'var(--text-muted)';
+      micStatus.textContent = 'MIC: INACTIVO';
+      micStatus.style.color = 'var(--text-muted)';
+    }
+  });
+
+  // 4. ScamTrap Panel & Event Hydration
+  const scamtrapPanel = document.getElementById('scamtrap-panel');
+  const stallingText = document.getElementById('stalling-text');
+  const intelUrls = document.getElementById('intel-urls');
+  const intelIbans = document.getElementById('intel-ibans');
+  const btnCopyStalling = document.getElementById('btn-copy-stalling');
+
+  btnCopyStalling?.addEventListener('click', () => {
+    if (stallingText) {
+      navigator.clipboard.writeText(stallingText.textContent);
+      btnCopyStalling.textContent = '[ ¡COPIADO AL PORTAPAPELES! ]';
+      setTimeout(() => {
+        btnCopyStalling.textContent = '[ 📋 COPIAR RESPUESTA TÁCTICA ]';
+      }, 2000);
+    }
+  });
+
+  // Process ScamTrap events inside renderResults
+  const origRenderResults = window.renderResults;
+  window.renderResults = function(data) {
+    if (typeof origRenderResults === 'function') {
+      origRenderResults(data);
+    }
+    if (data && data.events) {
+      const scamtrapEvt = data.events.find(e => e.event_type === 'SCAMTRAP_ACTIVATED');
+      const intelEvt = data.events.find(e => e.event_type === 'INTELLIGENCE_EXTRACTED');
+      if (scamtrapEvt && scamtrapPanel) {
+        scamtrapPanel.style.display = 'block';
+        if (intelEvt && intelEvt.payload) {
+          if (stallingText && intelEvt.payload.stalling_response) {
+            stallingText.textContent = `"${intelEvt.payload.stalling_response}"`;
+          }
+          if (intelUrls) {
+            const urls = intelEvt.payload.extracted_phishing_urls || [];
+            intelUrls.textContent = `URLs: ${urls.length > 0 ? urls.join(', ') : 'Ninguna'}`;
+          }
+          if (intelIbans) {
+            const ibans = intelEvt.payload.extracted_ibans || [];
+            intelIbans.textContent = `IBANs: ${ibans.length > 0 ? ibans.join(', ') : 'Ninguno'}`;
+          }
+        }
+      }
+    }
+  };
+
   // Hydrate initial recent events if any
   fetch('/api/v1/events/recent')
     .then(res => res.json())
