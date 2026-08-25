@@ -84,12 +84,13 @@ _VISION_AGENT_INSTRUCTION = (
     "You are a specialized Multimodal Vision & OCR Forensic Agent for Guardian 360.\n"
     "Your objective is to inspect the provided image, screenshot, or document carefully:\n"
     "1. Extract the complete, exact text transcript visible in the image into 'extracted_text' in any language (English, Spanish, French, German, etc.). Include sender emails, headers, warnings, body copy, and button text.\n"
-    "2. Identify any visible sender email address in 'sender_email' and its domain in 'sender_domain'. Set 'suspicious_domain_detected' to true if the domain looks randomized, spoofed, or suspicious (e.g., long random strings, fake server routes).\n"
-    "3. Set 'special_offer_detected' to true if special bonus hooks or free space offers are present (e.g., 'extra 50 GB bonus storage').\n"
-    "4. Set 'countdown_timer_detected' to true if urgency expiration timers are present (e.g., 'expires in 4 minutes').\n"
-    "5. Inspect for visual forgery or manipulation (e.g., misaligned fonts, fake transfer receipt artifacts, fake cloud alert banners, altered account numbers) and set 'visual_manipulation_suspected'.\n"
-    "6. Classify the channel ('email_screenshot', 'chat_screenshot', 'bank_receipt', 'sms_screenshot', 'cloud_storage_alert', 'document').\n"
-    "7. List key recognized visual markers in 'key_visual_elements' (e.g., 'spam_warning_banner', 'cloud_icon', 'urgency_timer', 'red_update_button', 'spoofed_sender_address').\n"
+    "2. Identify any visible sender email address in 'sender_email' and its domain in 'sender_domain'. Set 'suspicious_domain_detected' to true if the domain looks randomized, spoofed, DGA-generated, or suspicious (e.g., long random strings, multiple stacked subdomains like '.neuralgrid.org.importican.de', fake server routes).\n"
+    "3. Check for native email client spam warning banners (e.g., '¿Por qué está en Spam este mensaje?', 'Why is this message in Spam?') and include 'spam_warning_banner' in key_visual_elements and set 'visual_manipulation_suspected' to true.\n"
+    "4. Set 'special_offer_detected' to true if special bonus hooks or free space offers are present (e.g., 'extra 50 GB bonus storage', '50 GB bonus').\n"
+    "5. Set 'countdown_timer_detected' to true if urgency expiration timers are present (e.g., 'expires in 4 minutes', '24 hours left').\n"
+    "6. Inspect for account deletion/cancellation threats ('Your Photos and Videos will be Removed', 'Account Has Been Blocked', 'Storage Full') and set 'visual_manipulation_suspected' to true.\n"
+    "7. Classify the channel ('email_screenshot', 'chat_screenshot', 'bank_receipt', 'sms_screenshot', 'cloud_storage_alert', 'document').\n"
+    "8. List key recognized visual markers in 'key_visual_elements' (e.g., 'spam_warning_banner', 'cloud_icon', 'urgency_timer', 'red_update_button', 'spoofed_sender_address').\n"
     "Do not invent facts not present in the image."
 )
 
@@ -199,5 +200,15 @@ def process_image(
 
         return VisionOcrResult()
 
-    except Exception:
-        return VisionOcrResult()
+    except Exception as exc:
+        # Fail-safe backup: extract any readable ASCII strings from raw bytes if Gemini API fails
+        fallback_text = ""
+        try:
+            fallback_text = image_bytes.decode("utf-8", errors="ignore")
+        except Exception:
+            pass
+        return VisionOcrResult(
+            extracted_text=fallback_text if len(fallback_text.strip()) > 10 else f"Image processing error: {str(exc)}",
+            visual_manipulation_suspected=True,
+            channel_detected="image_screenshot",
+        )

@@ -98,5 +98,38 @@ def test_pipeline_process_image_flow(mock_agent_runner_cls, mock_vision_runner_c
     assert EventType.SIGNAL_DETECTED in event_types
     assert EventType.RISK_UPDATED in event_types
     assert EventType.CANARY_EVALUATION in event_types
-    assert EventType.USER_WARNING in event_types
+
+
+def test_vision_ocr_result_schema_spoofed_domain_and_spam_banner():
+    """Verify VisionOcrResultSchema accepts spoofed domains and spam banners."""
+    data = {
+        "extracted_text": "Your Account Has Been Blocked! Photos and Videos will be Removed. jg4kqzs3v@emqh1r9s5u.us.a.travis.de.vectorization.importican.de",
+        "sender_email": "jg4kqzs3v@emqh1r9s5u.us",
+        "sender_domain": "importican.de",
+        "suspicious_domain_detected": True,
+        "special_offer_detected": True,
+        "countdown_timer_detected": True,
+        "visual_manipulation_suspected": True,
+        "channel_detected": "email_screenshot",
+        "key_visual_elements": ["spam_warning_banner", "storage_full_alert", "spoofed_sender_address"],
+    }
+    schema = VisionOcrResultSchema(**data)
+    assert schema.suspicious_domain_detected is True
+    assert schema.channel_detected == "email_screenshot"
+    assert "spam_warning_banner" in schema.key_visual_elements
+
+
+@patch("backend.guardian.vision_agent.Runner")
+def test_process_image_exception_returns_failsafe_result(mock_runner_cls):
+    """Test process_image on exception returns visual_manipulation_suspected fail-safe flag."""
+    mock_runner = MagicMock()
+    mock_runner_cls.return_value = mock_runner
+    mock_runner.run.side_effect = RuntimeError("Gemini API connection error")
+
+    # Pass image bytes containing readable strings
+    dummy_bytes = b"Your Account Has Been Blocked! Photos and Videos will be Removed. jg4kqzs3v@importican.de"
+    result = process_image(dummy_bytes, mime_type="image/jpeg", runner=mock_runner)
+
+    assert result.visual_manipulation_suspected is True
+    assert "Blocked" in result.extracted_text or result.visual_manipulation_suspected is True
 

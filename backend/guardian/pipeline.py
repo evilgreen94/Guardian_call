@@ -365,15 +365,20 @@ class GuardianPipeline:
 
         result = self.process_text(extracted_text, event_sink=sink)
 
+        from .signals import text_keyword_flags
+        flags = text_keyword_flags(extracted_text)
+
         if ocr_result and (
             ocr_result.suspicious_domain_detected
             or ocr_result.special_offer_detected
             or ocr_result.countdown_timer_detected
             or ocr_result.visual_manipulation_suspected
             or ocr_result.sender_email
+            or flags["service_cancellation_threat"]
+            or flags["urgency"]
+            or flags["subscription_fee_claim"]
         ):
-            from .signals import create_signals, text_keyword_flags
-            flags = text_keyword_flags(extracted_text)
+            from .signals import create_signals
             merged_signals = create_signals(
                 identity_claim=result.signals.identity_claim or (ocr_result.channel_detected if ocr_result.channel_detected != "unknown" else None),
                 identity_verified=result.signals.identity_verified,
