@@ -210,6 +210,7 @@ class TestEventsAndPipeline(unittest.TestCase):
 
         expected_sequence = [
             EventType.INPUT_RECEIVED,
+            EventType.GEMMA_GUARDRAIL_EVALUATED,
             EventType.GATE_ESCALATED,
             EventType.SIGNAL_DETECTED,
             EventType.RISK_UPDATED,
@@ -244,6 +245,7 @@ class TestEventsAndPipeline(unittest.TestCase):
 
         expected_sequence = [
             EventType.INPUT_RECEIVED,
+            EventType.GEMMA_GUARDRAIL_EVALUATED,
             EventType.GATE_ESCALATED,
             EventType.SIGNAL_EXTRACTION_FAILED,
             EventType.RISK_UPDATED,

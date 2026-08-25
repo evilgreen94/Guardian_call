@@ -35,9 +35,12 @@ class GuardianPipeline:
         self,
         risk_engine: Optional[RiskEngine] = None,
         canary_policy: Optional[CanaryPolicy] = None,
+        gemma_guardrail: Optional[Any] = None,
     ) -> None:
+        from .gemma_guardrail import GemmaGuardrail
         self.risk_engine = risk_engine or RiskEngine()
         self.canary_policy = canary_policy or CanaryPolicy()
+        self.gemma_guardrail = gemma_guardrail or GemmaGuardrail()
 
     def _act_on_risk_assessment(
         self,
@@ -160,6 +163,45 @@ class GuardianPipeline:
                 payload={"text_length": len(text) if text is not None else 0},
             )
         )
+
+        if text and text.strip():
+            gemma_res = self.gemma_guardrail.evaluate(text)
+            sink.emit(
+                GuardianEvent(
+                    event_type=EventType.GEMMA_GUARDRAIL_EVALUATED,
+                    payload=gemma_res.to_dict(),
+                )
+            )
+
+            if gemma_res.prompt_injection_attempt:
+                sink.emit(
+                    GuardianEvent(
+                        event_type=EventType.PROMPT_INJECTION_DETECTED,
+                        payload={
+                            "injection_type": gemma_res.injection_type,
+                            "reason": gemma_res.reason,
+                        },
+                    )
+                )
+                from .signals import create_signals
+                injection_signals = create_signals(
+                    prompt_injection_attempt=True,
+                    injection_type=gemma_res.injection_type,
+                )
+                sink.emit(
+                    GuardianEvent(
+                        event_type=EventType.SIGNAL_DETECTED,
+                        payload={"signals": injection_signals.to_dict()},
+                    )
+                )
+                risk_assessment = self.risk_engine.evaluate(injection_signals)
+                sink.emit(
+                    GuardianEvent(
+                        event_type=EventType.RISK_UPDATED,
+                        payload=risk_assessment.to_dict(),
+                    )
+                )
+                return self._act_on_risk_assessment(injection_signals, risk_assessment, sink)
 
         if text and text.strip():
             from .signals import should_escalate_to_gemini

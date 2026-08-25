@@ -1,4 +1,10 @@
 google-adk
+google-genai
 fastapi
 uvicorn
+pydantic
+python-dotenv
+pillow
+requests
+httpx
 pytest

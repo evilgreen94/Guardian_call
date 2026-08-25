@@ -21,6 +21,10 @@
       <span class="title">GUARDIAN CALL // M0.5</span>
       <span class="badge badge-adk">GOOGLE ADK</span>
     </div>
+    <div class="view-toggle-bar">
+      <button type="button" class="btn btn-view active" id="btn-view-tactical">[ 📡 VISTA TELEMETRÍA TÁCTICA ]</button>
+      <button type="button" class="btn btn-view" id="btn-view-protected">[ 📱 MODO USUARIO PROTEGIDO ]</button>
+    </div>
     <div class="system-metrics">
       <span class="metric"><span class="label">MODEL:</span> <span class="val">GEMINI-3.5-FLASH</span></span>
       <span class="metric"><span class="label">ENGINE:</span> <span class="val">DETERMINISTIC CANARY</span></span>
@@ -31,7 +35,7 @@
   </header>
 
   <!-- MAIN TERMINAL GRID -->
-  <main class="grid-container">
+  <main class="grid-container" id="main-tactical-grid">
 
     <!-- LEFT COLUMN: INPUT TERMINAL & PRESETS -->
     <section class="panel panel-input">
@@ -69,6 +73,36 @@
             <span class="drop-zone-text">[ DROP CHAT SCREENSHOT / BANK RECEIPT HERE OR CLICK TO UPLOAD ]</span>
             <input type="file" id="image-input" accept="image/*" style="display: none;">
             <span class="file-name" id="file-name"></span>
+            <div class="image-preview-box" id="image-preview-box" style="display: none;">
+              <img id="preview-img" src="" alt="Screenshot Preview">
+            </div>
+          </div>
+        </div>
+
+        <!-- AGENTIC PROGRESS STEPPER -->
+        <div class="agent-stepper" id="agent-stepper" style="display: none;">
+          <div class="stepper-title">> MULTI-AGENT EXECUTION PIPELINE TRAIL:</div>
+          <div class="stepper-steps">
+            <div class="step-item" id="step-gemma">
+              <span class="step-icon">🛡️</span>
+              <span class="step-label">01 // GEMMA GUARDRAIL</span>
+              <span class="step-status" id="status-gemma">WAITING</span>
+            </div>
+            <div class="step-item" id="step-gemini">
+              <span class="step-icon">🧠</span>
+              <span class="step-label">02 // GEMINI 3.5 ADK</span>
+              <span class="step-status" id="status-gemini">WAITING</span>
+            </div>
+            <div class="step-item" id="step-risk">
+              <span class="step-icon">⚖️</span>
+              <span class="step-label">03 // RISK ENGINE</span>
+              <span class="step-status" id="status-risk">WAITING</span>
+            </div>
+            <div class="step-item" id="step-canary">
+              <span class="step-icon">🔒</span>
+              <span class="step-label">04 // CANARY POLICY</span>
+              <span class="step-status" id="status-canary">WAITING</span>
+            </div>
           </div>
         </div>
 
@@ -109,6 +143,12 @@
           <div class="status-card" id="card-canary-decision">
             <span class="card-label">CANARY POLICY DECISION</span>
             <div class="card-value" id="val-canary-decision">DENY</div>
+          </div>
+
+          <!-- GEMMA GUARDRAIL DISPLAY -->
+          <div class="status-card" id="card-gemma-guardrail">
+            <span class="card-label">GEMMA GUARDRAIL DEFENSE</span>
+            <div class="card-value" id="val-gemma-guardrail">PASS // CLEAN</div>
           </div>
         </div>
 
@@ -201,6 +241,30 @@
     </section>
 
   </main>
+
+  <!-- PROTECTED USER UI VIEW (MOBILE / SIMPLIFIED CALL PROTECTION) -->
+  <div class="protected-user-view" id="protected-user-view" style="display: none;">
+    <div class="phone-mockup">
+      <div class="phone-header">
+        <span class="phone-signal">GUARDIAN ACTIVE 🟢</span>
+        <span class="phone-time">EN LLAMADA EN VIVO</span>
+      </div>
+      <div class="phone-screen-content">
+        <div class="phone-warning-card" id="phone-warning-card">
+          <div class="phone-status-badge">SISTEMA DE PROTECCIÓN</div>
+          <h1 class="phone-headline" id="phone-headline">PROTECCIÓN ACTIVA</h1>
+          <p class="phone-subheadline" id="phone-subheadline">El canal de conversación está siendo analizado por el agente de seguridad.</p>
+          <div class="phone-directives" id="phone-directives">
+            <div class="directive-box ok">✓ Mantenga la calma</div>
+            <div class="directive-box ok">✓ Verifique la identidad del interlocutor</div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-actions">
+        <button type="button" class="btn btn-phone-hangup" id="btn-phone-end">[ 📞 RECOMENDACIÓN: FINALIZAR LLAMADA ]</button>
+      </div>
+    </div>
+  </div>
 
   <!-- FOOTER METADATA -->
   <footer class="telemetry-footer">

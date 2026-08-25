@@ -25,3 +25,5 @@ htmlcov/
 # Local logs
 *.log
 logs/
+data/
+

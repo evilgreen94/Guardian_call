@@ -53,15 +53,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (data.adversarial && data.adversarial.length > 0) {
         const groupAdv = document.createElement('optgroup');
-        groupAdv.label = `── BENCHMARK ADVERSARIAL M1 (${data.adversarial_count}) ──`;
+        groupAdv.label = `── BENCHMARK ADVERSARIAL & PROMPT INJECTION (${data.adversarial_count}) ──`;
         data.adversarial.forEach(sc => {
           scenarios[sc.id] = sc;
           const opt = document.createElement('option');
           opt.value = sc.id;
-          opt.textContent = `[M1] ${sc.title}`;
+          opt.textContent = `[BENCHMARK] ${sc.title}`;
           groupAdv.appendChild(opt);
         });
         scenarioSelect.appendChild(groupAdv);
+      }
+
+      if (Object.keys(scenarios).length === 0 && data.scenarios && data.scenarios.length > 0) {
+        const groupAll = document.createElement('optgroup');
+        groupAll.label = `── TODOS LOS ESCENARIOS (${data.scenarios.length}) ──`;
+        data.scenarios.forEach(sc => {
+          scenarios[sc.id] = sc;
+          const opt = document.createElement('option');
+          opt.value = sc.id;
+          opt.textContent = `${sc.title}`;
+          groupAll.appendChild(opt);
+        });
+        scenarioSelect.appendChild(groupAll);
       }
     } catch (err) {
       console.error('Failed to load scenarios:', err);
@@ -101,10 +114,45 @@ document.addEventListener('DOMContentLoaded', () => {
     scenarioRiskBadge.className = 'scenario-risk-badge';
   });
 
+  // View Mode Toggles
+  const btnViewTactical = document.getElementById('btn-view-tactical');
+  const btnViewProtected = document.getElementById('btn-view-protected');
+  const mainTacticalGrid = document.getElementById('main-tactical-grid');
+  const protectedUserView = document.getElementById('protected-user-view');
+
+  btnViewTactical?.addEventListener('click', () => {
+    btnViewTactical.classList.add('active');
+    btnViewProtected.classList.remove('active');
+    mainTacticalGrid.style.display = 'grid';
+    protectedUserView.style.display = 'none';
+  });
+
+  btnViewProtected?.addEventListener('click', () => {
+    btnViewProtected.classList.add('active');
+    btnViewTactical.classList.remove('active');
+    mainTacticalGrid.style.display = 'none';
+    protectedUserView.style.display = 'flex';
+  });
+
   let selectedFile = null;
   const dropZone = document.getElementById('drop-zone');
   const imageInput = document.getElementById('image-input');
   const fileNameDisplay = document.getElementById('file-name');
+  const imagePreviewBox = document.getElementById('image-preview-box');
+  const previewImg = document.getElementById('preview-img');
+
+  function updateImagePreview(file) {
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (previewImg) previewImg.src = e.target.result;
+        if (imagePreviewBox) imagePreviewBox.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    } else if (imagePreviewBox) {
+      imagePreviewBox.style.display = 'none';
+    }
+  }
 
   // File Dropzone handlers
   dropZone?.addEventListener('click', () => imageInput?.click());
@@ -113,6 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.files && e.target.files[0]) {
       selectedFile = e.target.files[0];
       fileNameDisplay.textContent = `SELECTED FILE: ${selectedFile.name} (${Math.round(selectedFile.size / 1024)} KB)`;
+      updateImagePreview(selectedFile);
     }
   });
 
@@ -131,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       selectedFile = e.dataTransfer.files[0];
       fileNameDisplay.textContent = `SELECTED FILE: ${selectedFile.name} (${Math.round(selectedFile.size / 1024)} KB)`;
+      updateImagePreview(selectedFile);
     }
   });
 
@@ -140,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     selectedFile = null;
     if (imageInput) imageInput.value = '';
     if (fileNameDisplay) fileNameDisplay.textContent = '';
+    if (imagePreviewBox) imagePreviewBox.style.display = 'none';
     if (scenarioSelect) scenarioSelect.value = '';
     if (scenarioRiskBadge) {
       scenarioRiskBadge.textContent = '';
@@ -150,24 +201,24 @@ document.addEventListener('DOMContentLoaded', () => {
     resetStatusDisplay();
   });
 
-  function resetStatusDisplay() {
-    valRiskLevel.textContent = 'NORMAL';
-    valRiskLevel.className = 'card-value val-normal';
+  // Stepper Execution Animation
+  async function animateAgentStepper() {
+    const stepper = document.getElementById('agent-stepper');
+    if (!stepper) return;
+    stepper.style.display = 'block';
 
-    valCanaryDecision.textContent = 'DENY';
-    valCanaryDecision.className = 'card-value val-deny';
-
-    listRiskReasons.innerHTML = '<li class="empty-state">No active risk signals evaluated yet.</li>';
-    userWarningBanner.style.display = 'none';
-
-    signalsGrid.innerHTML = '';
-    eventStream.innerHTML = `
-      <div class="event-item event-empty">
-        <span class="evt-time">[00:00:00]</span>
-        <span class="evt-type">SYSTEM_READY</span>
-        <span class="evt-payload">Awaiting input submission to emit backend domain events...</span>
-      </div>
-    `;
+    const steps = ['gemma', 'gemini', 'risk', 'canary'];
+    for (const step of steps) {
+      const el = document.getElementById(`step-${step}`);
+      const st = document.getElementById(`status-${step}`);
+      if (el && st) {
+        el.className = 'step-item active';
+        st.textContent = 'RUNNING...';
+        await new Promise(r => setTimeout(r, 180));
+        el.className = 'step-item done';
+        st.textContent = 'OK';
+      }
+    }
   }
 
   // 4. Run Analysis
@@ -183,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAnalyze.textContent = selectedFile ? '[ ANALYZING MULTIMODAL SCREENSHOT... ]' : '[ ANALYZING AGENT SIGNALS... ]';
 
     try {
+      await animateAgentStepper();
       let response;
 
       if (selectedFile) {
@@ -424,6 +476,24 @@ document.addEventListener('DOMContentLoaded', () => {
     valCanaryDecision.textContent = decision;
     valCanaryDecision.className = `card-value val-${decision.toLowerCase()}`;
 
+    // Render Gemma Guardrail State
+    const valGemmaGuardrail = document.getElementById('val-gemma-guardrail');
+    if (valGemmaGuardrail) {
+      const isInjection = signals ? Boolean(signals.prompt_injection_attempt) : false;
+      const gemmaEvt = events ? events.find(e => e.event_type === 'GEMMA_GUARDRAIL_EVALUATED') : null;
+      
+      if (isInjection) {
+        valGemmaGuardrail.textContent = 'ATTACK // BLOCKED';
+        valGemmaGuardrail.className = 'card-value val-critical';
+      } else if (gemmaEvt && gemmaEvt.payload && gemmaEvt.payload.passed === false) {
+        valGemmaGuardrail.textContent = 'ATTACK // BLOCKED';
+        valGemmaGuardrail.className = 'card-value val-critical';
+      } else {
+        valGemmaGuardrail.textContent = 'PASS // CLEAN';
+        valGemmaGuardrail.className = 'card-value val-normal';
+      }
+    }
+
     // Render Reasons
     listRiskReasons.innerHTML = '';
     if (risk_assessment.reasons && risk_assessment.reasons.length > 0) {
@@ -436,7 +506,12 @@ document.addEventListener('DOMContentLoaded', () => {
       listRiskReasons.innerHTML = '<li class="empty-state">No malicious signals detected.</li>';
     }
 
-    // Render Protected User Warning Banner
+    // Render Protected User Warning Banner & Phone Mockup Mode
+    const phoneWarningCard = document.getElementById('phone-warning-card');
+    const phoneHeadline = document.getElementById('phone-headline');
+    const phoneSubheadline = document.getElementById('phone-subheadline');
+    const phoneDirectives = document.getElementById('phone-directives');
+
     if (warning && warning.payload) {
       userWarningBanner.style.display = 'flex';
       warningHeadline.textContent = warning.payload.headline || 'POSIBLE ESTAFA';
@@ -449,8 +524,34 @@ document.addEventListener('DOMContentLoaded', () => {
         item.textContent = dir;
         warningDirectives.appendChild(item);
       });
+
+      if (phoneWarningCard) {
+        phoneWarningCard.className = 'phone-warning-card';
+        if (phoneHeadline) phoneHeadline.textContent = warning.payload.headline || 'POSIBLE ESTAFA';
+        if (phoneSubheadline) phoneSubheadline.textContent = 'Guardian ha detectado un intento de estafa en tiempo real. Siga las instrucciones:';
+        if (phoneDirectives) {
+          phoneDirectives.innerHTML = '';
+          directives.forEach(dir => {
+            const div = document.createElement('div');
+            div.className = 'directive-box';
+            div.textContent = `🛑 ${dir}`;
+            phoneDirectives.appendChild(div);
+          });
+        }
+      }
     } else {
       userWarningBanner.style.display = 'none';
+      if (phoneWarningCard) {
+        phoneWarningCard.className = 'phone-warning-card safe';
+        if (phoneHeadline) phoneHeadline.textContent = 'LLAMADA SEGURA';
+        if (phoneSubheadline) phoneSubheadline.textContent = 'No se han detectado tácticas de ingeniería social ni señales de estafa.';
+        if (phoneDirectives) {
+          phoneDirectives.innerHTML = `
+            <div class="directive-box ok">✓ Conversación limpia</div>
+            <div class="directive-box ok">✓ Canal protegido</div>
+          `;
+        }
+      }
     }
 
     // Render Extracted Signals Grid

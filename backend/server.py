@@ -44,10 +44,18 @@ app = FastAPI(
 )
 
 # Enable CORS for frontend visualizer integration
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+cors_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+if not cors_origins:
+    cors_origins = ["*"]
+    allow_credentials = False
+else:
+    allow_credentials = True
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=cors_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -97,23 +105,56 @@ SCENARIOS_DIR = Path(__file__).resolve().parent.parent / "scenarios"
 
 @app.get("/api/v1/scenarios", tags=["Analysis"])
 def list_scenarios() -> Dict[str, Any]:
-    """List synthetic demo scenarios (scam and legitimate) for the visualizer preset selector."""
+    """List synthetic demo scenarios, adversarial benchmarks, and prompt injection suites."""
     import json
 
-    scenarios = []
+    synthetic = []
+    adversarial = []
+    all_scenarios = []
+
     for path in sorted(SCENARIOS_DIR.glob("*.json")):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             continue
-        scenarios.append({
-            "id": data.get("scenario_id", path.stem),
-            "title": data.get("title", path.stem),
-            "description": data.get("description", ""),
-            "dialogue": data.get("dialogue", []),
-            "expected_final_risk": data.get("expected_final_risk"),
-        })
-    return {"scenarios": scenarios}
+
+        if path.name in ("m1_adversarial_scenarios.json", "prompt_injection_suite.json"):
+            # Unpack scenario arrays from benchmark suites
+            suite_scenarios = data.get("scenarios", [])
+            for sc in suite_scenarios:
+                item = {
+                    "id": sc.get("id", sc.get("scenario_id")),
+                    "title": sc.get("title", sc.get("id")),
+                    "description": sc.get("description", data.get("title", "")),
+                    "dialogue": [sc.get("input")] if isinstance(sc.get("input"), str) else sc.get("dialogue", []),
+                    "text": sc.get("input") if isinstance(sc.get("input"), str) else (sc.get("dialogue", [""])[0] if sc.get("dialogue") else ""),
+                    "expected_final_risk": sc.get("expected", {}).get("risk_level") if isinstance(sc.get("expected"), dict) else sc.get("expected_final_risk"),
+                    "category": sc.get("category", "adversarial"),
+                }
+                adversarial.append(item)
+                all_scenarios.append(item)
+        else:
+            dialogue_list = data.get("dialogue", [])
+            text_val = " ".join(dialogue_list) if dialogue_list else ""
+            item = {
+                "id": data.get("scenario_id", path.stem),
+                "title": data.get("title", path.stem),
+                "description": data.get("description", ""),
+                "dialogue": dialogue_list,
+                "text": text_val,
+                "expected_final_risk": data.get("expected_final_risk"),
+                "category": "synthetic",
+            }
+            synthetic.append(item)
+            all_scenarios.append(item)
+
+    return {
+        "scenarios": all_scenarios,
+        "synthetic": synthetic,
+        "synthetic_count": len(synthetic),
+        "adversarial": adversarial,
+        "adversarial_count": len(adversarial),
+    }
 
 
 @app.get("/health", tags=["System"])
@@ -124,10 +165,20 @@ def health_check() -> Dict[str, Any]:
         "status": "healthy",
         "service": "guardian-call-backend",
         "model": "gemini-3.5-flash",
+        "guardrail": "gemma-shield-local",
         "framework": "google-adk",
         "use_vertex_ai": os.getenv("GOOGLE_GENAI_USE_VERTEXAI", "false").lower() in ("true", "1"),
         "has_api_key": bool(os.getenv("GOOGLE_API_KEY")),
     }
+
+
+@app.post("/api/v1/guardrail/evaluate", tags=["Guardrail"])
+def evaluate_guardrail(request: AnalyzeRequest) -> Dict[str, Any]:
+    """Standalone endpoint to evaluate text input through Gemma Guardrail."""
+    from guardian.gemma_guardrail import GemmaGuardrail
+    guardrail = GemmaGuardrail()
+    result = guardrail.evaluate(request.text)
+    return result.to_dict()
 
 
 @app.post(
@@ -183,21 +234,26 @@ event_subscribers: List[asyncio.Queue] = []
 recent_events_cache: List[Dict[str, Any]] = []
 
 
-async def broadcast_event(event_data: Dict[str, Any]) -> None:
-    """Broadcast an event payload to all connected SSE browser clients and append to persistent audit log."""
-    recent_events_cache.append(event_data)
-    if len(recent_events_cache) > 50:
-        recent_events_cache.pop(0)
-
-    # Persist event to disk audit log
+def _append_audit_log(event_data: Dict[str, Any]) -> None:
     try:
         from pathlib import Path
         log_file = Path("data/audit_log.jsonl")
         log_file.parent.mkdir(parents=True, exist_ok=True)
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(event_data) + "\n")
-    except Exception:
-        pass
+    except Exception as exc:
+        import logging
+        logging.getLogger("guardian.audit").warning("Failed to persist audit log: %s", exc)
+
+
+async def broadcast_event(event_data: Dict[str, Any]) -> None:
+    """Broadcast an event payload to all connected SSE browser clients and append to persistent audit log."""
+    recent_events_cache.append(event_data)
+    if len(recent_events_cache) > 50:
+        recent_events_cache.pop(0)
+
+    # Persist event to disk audit log offloaded to thread pool to prevent blocking asyncio event loop
+    await asyncio.to_thread(_append_audit_log, event_data)
 
     # Dispatch to all active SSE queues
     for queue in list(event_subscribers):
