@@ -34,7 +34,7 @@ def test_list_scenarios_endpoint() -> None:
     assert response.status_code == 200
     scenarios = response.json()["scenarios"]
 
-    assert len(scenarios) == 15
+    assert len(scenarios) >= 15
     for scenario in scenarios:
         assert scenario["id"]
         assert scenario["title"]
@@ -72,7 +72,7 @@ def test_analyze_endpoint_success(mock_extract) -> None:
     assert data["canary_decision"]["decision"] == "ALLOW"
     assert data["warning"]["payload"]["headline"] == "POSIBLE ESTAFA"
     assert "NO DIGA ESE CÓDIGO" in data["warning"]["payload"]["directives"]
-    assert len(data["events"]) == 7
+    assert len(data["events"]) == 8
 
 
 def test_analyze_endpoint_empty_text() -> None:

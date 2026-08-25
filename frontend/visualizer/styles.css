@@ -528,6 +528,29 @@ textarea:focus {
 .event-item.evt-allowed .evt-type { color: var(--status-green); }
 .event-item.evt-denied .evt-type { color: var(--text-muted); }
 .event-item.evt-failed .evt-type { color: var(--hazard-red); }
+.event-item.evt-gate-skipped .evt-type { color: var(--text-muted); }
+.event-item.evt-gate-escalated .evt-type { color: var(--adk-blue); }
+
+.mic-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.mic-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mic-status.mic-live {
+  color: var(--status-green);
+}
+
+.mic-status.mic-error {
+  color: var(--hazard-red);
+}
 
 .evt-payload {
   color: var(--text-main);

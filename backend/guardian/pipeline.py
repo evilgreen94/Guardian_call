@@ -139,11 +139,18 @@ class GuardianPipeline:
         self,
         text: str,
         event_sink: Optional[InMemoryEventSink] = None,
+        is_first_turn: bool = True,
+        force_escalate: Optional[bool] = None,
     ) -> PipelineResult:
         """Process raw conversational text input through Gemini signal extraction and Guardian M0 pipeline.
 
         Privacy rule: Only text length is emitted in INPUT_RECEIVED payload; raw text is never logged.
         Fail-safe rule: On SignalExtractionError, bypass RiskEngine and assign synthetic HIGH risk.
+        Gate rule: is_first_turn defaults to True so single-shot callers (M0 tests, scenario runner,
+        /api/v1/analyze without session context) always reach Gemini exactly like before this gate
+        existed. force_escalate lets a caller that tracks real CallSession state (guardian.session)
+        hand in an escalate/skip decision already computed from the accumulated transcript plus the
+        periodic safety net, instead of this method recomputing a single-turn-only decision.
         """
         sink = event_sink or InMemoryEventSink()
 
@@ -153,6 +160,43 @@ class GuardianPipeline:
                 payload={"text_length": len(text) if text is not None else 0},
             )
         )
+
+        if text and text.strip():
+            from .signals import should_escalate_to_gemini
+            escalate = (
+                force_escalate
+                if force_escalate is not None
+                else should_escalate_to_gemini(text, is_first_turn=is_first_turn)
+            )
+            if not escalate:
+                sink.emit(
+                    GuardianEvent(
+                        event_type=EventType.GATE_SKIPPED,
+                        payload={"reason": "no_risk_vocabulary_detected"},
+                    )
+                )
+                empty_signals = ScamSignals()
+                sink.emit(
+                    GuardianEvent(
+                        event_type=EventType.SIGNAL_DETECTED,
+                        payload={"signals": empty_signals.to_dict()},
+                    )
+                )
+                risk_assessment = self.risk_engine.evaluate(empty_signals)
+                sink.emit(
+                    GuardianEvent(
+                        event_type=EventType.RISK_UPDATED,
+                        payload=risk_assessment.to_dict(),
+                    )
+                )
+                return self._act_on_risk_assessment(empty_signals, risk_assessment, sink)
+
+            sink.emit(
+                GuardianEvent(
+                    event_type=EventType.GATE_ESCALATED,
+                    payload={"reason": "first_turn" if is_first_turn else "risk_vocabulary_detected"},
+                )
+            )
 
         if not text or not text.strip():
             # Empty input is processed as baseline ScamSignals() yielding NORMAL risk

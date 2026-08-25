@@ -32,6 +32,9 @@ if not os.getenv("GOOGLE_API_KEY") and os.getenv("GEMINI_API_KEY"):
 
 from guardian.events import InMemoryEventSink
 from guardian.pipeline import GuardianPipeline
+from guardian.session import CallSessionStore
+
+call_session_store = CallSessionStore()
 
 
 app = FastAPI(
@@ -69,6 +72,14 @@ class AnalyzeRequest(BaseModel):
         ...,
         description="Conversational text segment to evaluate for scam indicators.",
         examples=["Tell me the six-digit code you just received from your bank."],
+    )
+    session_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Groups turns from the same call so the local keyword gate is evaluated against the "
+            "accumulated transcript instead of this turn alone. Omit for single-shot analysis "
+            "(always reaches Gemini, same as before session support existed)."
+        ),
     )
 
 
@@ -130,8 +141,13 @@ async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
     sink = InMemoryEventSink()
     pipeline = GuardianPipeline()
 
+    force_escalate = None
+    if request.session_id:
+        session = call_session_store.get_or_create(request.session_id)
+        force_escalate = session.register_turn(request.text)
+
     try:
-        result = pipeline.process_text(request.text, event_sink=sink)
+        result = pipeline.process_text(request.text, event_sink=sink, force_escalate=force_escalate)
         resp = AnalyzeResponse(
             signals=result.signals.to_dict(),
             risk_assessment=result.risk_assessment.to_dict(),
@@ -256,6 +272,59 @@ async def scan_inbox(limit: int = 5) -> Dict[str, Any]:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to scan inbox: {str(exc)}",
         ) from exc
+
+
+@app.get("/api/v1/scenarios", tags=["Scenarios"])
+def get_scenarios() -> Dict[str, Any]:
+    """Get all available synthetic scenarios and M1 adversarial test library items."""
+    from pathlib import Path
+    scenarios_dir = Path("scenarios")
+    
+    synthetic = []
+    adversarial = []
+
+    if scenarios_dir.exists():
+        for f in scenarios_dir.glob("*.json"):
+            try:
+                with open(f, "r", encoding="utf-8") as file:
+                    data = json.load(file)
+                    if "scenarios" in data and isinstance(data["scenarios"], list):
+                        for item in data["scenarios"]:
+                            dialogue = item.get("dialogue", [])
+                            if not dialogue and "input" in item:
+                                dialogue = [item["input"]]
+                            adversarial.append({
+                                "id": item.get("id"),
+                                "title": item.get("title", item.get("id")),
+                                "category": item.get("domain", "adversarial"),
+                                "description": f"Domain: {item.get('domain', 'general')} | Group: {item.get('cohort', 'm1')}",
+                                "text": " ".join(dialogue),
+                                "expected": item.get("expected", {}),
+                            })
+                    else:
+                        dialogue = data.get("dialogue", [])
+                        synthetic.append({
+                            "id": data.get("id", f.stem),
+                            "title": data.get("title", f.stem),
+                            "description": data.get("description", ""),
+                            "dialogue": dialogue,
+                            "text": " ".join(dialogue),
+                            "expected_final_risk": data.get("expected_final_risk"),
+                            "expected_warning_directive": data.get("expected_warning_directive"),
+                        })
+            except Exception:
+                pass
+
+    sorted_synthetic = sorted(synthetic, key=lambda x: x["id"])
+    sorted_adversarial = sorted(adversarial, key=lambda x: x["id"])
+
+    return {
+        "scenarios": sorted_synthetic,
+        "synthetic_count": len(sorted_synthetic),
+        "adversarial_count": len(sorted_adversarial),
+        "synthetic": sorted_synthetic,
+        "adversarial": sorted_adversarial,
+    }
 
 
 @app.get("/api/v1/events/stream", tags=["Realtime Telemetry"])

@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "backend"))
 
 from guardian.models import ScamSignals
-from guardian.signals import create_signals, signals_from_dict
+from guardian.signals import create_signals, signals_from_dict, should_escalate_to_gemini
 
 
 class TestScamSignals(unittest.TestCase):
@@ -72,6 +72,36 @@ class TestScamSignals(unittest.TestCase):
         signals = ScamSignals(otp_request=True)
         with self.assertRaises(AttributeError):
             signals.otp_request = False  # type: ignore[misc]
+
+
+class TestShouldEscalateToGemini(unittest.TestCase):
+    """Test suite for the local keyword gate in front of Gemini calls."""
+
+    def test_first_turn_always_escalates(self) -> None:
+        """First turn escalates even with zero risk vocabulary (baseline read)."""
+        self.assertTrue(should_escalate_to_gemini("Hola, buenas tardes.", is_first_turn=True))
+
+    def test_keyword_free_later_turn_is_skipped(self) -> None:
+        """A benign later turn with no risk vocabulary at all does not escalate."""
+        self.assertFalse(
+            should_escalate_to_gemini("Hola, buenas tardes, ¿qué tal está?", is_first_turn=False)
+        )
+
+    def test_soft_identity_claim_escalates_later_turn(self) -> None:
+        """A soft identity claim alone ('banco') is enough to open the gate."""
+        self.assertTrue(
+            should_escalate_to_gemini("Le llamamos de su banco.", is_first_turn=False)
+        )
+
+    def test_soft_otp_wording_escalates_later_turn(self) -> None:
+        """Spanish 'código' opens the gate even without the English 'otp' keyword."""
+        self.assertTrue(
+            should_escalate_to_gemini("Dígame el código que le acaba de llegar.", is_first_turn=False)
+        )
+
+    def test_empty_later_turn_does_not_escalate(self) -> None:
+        """Empty/whitespace-only later turns never escalate."""
+        self.assertFalse(should_escalate_to_gemini("   ", is_first_turn=False))
 
 
 if __name__ == "__main__":

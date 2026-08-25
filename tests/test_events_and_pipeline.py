@@ -210,6 +210,7 @@ class TestEventsAndPipeline(unittest.TestCase):
 
         expected_sequence = [
             EventType.INPUT_RECEIVED,
+            EventType.GATE_ESCALATED,
             EventType.SIGNAL_DETECTED,
             EventType.RISK_UPDATED,
             EventType.CANARY_EVALUATION,
@@ -243,6 +244,7 @@ class TestEventsAndPipeline(unittest.TestCase):
 
         expected_sequence = [
             EventType.INPUT_RECEIVED,
+            EventType.GATE_ESCALATED,
             EventType.SIGNAL_EXTRACTION_FAILED,
             EventType.RISK_UPDATED,
             EventType.CANARY_EVALUATION,

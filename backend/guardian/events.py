@@ -8,6 +8,8 @@ from typing import Any, Dict, List
 class EventType:
     """Canonical domain event types."""
     INPUT_RECEIVED = "INPUT_RECEIVED"
+    GATE_ESCALATED = "GATE_ESCALATED"
+    GATE_SKIPPED = "GATE_SKIPPED"
     IMAGE_RECEIVED = "IMAGE_RECEIVED"
     IMAGE_PROCESSED_OCR = "IMAGE_PROCESSED_OCR"
     SIGNAL_DETECTED = "SIGNAL_DETECTED"

@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fail-safe preset: not a real scenario, just triggers the extraction-failure code path
   const FAILSAFE_TEXT = "FAILSAFE_TEST_TRIGGER_API_SIMULATION";
 
-  // Full scenario dataset (id -> {dialogue, expected_final_risk}), populated from /api/v1/scenarios
+  // Full scenario dataset (id -> scenario object), populated from /api/v1/scenarios
   let scenarios = {};
 
   async function loadScenarios() {
@@ -37,13 +37,32 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       scenarios = {};
       scenarioSelect.innerHTML = '<option value="">[ SELECCIONA UN ESCENARIO... ]</option>';
-      (data.scenarios || []).forEach(sc => {
-        scenarios[sc.id] = sc;
-        const opt = document.createElement('option');
-        opt.value = sc.id;
-        opt.textContent = sc.title;
-        scenarioSelect.appendChild(opt);
-      });
+      
+      if (data.synthetic && data.synthetic.length > 0) {
+        const groupSynth = document.createElement('optgroup');
+        groupSynth.label = `── ESCENARIOS SINTÉTICOS DÍA 1 (${data.synthetic_count}) ──`;
+        data.synthetic.forEach(sc => {
+          scenarios[sc.id] = sc;
+          const opt = document.createElement('option');
+          opt.value = sc.id;
+          opt.textContent = `${sc.title}`;
+          groupSynth.appendChild(opt);
+        });
+        scenarioSelect.appendChild(groupSynth);
+      }
+
+      if (data.adversarial && data.adversarial.length > 0) {
+        const groupAdv = document.createElement('optgroup');
+        groupAdv.label = `── BENCHMARK ADVERSARIAL M1 (${data.adversarial_count}) ──`;
+        data.adversarial.forEach(sc => {
+          scenarios[sc.id] = sc;
+          const opt = document.createElement('option');
+          opt.value = sc.id;
+          opt.textContent = `[M1] ${sc.title}`;
+          groupAdv.appendChild(opt);
+        });
+        scenarioSelect.appendChild(groupAdv);
+      }
     } catch (err) {
       console.error('Failed to load scenarios:', err);
       scenarioSelect.innerHTML = '<option value="">[ NO SE PUDIERON CARGAR ESCENARIOS ]</option>';
@@ -57,10 +76,12 @@ document.addEventListener('DOMContentLoaded', () => {
     scenarioRiskBadge.className = 'scenario-risk-badge';
     if (!sc) return;
 
-    inputText.value = sc.dialogue.join(' ');
-    if (sc.expected_final_risk) {
-      scenarioRiskBadge.textContent = `RIESGO ESPERADO: ${sc.expected_final_risk}`;
-      scenarioRiskBadge.classList.add(`risk-${sc.expected_final_risk.toLowerCase()}`);
+    inputText.value = sc.text || (sc.dialogue ? sc.dialogue.join(' ') : '');
+    
+    const expRisk = sc.expected_final_risk || (sc.expected ? sc.expected.risk_level : null);
+    if (expRisk) {
+      scenarioRiskBadge.textContent = `RIESGO ESPERADO: ${expRisk}`;
+      scenarioRiskBadge.classList.add(`risk-${expRisk.toLowerCase()}`);
     }
   });
 
@@ -124,6 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
       scenarioRiskBadge.textContent = '';
       scenarioRiskBadge.className = 'scenario-risk-badge';
     }
+    if (micActive) recognition.stop();
+    micSessionId = null;
     resetStatusDisplay();
   });
 
@@ -192,6 +215,105 @@ document.addEventListener('DOMContentLoaded', () => {
       btnAnalyze.textContent = '[ RUN GOOGLE ADK ANALYSIS ]';
     }
   });
+
+  // 4b. Live Mic Bridge (Web Speech API -> /api/v1/analyze, zero-cost browser STT)
+  // ponytail: Chrome/Edge only (webkitSpeechRecognition), no server-side transcription
+  // dependency added. Add a server-side STT fallback if cross-browser support matters later.
+  const btnMicToggle = document.getElementById('btn-mic-toggle');
+  const micStatusEl = document.getElementById('mic-status');
+  const SpeechRecognitionImpl = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  let recognition = null;
+  let micActive = false;
+  let micSessionId = null;
+
+  async function submitMicTurn(text) {
+    if (!text || !text.trim()) return;
+    try {
+      const response = await fetch('/api/v1/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, session_id: micSessionId })
+      });
+      if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+      const data = await response.json();
+      renderResults(data, { appendEvents: true });
+    } catch (err) {
+      console.error('Mic turn analysis failed:', err);
+    }
+  }
+
+  if (!SpeechRecognitionImpl) {
+    if (btnMicToggle) {
+      btnMicToggle.disabled = true;
+      btnMicToggle.textContent = '[ 🎤 MIC NO DISPONIBLE (usa Chrome/Edge) ]';
+    }
+  } else if (btnMicToggle) {
+    btnMicToggle.addEventListener('click', () => {
+      if (micActive) {
+        recognition.stop();
+        return;
+      }
+
+      micSessionId = window.crypto?.randomUUID ? window.crypto.randomUUID() : `mic-${Date.now()}`;
+      recognition = new SpeechRecognitionImpl();
+      recognition.lang = 'es-ES';
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        micActive = true;
+        btnMicToggle.textContent = '[ ⏹ DETENER MIC ]';
+        if (micStatusEl) {
+          micStatusEl.textContent = 'MIC: ESCUCHANDO...';
+          micStatusEl.className = 'mic-status mic-live';
+        }
+      };
+
+      recognition.onresult = (event) => {
+        let finalTranscript = '';
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        if (finalTranscript.trim()) {
+          inputText.value += (inputText.value ? '\n' : '') + finalTranscript.trim();
+          submitMicTurn(finalTranscript.trim());
+        }
+
+        if (micStatusEl) {
+          micStatusEl.textContent = interimTranscript
+            ? `MIC: "${interimTranscript}"`
+            : 'MIC: ESCUCHANDO...';
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (micStatusEl) {
+          micStatusEl.textContent = `MIC: ERROR (${event.error})`;
+          micStatusEl.className = 'mic-status mic-error';
+        }
+      };
+
+      recognition.onend = () => {
+        micActive = false;
+        btnMicToggle.textContent = '[ 🎤 INICIAR MIC EN VIVO ]';
+        if (micStatusEl) {
+          micStatusEl.textContent = 'MIC: INACTIVO';
+          micStatusEl.className = 'mic-status';
+        }
+      };
+
+      recognition.start();
+    });
+  }
 
   const btnScanInbox = document.getElementById('btn-scan-inbox');
 
@@ -289,7 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 5. Render Analysis Results
-  function renderResults(data) {
+  function renderResults(data, { appendEvents = false } = {}) {
     const { signals, risk_assessment, canary_decision, warning, events } = data;
 
     // Render Risk Level
@@ -357,29 +479,42 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Render Event Stream Trail
-    eventStream.innerHTML = '';
-    if (events && events.length > 0) {
-      events.forEach(evt => {
-        const item = document.createElement('div');
-        let evtClass = '';
-        if (evt.event_type === 'USER_WARNING') evtClass = 'evt-warning';
-        else if (evt.event_type === 'ACTION_ALLOWED') evtClass = 'evt-allowed';
-        else if (evt.event_type === 'ACTION_DENIED') evtClass = 'evt-denied';
-        else if (evt.event_type === 'SIGNAL_EXTRACTION_FAILED') evtClass = 'evt-failed';
-
-        item.className = `event-item ${evtClass}`;
-
-        const timeStr = evt.timestamp ? evt.timestamp.split('T')[1].split('.')[0] : '00:00:00';
-
-        item.innerHTML = `
-          <span class="evt-time">[${timeStr}]</span>
-          <span class="evt-type">${evt.event_type}</span>
-          <span class="evt-payload">${JSON.stringify(evt.payload)}</span>
-        `;
-        eventStream.appendChild(item);
-      });
+    // Render Event Stream Trail: single-shot analysis (manual paste, screenshots) replaces the
+    // trail each run; a mic session appends so the multi-turn escalation stays visible as a log.
+    if (appendEvents) {
+      appendEventStream(events);
+    } else {
+      eventStream.innerHTML = '';
+      appendEventStream(events);
     }
+  }
+
+  function appendEventStream(events) {
+    if (!events || events.length === 0) return;
+    if (eventStream.querySelector('.event-empty')) {
+      eventStream.innerHTML = '';
+    }
+    events.forEach(evt => {
+      const item = document.createElement('div');
+      let evtClass = '';
+      if (evt.event_type === 'USER_WARNING') evtClass = 'evt-warning';
+      else if (evt.event_type === 'ACTION_ALLOWED') evtClass = 'evt-allowed';
+      else if (evt.event_type === 'ACTION_DENIED') evtClass = 'evt-denied';
+      else if (evt.event_type === 'SIGNAL_EXTRACTION_FAILED') evtClass = 'evt-failed';
+      else if (evt.event_type === 'GATE_SKIPPED') evtClass = 'evt-gate-skipped';
+      else if (evt.event_type === 'GATE_ESCALATED') evtClass = 'evt-gate-escalated';
+
+      item.className = `event-item ${evtClass}`;
+
+      const timeStr = evt.timestamp ? evt.timestamp.split('T')[1].split('.')[0] : '00:00:00';
+
+      item.innerHTML = `
+        <span class="evt-time">[${timeStr}]</span>
+        <span class="evt-type">${evt.event_type}</span>
+        <span class="evt-payload">${JSON.stringify(evt.payload)}</span>
+      `;
+      eventStream.appendChild(item);
+    });
   }
 
   // 6. Real-Time Server-Sent Events (SSE) Stream Listener
