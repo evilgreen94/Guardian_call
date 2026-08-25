@@ -644,6 +644,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     recognition.onerror = (evt) => {
       console.warn('Speech Recognition Error:', evt.error);
+      if (micStatus) {
+        micStatus.style.color = 'var(--hazard-red)';
+      }
+      if (evt.error === 'not-allowed' || evt.error === 'service-not-allowed') {
+        if (micStatus) micStatus.textContent = 'MIC: PERMISO DENEGADO EN NAVEGADOR';
+        if (liveTranscriptionBox) liveTranscriptionBox.style.display = 'block';
+        if (liveTranscriptionContent) {
+          liveTranscriptionContent.innerHTML = `
+            <div class="mic-error-banner">
+              ⚠️ <strong>ACCESO AL MICRÓFONO DENEGADO EN EL NAVEGADOR</strong><br>
+              Haz clic en el icono del candado 🔒 (o ajustes de sitio) en la barra de direcciones de tu navegador y selecciona "Permitir" para el micrófono.<br>
+              Asegúrate también de acceder desde <code>http://127.0.0.1:8080</code> o <code>http://localhost:8080</code>.
+            </div>
+          `;
+        }
+      } else if (evt.error === 'audio-capture') {
+        if (micStatus) micStatus.textContent = 'MIC: NO SE ENCONTRÓ DISPOSITIVO DE AUDIO';
+      }
     };
 
     recognition.onend = () => {
