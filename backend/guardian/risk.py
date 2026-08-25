@@ -100,7 +100,7 @@ class RiskEngine:
 
         elif is_service_threat:
             contributing.append("service_cancellation_threat")
-            if is_unverified_link or is_transfer_request or signals.financial_context or is_otp_theft or is_countdown_timer or is_special_offer or is_suspicious_domain:
+            if is_unverified_link or is_transfer_request or signals.financial_context or is_otp_theft or is_countdown_timer or is_special_offer or is_suspicious_domain or signals.urgency:
                 level = RiskLevel.CRITICAL
                 if is_unverified_link:
                     contributing.append("unverified_link_prompt")
@@ -108,6 +108,8 @@ class RiskEngine:
                     contributing.append("countdown_timer")
                 if is_special_offer:
                     contributing.append("special_offer_hook")
+                if signals.urgency:
+                    contributing.append("urgency")
                 reasons.insert(0, "Intento de estafa/phishing de almacenamiento o servicio exigiendo pago o datos de acceso bajo amenaza de pérdida de información")
             elif signals.urgency or has_unverified_claim:
                 level = RiskLevel.HIGH

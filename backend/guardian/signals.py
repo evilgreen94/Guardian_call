@@ -66,15 +66,15 @@ def create_signals(
     )
 
 
-_URGENCY_KEYWORDS = ("urgente", "urgent", "blocked", "bloquead", "deleted", "eliminad", "expire", "expirad", "immediately", "inmediatamen", "don't wait")
-_FINANCIAL_KEYWORDS = ("payment declined", "pago rechazado", "subscription fee", "cuota de suscripci", "bank account", "tarjeta", "wire transfer", "transferencia")
-_SERVICE_THREAT_KEYWORDS = ("storage full", "almacenamiento lleno", "photos will be removed", "account blocked", "cuenta bloqueada", "cuenta suspendida", "lost photos")
-_SUBSCRIPTION_KEYWORDS = ("payment declined", "pago rechazado", "renovacion obligatoria", "unpaid invoice", "factura impagada")
-_LINK_KEYWORDS = ("bit.ly", "tinyurl", "click here", "haga clic", "actualizar pago", "update payment", "verify-account")
-_DOMAIN_KEYWORDS = ("importican", "neuralgrid", "verify-bank", "security-alert-update", "temp-mail", "fake-domain")
-_OFFER_KEYWORDS = ("extra 50 gb", "50gb bonus", "descuento del 90%", "bonus storage", "free 100gb")
-_COUNTDOWN_KEYWORDS = ("expires in", "expira en", "24 hours left", "4 minutes")
-_TRIGGER_KEYWORDS = ("storage full", "photos will be removed", "payment declined", "account blocked", "cuenta bloqueada", "otp", "password", "clave", "pin", "transferencia", "giftcard", "ignora", "ignore", "system prompt", "<admin>", "<|start_header_id|>", "scamhunter")
+_URGENCY_KEYWORDS = ("urgente", "urgent", "blocked", "bloquead", "deleted", "eliminad", "expire", "expirad", "immediately", "inmediatamen", "don't wait", "take action", "hours left", "minutes et")
+_FINANCIAL_KEYWORDS = ("payment declined", "payment-declined", "pago rechazado", "subscription fee", "cuota de suscripci", "bank account", "tarjeta", "wire transfer", "transferencia")
+_SERVICE_THREAT_KEYWORDS = ("storage full", "almacenamiento lleno", "photos and videos will be removed", "photos and videos", "will be removed", "account has been blocked", "account blocked", "cuenta bloqueada", "cuenta suspendida", "lost photos")
+_SUBSCRIPTION_KEYWORDS = ("payment declined", "payment-declined", "pago rechazado", "renovacion obligatoria", "unpaid invoice", "factura impagada")
+_LINK_KEYWORDS = ("bit.ly", "tinyurl", "click here", "haga clic", "actualizar pago", "update payment", "verify-account", "update now")
+_DOMAIN_KEYWORDS = ("importican", "neuralgrid", "vectorization", "verify-bank", "security-alert-update", "temp-mail", "fake-domain")
+_OFFER_KEYWORDS = ("extra 50 gb", "50gb bonus", "50 gb bonus", "descuento del 90%", "bonus storage", "free 100gb")
+_COUNTDOWN_KEYWORDS = ("expires in", "expira en", "24 hours left", "4 minutes", "minutes et")
+_TRIGGER_KEYWORDS = ("storage full", "photos and videos will be removed", "photos and videos", "payment declined", "payment-declined", "account blocked", "account has been blocked", "cuenta bloqueada", "otp", "password", "clave", "pin", "transferencia", "giftcard", "ignora", "ignore", "system prompt", "<admin>", "<|start_header_id|>", "scamhunter")
 _INJECTION_PATTERNS = (
     "ignore previous instructions",
     "ignora todas las instrucciones",

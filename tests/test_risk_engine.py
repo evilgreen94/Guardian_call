@@ -193,6 +193,17 @@ class TestRiskEngine(unittest.TestCase):
         self.assertNotIn("financial context present", reasons_text)
         self.assertNotIn("financial_context", assessment.contributing_signals)
 
+    def test_cloud_storage_threat_with_spoofed_domain_triggers_critical_risk(self) -> None:
+        """Verify cloud storage deletion threat with spoofed domain and urgency triggers CRITICAL risk."""
+        signals = create_signals(
+            identity_claim="cloud_storage",
+            service_cancellation_threat=True,
+            suspicious_domain=True,
+            urgency=True,
+        )
+        assessment = self.engine.evaluate(signals)
+        self.assertEqual(assessment.level, RiskLevel.CRITICAL)
+
 
 if __name__ == "__main__":
     unittest.main()

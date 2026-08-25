@@ -103,6 +103,15 @@ class TestShouldEscalateToGemini(unittest.TestCase):
         """Empty/whitespace-only later turns never escalate."""
         self.assertFalse(should_escalate_to_gemini("   ", is_first_turn=False))
 
+    def test_bilingual_cloud_storage_phishing_keywords(self) -> None:
+        """Verify English and Spanish cloud storage phishing keywords trigger flags."""
+        from guardian.signals import text_keyword_flags
+        text = "ALERTA: Your Account Has Been Blocked! Your Photos and Videos will be Removed. 50 GB bonus storage. Expires in 4 minutes."
+        flags = text_keyword_flags(text)
+        self.assertTrue(flags["service_cancellation_threat"])
+        self.assertTrue(flags["urgency"])
+        self.assertTrue(flags["special_offer_hook"])
+
 
 if __name__ == "__main__":
     unittest.main()
