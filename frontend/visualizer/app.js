@@ -196,8 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
       scenarioRiskBadge.textContent = '';
       scenarioRiskBadge.className = 'scenario-risk-badge';
     }
-    if (micActive) recognition.stop();
-    micSessionId = null;
+    if (typeof micActive !== 'undefined' && micActive && typeof recognition !== 'undefined') {
+      try { recognition.stop(); } catch(e) {}
+    }
     resetStatusDisplay();
   });
 

@@ -4,6 +4,7 @@ Provides HTTP endpoints to process conversational text, execute the Google ADK
 signal extraction pipeline, and stream real backend domain events.
 """
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -333,8 +334,7 @@ async def scan_inbox(limit: int = 5) -> Dict[str, Any]:
 @app.get("/api/v1/scenarios", tags=["Scenarios"])
 def get_scenarios() -> Dict[str, Any]:
     """Get all available synthetic scenarios and M1 adversarial test library items."""
-    from pathlib import Path
-    scenarios_dir = Path("scenarios")
+    scenarios_dir = Path(__file__).resolve().parent.parent / "scenarios"
     
     synthetic = []
     adversarial = []
@@ -350,8 +350,8 @@ def get_scenarios() -> Dict[str, Any]:
                             if not dialogue and "input" in item:
                                 dialogue = [item["input"]]
                             adversarial.append({
-                                "id": item.get("id"),
-                                "title": item.get("title", item.get("id")),
+                                "id": str(item.get("id") or item.get("scenario_id") or f.stem),
+                                "title": item.get("title", item.get("id", f.stem)),
                                 "category": item.get("domain", "adversarial"),
                                 "description": f"Domain: {item.get('domain', 'general')} | Group: {item.get('cohort', 'm1')}",
                                 "text": " ".join(dialogue),
@@ -359,9 +359,10 @@ def get_scenarios() -> Dict[str, Any]:
                             })
                     else:
                         dialogue = data.get("dialogue", [])
+                        sc_id = str(data.get("scenario_id") or data.get("id") or f.stem)
                         synthetic.append({
-                            "id": data.get("id", f.stem),
-                            "title": data.get("title", f.stem),
+                            "id": sc_id,
+                            "title": data.get("title", sc_id),
                             "description": data.get("description", ""),
                             "dialogue": dialogue,
                             "text": " ".join(dialogue),
@@ -373,9 +374,10 @@ def get_scenarios() -> Dict[str, Any]:
 
     sorted_synthetic = sorted(synthetic, key=lambda x: x["id"])
     sorted_adversarial = sorted(adversarial, key=lambda x: x["id"])
+    all_combined = sorted_synthetic + sorted_adversarial
 
     return {
-        "scenarios": sorted_synthetic,
+        "scenarios": all_combined,
         "synthetic_count": len(sorted_synthetic),
         "adversarial_count": len(sorted_adversarial),
         "synthetic": sorted_synthetic,
