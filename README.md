@@ -2,14 +2,14 @@
 
 > **"Detect the manipulation. Break the isolation. Protect the person before fraud becomes loss."**
 
-Guardian Call is an agentic protection system built for the **All Things Agentic Hackathon 2026** (Google Agentics). It analyzes conversational text, audio, screenshots, and real-time emails in real time, detects scam manipulation tactics using a multi-agent **Google ADK** pipeline powered by **Gemini 3.5**, evaluates explainable risk, and executes interventions strictly governed by **Canary Policy Guardrails**.
+Guardian Call is an agentic protection system built for the **All Things Agentic Hackathon 2026** (Google Agentics). It analyzes conversational text, audio, screenshots, and real-time emails in real time, detects scam manipulation tactics using a multi-agent **Google ADK** pipeline powered by **Gemini 3.5** and **ShieldGemma / Gemma Guardrail**, evaluates explainable risk, and executes interventions strictly governed by **Canary Policy Guardrails**.
 
 ---
 
-## Current Status (Version 0.7.0 — Real-Time IMAP Email Protection & Guardian 360)
+## Current Status (Version 1.0.0 — Guardian 360 & ShieldGemma Edge Safety)
 
 Branch: **`lab/splurtch-dev-antigravity`**  
-Test Suite: **41 / 41 tests passing (`python -m pytest`)**
+Test Suite: **69 / 69 tests passing (`pytest -v`)**
 
 ```text
                                 INCOMING USER INPUT STREAM
@@ -24,6 +24,11 @@ Test Suite: **41 / 41 tests passing (`python -m pytest`)**
            │                   model: gemini-3.5-flash        Headers, Sender & Body
            │                            │                           │
            └────────────────────┬───────┴───────────────────────────┘
+                                ▼
+                     GEMMA / SHIELDGEMMA GUARDRAIL
+                        (gemma_guardrail.py)
+                [Pre-execution Prompt Injection Defense]
+                                │
                                 ▼
                        Google ADK Agent #2
                    (signal_extraction_agent)
@@ -51,30 +56,35 @@ Test Suite: **41 / 41 tests passing (`python -m pytest`)**
 
 ## Key Implemented Components
 
-### 1. Real-Time IMAP Email Listener (`email_listener.py`)
+### 1. Gemma / ShieldGemma Guardrail (`gemma_guardrail.py`)
+- **Module:** [`backend/guardian/gemma_guardrail.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/gemma_guardrail.py)
+- **Features:** Acts as an edge / on-device safety layer evaluating incoming text before executing model calls. Detects direct prompt injections, fake security mode triggers, persona hijacking, indirect injections, special token forgery, payload obfuscation, and credential exfiltration.
+
+### 2. Real-Time IMAP Email Listener (`email_listener.py`)
 - **Module:** [`backend/guardian/email_listener.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/email_listener.py)
 - **Features:** Connects via SSL IMAP to Gmail, Outlook, or custom mail servers (`IMAP_SERVER`, `IMAP_USER`, `IMAP_PASSWORD`). Polls unseen emails, parses MIME structures (headers, spoofed sender domains, subject, plain/HTML text), formats full email context, and runs it through `GuardianPipeline`.
 
-### 2. Google ADK Multi-Agent Pipeline (`google-adk`)
+### 3. Google ADK Multi-Agent Pipeline (`google-adk`)
 - **Signal Extraction Agent:** [`backend/guardian/agent.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/agent.py) — `LlmAgent` using `gemini-3.5-flash` with Pydantic output schema (`ScamSignalsSchema`). Extracted signals: `identity_claim`, `financial_context`, `urgency`, `service_cancellation_threat`, `subscription_fee_claim`, `unverified_link_prompt`, `sender_email`, `suspicious_domain`, `special_offer_hook`, `countdown_timer`, etc.
 - **Multimodal Vision/OCR Agent (Guardian 360):** [`backend/guardian/vision_agent.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/vision_agent.py) — `LlmAgent` using `gemini-3.5-flash` Multimodal. Performs multilingual OCR, detects visual forgery, cloud storage threats, sender email headers, countdown timers, and discount offer hooks.
 
-### 3. Deterministic Risk Engine & Canary Policy Guardrails
+### 4. Deterministic Risk Engine & Canary Policy Guardrails
 - **Risk Engine:** [`backend/guardian/risk.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/risk.py) — Computes transparent, explainable risk levels (`NORMAL`, `SUSPICIOUS`, `HIGH`, `CRITICAL`) from contributing signals.
 - **Canary Policy Engine:** [`backend/guardian/canary.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/canary.py) — Authority layer enforcing user autonomy and strict privacy rules (`warn_user` -> `ALLOW` on `HIGH`/`CRITICAL`, `notify_trusted_circle` -> `ALLOW` on `CRITICAL`).
 - **Trusted Circle Notifier:** [`backend/guardian/trusted_circle.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/guardian/trusted_circle.py) — Dispatches privacy-preserving notifications (webhook/SMS) under `CRITICAL` risk without transmitting raw transcripts.
 
-### 4. Google Cloud Run Backend Server
+### 5. Google Cloud Run Backend Server & Real-Time Telemetry Stream
 - **File:** [`backend/server.py`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/backend/server.py)
 - **Containerization:** [`Dockerfile`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/Dockerfile) & [`.dockerignore`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/.dockerignore) optimized for **Google Cloud Run**.
-- **Endpoints:** `POST /api/v1/analyze`, `POST /api/v1/analyze-image`, `GET /health`, `GET /`.
+- **Performance & Security:** Offloaded non-blocking async disk I/O for audit logs, W3C compliant CORS configuration, and real-time Server-Sent Events (SSE) stream.
+- **Endpoints:** `POST /api/v1/analyze`, `POST /api/v1/guardrail/evaluate`, `POST /api/v1/scan-inbox`, `GET /api/v1/scenarios`, `GET /health`, `GET /`.
 
-### 5. Guardian Visualizer UI (Industrial Brutalism & Emil Design Engineering)
+### 6. Guardian Visualizer UI (Industrial Brutalism & Emil Design Engineering)
 - **Location:** [`frontend/visualizer/`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/frontend/visualizer/)
-- **Design:** Industrial CRT layout (`#0A0A0A` substrate, `JetBrains Mono` font), Drag & Drop upload zone, live event stream log, signals telemetry matrix, and warning overlay.
+- **Design:** Industrial CRT layout (`#0A0A0A` substrate, `JetBrains Mono` font), Drag & Drop upload zone, live event stream log, signals telemetry matrix, scenario loader (57+ adversarial benchmarks), and warning overlay.
 
-### 6. Test Suite & Scenarios
-- **Test Suite:** [`tests/`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/tests/) — **41 unit & integration tests passing** (`python -m pytest`).
+### 7. Test Suite & Scenarios
+- **Test Suite:** [`tests/`](file:///d:/SYNJI%20ARCHIVOS/PROYECTOS/CANARY/Guardian_call-main/tests/) — **69 unit & integration tests passing** (`pytest -v`).
 
 ---
 
@@ -106,7 +116,7 @@ IMAP_PASSWORD=your_app_password
 
 ### 3. Run Automated Tests
 ```bash
-python -m pytest
+pytest -v
 ```
 
 ### 4. Run Real-Time IMAP Email Protection Listener
@@ -133,6 +143,7 @@ Guardian_call/
 │   │   ├── canary.py           # Canary Policy Engine & authority guardrails
 │   │   ├── email_listener.py   # Real-Time IMAP Email Protection Connector
 │   │   ├── events.py           # Domain event definitions & InMemoryEventSink
+│   │   ├── gemma_guardrail.py  # Gemma / ShieldGemma edge safety & prompt injection defense
 │   │   ├── models.py           # Domain data models (ScamSignals, RiskAssessment, etc.)
 │   │   ├── pipeline.py         # GuardianPipeline coordinator
 │   │   ├── risk.py             # Deterministic explainable Risk Engine
@@ -142,8 +153,8 @@ Guardian_call/
 │   └── server.py               # FastAPI server for Google Cloud Run
 ├── frontend/
 │   └── visualizer/             # Industrial Brutalist Visualizer UI
-├── scenarios/                  # Synthetic scenarios for CLI evaluation
-├── tests/                      # 41 unit & integration tests (pytest)
+├── scenarios/                  # Synthetic scenarios & 57 adversarial benchmarks
+├── tests/                      # 69 unit & integration tests (pytest)
 ├── Dockerfile                  # Google Cloud Run container recipe
-└── requirements.txt            # Project dependencies (google-adk, fastapi, uvicorn, pytest)
+└── requirements.txt            # Project dependencies
 ```
