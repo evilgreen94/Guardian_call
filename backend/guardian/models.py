@@ -50,6 +50,11 @@ class ScamSignals:
     special_offer_hook: bool = False
     countdown_timer: bool = False
     requested_action: Optional[str] = None
+    claimed_entity_type: Optional[str] = None
+    context_type: Optional[str] = None
+    coercion_level: Optional[str] = None
+    prompt_injection_attempt: bool = False
+    injection_type: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert signals to dictionary."""

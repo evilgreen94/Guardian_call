@@ -47,7 +47,12 @@ class RiskEngine:
         # 3. Determine Risk Level based on explicit deterministic rules
         level: RiskLevel
 
-        if is_otp_theft:
+        if signals.prompt_injection_attempt:
+            level = RiskLevel.CRITICAL
+            reasons.insert(0, f"Intento de inyección de prompt o sobreescritura de instrucciones de seguridad detectado (Tipo: {signals.injection_type or 'direct_override'})")
+            contributing.append("prompt_injection_attempt")
+
+        elif is_otp_theft:
             level = RiskLevel.CRITICAL
             reasons.insert(0, "Caller explicitly requested user to reveal/share one-time passcode (OTP)")
             contributing.extend(["otp_request", "requested_action:share_otp"])

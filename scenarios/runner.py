@@ -16,24 +16,20 @@ from guardian.events import InMemoryEventSink
 from guardian.pipeline import GuardianPipeline
 
 
-def run_scenario(scenario_path: Path) -> None:
-    """Load and execute a single synthetic scenario file."""
-    if not scenario_path.exists():
-        print(f"[ERROR] Scenario file not found: {scenario_path}")
-        return
-
-    with open(scenario_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    title = data.get("title", scenario_path.stem)
+def run_scenario_data(data: dict, scenario_id: str) -> None:
+    """Execute a parsed scenario dictionary through GuardianPipeline."""
+    title = data.get("title", scenario_id)
     description = data.get("description", "")
     dialogue = data.get("dialogue", [])
+    if not dialogue and "input" in data:
+        dialogue = [data["input"]]
     full_text = " ".join(dialogue)
 
     print("=" * 70)
-    print(f"GUARDIAN CALL — SCENARIO EVALUATION")
+    print(f"GUARDIAN CALL — SCENARIO EVALUATION [{scenario_id}]")
     print(f"Title: {title}")
-    print(f"Description: {description}")
+    if description:
+        print(f"Description: {description}")
     print("=" * 70)
 
     sink = InMemoryEventSink()
@@ -61,6 +57,25 @@ def run_scenario(scenario_path: Path) -> None:
         print("\n[OK] No user warning issued.")
 
     print("=" * 70 + "\n")
+
+
+def run_scenario(scenario_path: Path) -> None:
+    """Load and execute a single synthetic scenario file or library."""
+    if not scenario_path.exists():
+        print(f"[ERROR] Scenario file not found: {scenario_path}")
+        return
+
+    with open(scenario_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Check if this is a nested scenario library (e.g., m1_adversarial_scenarios.json)
+    if "scenarios" in data and isinstance(data["scenarios"], list):
+        print(f"[INFO] Executing library '{data.get('title', scenario_path.name)}' with {len(data['scenarios'])} sub-scenarios...\n")
+        for sub in data["scenarios"]:
+            sub_id = sub.get("id", "sub_scenario")
+            run_scenario_data(sub, sub_id)
+    else:
+        run_scenario_data(data, scenario_path.stem)
 
 
 def main() -> None:
