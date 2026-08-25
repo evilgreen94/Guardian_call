@@ -21,6 +21,7 @@ class ActionType(str, Enum):
     SHARE_TRANSCRIPT = "share_transcript"
     RECOMMEND_END_CALL = "recommend_end_call"
     END_CALL = "end_call"
+    ACTIVATE_SCAMTRAP = "activate_scamtrap"
 
 
 class PolicyDecision(str, Enum):

@@ -130,5 +130,33 @@ class TestCanaryPolicy(unittest.TestCase):
         )
 
 
+    def test_activate_scamtrap_policy_requires_high_or_critical_risk(self) -> None:
+        """ScamTrap activation is authorized for HIGH and CRITICAL risk levels."""
+        self.assertEqual(
+            self.canary.evaluate_action(
+                self._make_assessment(RiskLevel.CRITICAL), ActionType.ACTIVATE_SCAMTRAP
+            ).decision,
+            PolicyDecision.ALLOW,
+        )
+        self.assertEqual(
+            self.canary.evaluate_action(
+                self._make_assessment(RiskLevel.HIGH), ActionType.ACTIVATE_SCAMTRAP
+            ).decision,
+            PolicyDecision.ALLOW,
+        )
+        self.assertEqual(
+            self.canary.evaluate_action(
+                self._make_assessment(RiskLevel.SUSPICIOUS), ActionType.ACTIVATE_SCAMTRAP
+            ).decision,
+            PolicyDecision.DENY,
+        )
+        self.assertEqual(
+            self.canary.evaluate_action(
+                self._make_assessment(RiskLevel.NORMAL), ActionType.ACTIVATE_SCAMTRAP
+            ).decision,
+            PolicyDecision.DENY,
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

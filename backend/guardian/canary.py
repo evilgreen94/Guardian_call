@@ -97,6 +97,22 @@ class CanaryPolicy:
                 risk_level=risk_level,
             )
 
+        elif action == ActionType.ACTIVATE_SCAMTRAP:
+            # ScamTrap counter-deception authorized under HIGH or CRITICAL risk
+            if risk_level in (RiskLevel.CRITICAL, RiskLevel.HIGH):
+                return CanaryDecision(
+                    action=action,
+                    decision=PolicyDecision.ALLOW,
+                    reason=f"ScamTrap counter-deception authorized under {risk_level.value} risk.",
+                    risk_level=risk_level,
+                )
+            return CanaryDecision(
+                action=action,
+                decision=PolicyDecision.DENY,
+                reason=f"ScamTrap counter-deception requires HIGH or CRITICAL risk (current: {risk_level.value}).",
+                risk_level=risk_level,
+            )
+
         # Fallback default: Deny any unhandled action type
         return CanaryDecision(
             action=action,
