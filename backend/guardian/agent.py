@@ -1,6 +1,7 @@
 """Gemini signal-extraction agent using Google ADK for Guardian Call M0."""
 
 import json
+import os
 from typing import Any, Dict, Optional
 from pydantic import BaseModel, Field
 

@@ -169,6 +169,7 @@ class GuardianPipeline:
         event_sink: Optional[InMemoryEventSink] = None,
         is_first_turn: bool = True,
         force_escalate: Optional[bool] = None,
+        accumulated_transcript: Optional[str] = None,
     ) -> PipelineResult:
         """Process raw conversational text input through Gemini signal extraction and Guardian M0 pipeline.
 
@@ -188,6 +189,8 @@ class GuardianPipeline:
                 payload={"text_length": len(text) if text is not None else 0},
             )
         )
+
+        text_for_extraction = accumulated_transcript or text
 
         if text and text.strip():
             gemma_res = self.gemma_guardrail.evaluate(text)
@@ -212,6 +215,7 @@ class GuardianPipeline:
                 injection_signals = create_signals(
                     prompt_injection_attempt=True,
                     injection_type=gemma_res.injection_type,
+                    raw_text=text,
                 )
                 sink.emit(
                     GuardianEvent(
@@ -233,7 +237,7 @@ class GuardianPipeline:
             escalate = (
                 force_escalate
                 if force_escalate is not None
-                else should_escalate_to_gemini(text, is_first_turn=is_first_turn)
+                else should_escalate_to_gemini(text_for_extraction, is_first_turn=is_first_turn)
             )
             if not escalate:
                 sink.emit(
@@ -242,7 +246,7 @@ class GuardianPipeline:
                         payload={"reason": "no_risk_vocabulary_detected"},
                     )
                 )
-                empty_signals = ScamSignals()
+                empty_signals = ScamSignals(raw_text=text)
                 sink.emit(
                     GuardianEvent(
                         event_type=EventType.SIGNAL_DETECTED,
@@ -267,7 +271,7 @@ class GuardianPipeline:
 
         if not text or not text.strip():
             # Empty input is processed as baseline ScamSignals() yielding NORMAL risk
-            empty_signals = ScamSignals()
+            empty_signals = ScamSignals(raw_text=text)
             sink.emit(
                 GuardianEvent(
                     event_type=EventType.SIGNAL_DETECTED,
@@ -284,7 +288,13 @@ class GuardianPipeline:
             return self._act_on_risk_assessment(empty_signals, risk_assessment, sink)
 
         try:
-            signals = extract_signals(text)
+            signals = extract_signals(text_for_extraction)
+            if not signals.raw_text:
+                from .signals import create_signals
+                signals_dict = signals.to_dict()
+                signals_dict["raw_text"] = text
+                from .signals import signals_from_dict
+                signals = signals_from_dict(signals_dict)
         except SignalExtractionError:
             # Fail-safe posture on extraction error
             sink.emit(
@@ -293,7 +303,7 @@ class GuardianPipeline:
                     payload={"reason": "signal_extraction_failed"},
                 )
             )
-            fallback_signals = ScamSignals()
+            fallback_signals = ScamSignals(raw_text=text)
             risk_assessment = RiskAssessment(
                 level=RiskLevel.HIGH,
                 reasons=["Unable to analyze conversation content; defaulting to cautious posture"],
@@ -363,8 +373,6 @@ class GuardianPipeline:
         else:
             extracted_text = ""
 
-        result = self.process_text(extracted_text, event_sink=sink)
-
         from .signals import text_keyword_flags
         flags = text_keyword_flags(extracted_text)
 
@@ -378,28 +386,30 @@ class GuardianPipeline:
             or flags["urgency"]
             or flags["subscription_fee_claim"]
         ):
+            base_result = self.process_text(extracted_text, event_sink=sink)
             from .signals import create_signals
             merged_signals = create_signals(
-                identity_claim=result.signals.identity_claim or (ocr_result.channel_detected if ocr_result.channel_detected != "unknown" else None),
-                identity_verified=result.signals.identity_verified,
-                financial_context=result.signals.financial_context or flags["financial_context"],
-                urgency=result.signals.urgency or ocr_result.countdown_timer_detected or flags["urgency"],
-                secrecy_request=result.signals.secrecy_request,
-                otp_request=result.signals.otp_request,
-                password_request=result.signals.password_request,
-                transfer_request=result.signals.transfer_request,
-                remote_access_request=result.signals.remote_access_request,
-                service_cancellation_threat=result.signals.service_cancellation_threat or flags["service_cancellation_threat"],
-                subscription_fee_claim=result.signals.subscription_fee_claim or flags["subscription_fee_claim"],
-                unverified_link_prompt=result.signals.unverified_link_prompt or flags["unverified_link_prompt"],
-                sender_email=result.signals.sender_email or ocr_result.sender_email,
-                suspicious_domain=result.signals.suspicious_domain or ocr_result.suspicious_domain_detected or ocr_result.visual_manipulation_suspected,
-                special_offer_hook=result.signals.special_offer_hook or ocr_result.special_offer_detected,
-                countdown_timer=result.signals.countdown_timer or ocr_result.countdown_timer_detected,
-                requested_action=result.signals.requested_action or "update_payment_or_storage",
+                identity_claim=base_result.signals.identity_claim or (ocr_result.channel_detected if ocr_result.channel_detected != "unknown" else None),
+                identity_verified=base_result.signals.identity_verified,
+                financial_context=base_result.signals.financial_context or flags["financial_context"],
+                urgency=base_result.signals.urgency or ocr_result.countdown_timer_detected or flags["urgency"],
+                secrecy_request=base_result.signals.secrecy_request,
+                otp_request=base_result.signals.otp_request,
+                password_request=base_result.signals.password_request,
+                transfer_request=base_result.signals.transfer_request,
+                remote_access_request=base_result.signals.remote_access_request,
+                service_cancellation_threat=base_result.signals.service_cancellation_threat or flags["service_cancellation_threat"],
+                subscription_fee_claim=base_result.signals.subscription_fee_claim or flags["subscription_fee_claim"],
+                unverified_link_prompt=base_result.signals.unverified_link_prompt or flags["unverified_link_prompt"],
+                sender_email=base_result.signals.sender_email or ocr_result.sender_email,
+                suspicious_domain=base_result.signals.suspicious_domain or ocr_result.suspicious_domain_detected or ocr_result.visual_manipulation_suspected,
+                special_offer_hook=base_result.signals.special_offer_hook or ocr_result.special_offer_detected,
+                countdown_timer=base_result.signals.countdown_timer or ocr_result.countdown_timer_detected,
+                requested_action=base_result.signals.requested_action or "update_payment_or_storage",
+                raw_text=extracted_text,
             )
             risk_assessment = self.risk_engine.evaluate(merged_signals)
             return self._act_on_risk_assessment(merged_signals, risk_assessment, sink)
 
-        return result
+        return self.process_text(extracted_text, event_sink=sink)
 

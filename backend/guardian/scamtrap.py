@@ -120,18 +120,12 @@ def run_scamtrap_agent(text: str, runner: Optional[Runner] = None) -> ScamTrapIn
                 break
 
         if extracted_text:
-            clean_text = extracted_text.strip()
-            if clean_text.startswith("```json"):
-                clean_text = clean_text[7:]
-            elif clean_text.startswith("```"):
-                clean_text = clean_text[3:]
-            if clean_text.endswith("```"):
-                clean_text = clean_text[:-3]
-            clean_text = clean_text.strip()
-
-            data = json.loads(clean_text)
-            if isinstance(data, dict):
-                return ScamTrapIntelligenceSchema(**data)
+            match = re.search(r"\{.*\}", extracted_text, re.DOTALL)
+            if match:
+                json_str = match.group(0)
+                data = json.loads(json_str)
+                if isinstance(data, dict):
+                    return ScamTrapIntelligenceSchema(**data)
     except Exception:
         pass
 

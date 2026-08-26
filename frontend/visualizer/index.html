@@ -3,272 +3,248 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guardian Call — Tactical Telemetry & Event Visualizer</title>
-  
-  <!-- Typography: JetBrains Mono for telemetry, Space Grotesk for macro headers -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
-  
-  <link rel="stylesheet" href="styles.css">
+  <title>Guardian Call GC-80 Signal Instrument</title>
+  <link rel="stylesheet" href="/visualizer/styles.css">
 </head>
-<body class="crt-overlay">
-
-  <!-- TOP STATUS TELEMETRY BAR -->
-  <header class="telemetry-bar">
-    <div class="brand">
-      <span class="crosshair">+</span>
-      <span class="title">GUARDIAN CALL // M0.5</span>
-      <span class="badge badge-adk">GOOGLE ADK</span>
-    </div>
-    <div class="view-toggle-bar">
-      <button type="button" class="btn btn-view active" id="btn-view-tactical">[ 📡 VISTA TELEMETRÍA TÁCTICA ]</button>
-      <button type="button" class="btn btn-view" id="btn-view-protected">[ 📱 MODO USUARIO PROTEGIDO ]</button>
-    </div>
-    <div class="system-metrics">
-      <span class="metric"><span class="label">MODEL:</span> <span class="val">GEMINI-3.5-FLASH</span></span>
-      <span class="metric"><span class="label">ENGINE:</span> <span class="val">DETERMINISTIC CANARY</span></span>
-      <span class="metric"><span class="label">LIVE IMAP STREAM:</span> <span class="val val-ok" id="stream-status">CONNECTING...</span></span>
-      <span class="metric"><span class="label">SYSTEM STATUS:</span> <span class="val val-ok" id="system-status">ACTIVE</span></span>
-      <span class="metric clock"><span class="label">SYS_TIME:</span> <span class="val" id="sys-clock">00:00:00 UTC</span></span>
-    </div>
-  </header>
-
-  <!-- MAIN TERMINAL GRID -->
-  <main class="grid-container" id="main-tactical-grid">
-
-    <!-- LEFT COLUMN: INPUT TERMINAL & PRESETS -->
-    <section class="panel panel-input">
-      <div class="panel-header">
-        <span class="panel-title">[ 01 // INPUT TEXT TELEMETRY ]</span>
-        <span class="panel-tag">RAW CONVERSATIONAL FEED</span>
+<body>
+  <div class="instrument-surface">
+    <header class="system-header" aria-label="Guardian Call system header">
+      <div class="unit-mark">
+        <span>GC-80</span>
+        <span>UNIT 04</span>
       </div>
-      <div class="panel-body">
-        
-        <div class="presets-toolbar">
-          <span class="label">PRESET SCENARIOS:</span>
-          <select class="btn btn-preset scenario-select" id="scenario-select">
-            <option value="">[ LOADING SCENARIOS... ]</option>
+      <div class="system-title">
+        <h1>GUARDIAN CALL INSTRUMENTS</h1>
+        <p>GC-80 PROTECTIVE CALL WORKSTATION</p>
+      </div>
+      <div class="system-status">
+        <span><b>STREAM</b><output id="stream-status" class="state state-eval">CONNECTING</output></span>
+        <span><b>GUARDRAIL</b><output id="guardrail-status" class="state state-ok">CLEAN</output></span>
+        <span><b>TIME</b><output id="sys-clock">00:00:00 UTC</output></span>
+      </div>
+    </header>
+
+    <nav class="mode-line" aria-label="Workstation mode line">
+      <span>MODE SELECT</span>
+      <button type="button" class="mode-btn active" id="btn-mode-telemetry">[ 📡 TELEMETRÍA EXECUTION ]</button>
+      <button type="button" class="mode-btn" id="btn-mode-protected">[ 📱 MODO USUARIO PROTEGIDO ]</button>
+      <span>CANARY</span>
+      <span>POLICY ENGINE&nbsp;&nbsp; CANARY AUTHORITY v0.1</span>
+    </nav>
+
+    <main class="signal-instrument">
+      <section class="conversation-zone" aria-labelledby="conversation-title">
+        <div class="zone-title">
+          <h2 id="conversation-title">CONVERSATION BUFFER</h2>
+          <output id="expected-risk-tag"></output>
+        </div>
+        <div class="input-line">
+          <label for="scenario-select">SCENARIO</label>
+          <select id="scenario-select">
+            <option value="">[ LOADING SCENARIOS ]</option>
           </select>
-          <span class="scenario-risk-badge" id="scenario-risk-badge"></span>
-          <button type="button" class="btn btn-preset" id="btn-preset-failsafe">
-            [ SCENARIO: FAIL-SAFE TEST ]
-          </button>
+        </div>
+        <textarea id="input-text" spellcheck="false" placeholder="Paste or select a synthetic conversation transcript..."></textarea>
+        <div class="command-line">
+          <button type="button" id="btn-analyze" class="btn-primary">EXECUTE ANALYSIS</button>
+          <button type="button" id="btn-mic-toggle" class="btn-tactical">[ 🎙️ MIC EN VIVO ]</button>
+          <button type="button" id="btn-scan-imap" class="btn-tactical">[ 📧 SCAN GMAIL ]</button>
+          <label for="file-image-upload" class="btn-tactical-label">[ 📷 SUBIR CAPTURA ]</label>
+          <input type="file" id="file-image-upload" accept="image/*" style="display:none;">
+          <button type="button" id="btn-clear" class="btn-secondary">RESET</button>
         </div>
 
-        <div class="input-wrapper">
-          <label for="input-text" class="input-label">> ENTER CONVERSATIONAL TRANSCRIPT:</label>
-          <textarea id="input-text" rows="4" placeholder="Paste or type conversational transcript here... (e.g. 'Dime el código de 6 dígitos que te llegó por SMS...')"></textarea>
-          <div class="mic-bar">
-            <button type="button" class="btn btn-preset" id="btn-mic-toggle">
-              [ 🎤 INICIAR MIC EN VIVO ]
-            </button>
-            <span class="mic-status" id="mic-status">MIC: INACTIVO</span>
+        <!-- MIC ERROR DIAGNOSTIC BANNER -->
+        <div id="mic-diagnostic-banner" class="mic-diagnostic-banner" style="display: none;"></div>
+
+        <!-- LIVE AUDIO TRANSCRIPTION BOX -->
+        <div id="live-audio-box" class="live-audio-box" style="display: none;">
+          <div class="audio-header">
+            <span class="pulse-dot">🔴 STREAM AUDIO EN VIVO (WEBSPEECH)</span>
           </div>
-          <!-- REAL-TIME LIVE AUDIO TRANSCRIPTION STREAM BOX -->
-          <div class="live-transcription-box" id="live-transcription-box" style="display: none;">
-            <div class="live-transcription-header">> 🎙️ STREAM DE TRANSCRIPCIÓN DE AUDIO EN VIVO:</div>
-            <div class="live-transcription-content" id="live-transcription-content">
-              <span class="transcript-placeholder">[ ESPERANDO ENTRADA DE VOZ... HABLA AL MICRÓFONO ]</span>
+          <div id="live-audio-transcript" class="audio-transcript">Escuchando micrófono...</div>
+        </div>
+
+        <!-- MULTIMODAL VISION PREVIEW BOX -->
+        <div id="image-preview-zone" class="image-preview-zone" style="display: none;">
+          <div class="preview-header">IMAGE BUFFER PREVIEW (VISION AGENT)</div>
+          <div class="preview-body">
+            <img id="image-preview-img" alt="Vista previa de la captura">
+            <div class="preview-controls">
+              <button type="button" id="btn-analyze-image" class="btn-primary">[ EXECUTE VISION ANALYSIS ]</button>
+              <button type="button" id="btn-clear-image" class="btn-secondary">[ CANCEL ]</button>
             </div>
           </div>
         </div>
+      </section>
 
-        <div class="image-upload-wrapper">
-          <label class="input-label">> GUARDIAN 360 // MULTIMODAL SCREENSHOT / RECEIPT INPUT:</label>
-          <div class="drop-zone" id="drop-zone">
-            <span class="drop-zone-text">[ DROP CHAT SCREENSHOT / BANK RECEIPT HERE OR CLICK TO UPLOAD ]</span>
-            <input type="file" id="image-input" accept="image/*" style="display: none;">
-            <span class="file-name" id="file-name"></span>
-            <div class="image-preview-box" id="image-preview-box" style="display: none;">
-              <img id="preview-img" src="" alt="Screenshot Preview">
-            </div>
+      <section class="rail-zone" aria-labelledby="rail-title">
+        <div class="zone-title">
+          <h2 id="rail-title">LIVE SIGNAL RAIL</h2>
+          <output id="rail-state">AWAITING INPUT</output>
+        </div>
+        <div class="pipeline-rail point-idle" id="pipeline-rail" aria-label="Guardian Call live execution rail">
+          <div class="rail-line" aria-hidden="true"></div>
+          <div class="canary-boundary" aria-hidden="true"></div>
+          <div class="data-point" id="data-point" aria-hidden="true"></div>
+
+          <div class="rail-node node-call">
+            <span>CALL</span>
+            <output id="pipe-call-state">-</output>
+          </div>
+          <div class="rail-node node-gemini">
+            <span>GEMINI</span>
+            <output id="pipe-gemini-state">-</output>
+          </div>
+          <div class="rail-node node-risk">
+            <span>RISK</span>
+            <output id="pipe-risk-state" class="state state-ok">NORMAL</output>
+          </div>
+          <div class="rail-node node-canary">
+            <span>CANARY</span>
+            <output id="pipe-canary-state" class="state state-deny">DENY</output>
+          </div>
+          <div class="rail-node node-action">
+            <span>ACTION</span>
+            <output id="pipe-action-state">-</output>
           </div>
         </div>
+      </section>
 
-        <!-- AGENTIC PROGRESS STEPPER -->
-        <div class="agent-stepper" id="agent-stepper" style="display: none;">
-          <div class="stepper-title">> MULTI-AGENT EXECUTION PIPELINE TRAIL:</div>
-          <div class="stepper-steps">
-            <div class="step-item" id="step-gemma">
-              <span class="step-icon">🛡️</span>
-              <span class="step-label">01 // GEMMA GUARDRAIL</span>
-              <span class="step-status" id="status-gemma">WAITING</span>
-            </div>
-            <div class="step-item" id="step-gemini">
-              <span class="step-icon">🧠</span>
-              <span class="step-label">02 // GEMINI 3.5 ADK</span>
-              <span class="step-status" id="status-gemini">WAITING</span>
-            </div>
-            <div class="step-item" id="step-risk">
-              <span class="step-icon">⚖️</span>
-              <span class="step-label">03 // RISK ENGINE</span>
-              <span class="step-status" id="status-risk">WAITING</span>
-            </div>
-            <div class="step-item" id="step-canary">
-              <span class="step-icon">🔒</span>
-              <span class="step-label">04 // CANARY POLICY</span>
-              <span class="step-status" id="status-canary">WAITING</span>
-            </div>
-          </div>
+      <section class="risk-zone" aria-labelledby="risk-title">
+        <div class="zone-title">
+          <h2 id="risk-title">RISK</h2>
+          <output id="risk-level-readout" class="state state-ok">NORMAL</output>
+        </div>
+        <ol id="reasons-telemetry" class="reason-lines">
+          <li class="empty">No risk assessment recorded.</li>
+        </ol>
+        <div class="contributing-lines">
+          <h3>CONTRIBUTING SIGNALS</h3>
+          <div id="contributing-signals">-</div>
         </div>
 
-        <div class="actions-bar">
-          <button type="button" class="btn btn-primary" id="btn-analyze">
-            [ RUN GOOGLE ADK ANALYSIS ]
-          </button>
-          <button type="button" class="btn btn-preset" id="btn-scan-inbox" style="border-color: var(--status-green); color: var(--status-green);">
-            [ 📩 ESCANEAR BANDEJA DE ENTRADA (IMAP) ]
-          </button>
-          <button type="button" class="btn btn-preset" id="btn-view-audit-log" style="border-color: #38bdf8; color: #38bdf8;">
-            [ 📜 VER HISTORIAL DE AUDITORÍA (DISK) ]
-          </button>
-          <button type="button" class="btn btn-secondary" id="btn-clear">
-            [ RESET TERMINAL ]
-          </button>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- RIGHT COLUMN: LIVE RISK ENGINE & CANARY DECISION -->
-    <section class="panel panel-status">
-      <div class="panel-header">
-        <span class="panel-title">[ 02 // RISK & CANARY AUTHORITY STATE ]</span>
-        <span class="panel-tag">POLICY DECISION MATRIX</span>
-      </div>
-      <div class="panel-body">
-        
-        <div class="status-grid">
-          <!-- RISK LEVEL DISPLAY -->
-          <div class="status-card" id="card-risk-level">
-            <span class="card-label">RISK LEVEL</span>
-            <div class="card-value" id="val-risk-level">NORMAL</div>
+        <!-- REAL-TIME IMAP EMAIL THREAT BANNER -->
+        <div id="email-alert-banner" class="email-alert-banner" style="display: none;">
+          <div class="email-alert-header">
+            <span class="pulse-dot">🔴 IMAP EMAIL THREAT DETECTED</span>
           </div>
-
-          <!-- CANARY DECISION DISPLAY -->
-          <div class="status-card" id="card-canary-decision">
-            <span class="card-label">CANARY POLICY DECISION</span>
-            <div class="card-value" id="val-canary-decision">DENY</div>
-          </div>
-
-          <!-- GEMMA GUARDRAIL DISPLAY -->
-          <div class="status-card" id="card-gemma-guardrail">
-            <span class="card-label">GEMMA GUARDRAIL DEFENSE</span>
-            <div class="card-value" id="val-gemma-guardrail">PASS // CLEAN</div>
+          <div class="email-alert-details">
+            <div><b>REMITENTE:</b> <span id="email-sender">-</span></div>
+            <div><b>ASUNTO:</b> <span id="email-subject">-</span></div>
           </div>
         </div>
+      </section>
 
-        <!-- REASONS LIST -->
-        <div class="reasons-box">
-          <span class="box-label">EXPLAINABLE RISK REASONS:</span>
-          <ul id="list-risk-reasons" class="reasons-list">
-            <li class="empty-state">No active risk signals evaluated yet.</li>
-          </ul>
+      <section class="register-zone" aria-labelledby="register-title">
+        <div class="zone-title">
+          <h2 id="register-title">SIGNAL REGISTER</h2>
+          <span>square = asserted&nbsp;&nbsp; dot = cleared</span>
         </div>
+        <div id="signal-register-body" class="signal-register">
+          <p class="empty">Awaiting ScamSignals output.</p>
+        </div>
+      </section>
 
-        <!-- REAL-TIME INCOMING EMAIL THREAT BANNER -->
-        <div class="realtime-email-card" id="realtime-email-card" style="display: none;">
-          <div class="realtime-header">
-            <span class="pulse-dot">🔴 LIVE AMENAZA DE EMAIL</span>
-            <span class="realtime-title">DETECCIÓN EN TIEMPO REAL // IMAP</span>
-          </div>
-          <div class="realtime-details">
-            <div><span class="detail-label">REMITENTE:</span> <span id="realtime-sender" class="detail-val">-</span></div>
-            <div><span class="detail-label">ASUNTO:</span> <span id="realtime-subject" class="detail-val">-</span></div>
-          </div>
+      <section class="canary-zone" aria-labelledby="canary-title">
+        <div class="zone-title">
+          <h2 id="canary-title">CANARY AUTHORITY</h2>
         </div>
+        <dl class="canary-readout">
+          <div>
+            <dt>ACTION</dt>
+            <dd id="canary-action">-</dd>
+          </div>
+          <div>
+            <dt>DECISION</dt>
+            <dd id="canary-decision" class="state state-deny">DENY</dd>
+          </div>
+          <div>
+            <dt>RISK</dt>
+            <dd id="canary-risk-level">-</dd>
+          </div>
+          <div>
+            <dt>POLICY</dt>
+            <dd id="canary-reason">No Canary evaluation recorded.</dd>
+          </div>
+        </dl>
 
         <!-- SCAMTRAP HONEY-AGENT COUNTERMEASURE PANEL -->
-        <div class="scamtrap-panel" id="scamtrap-panel" style="display: none;">
-          <div class="scamtrap-header">[ 🍯 SCAMTRAP HONEY-AGENT // COUNTERMEASURE ACTIVE ]</div>
+        <div id="scamtrap-block" class="scamtrap-block" style="display: none;">
+          <div class="scamtrap-header">
+            <span>🍯 SCAMTRAP COUNTERMEASURE</span>
+            <span class="state state-eval">ACTIVE</span>
+          </div>
           <div class="scamtrap-body">
-            <div class="stalling-box">
-              <span class="stalling-label">> RESPUESTA TÁCTICA DE DISTRACCIÓN:</span>
-              <p class="stalling-text" id="stalling-text">"Espere un momento por favor, se me ha congelado la pantalla..."</p>
-              <button type="button" class="btn btn-preset" id="btn-copy-stalling" style="border-color: #f59e0b; color: #f59e0b;">
-                [ 📋 COPIAR RESPUESTA TÁCTICA ]
-              </button>
-            </div>
-            <div class="intel-matrix">
-              <span class="intel-label">> INTELIGENCIA TÁCTICA EXTRAÍDA:</span>
-              <div id="intel-urls" class="intel-item">URLs: Ninguna</div>
-              <div id="intel-ibans" class="intel-item">IBANs: Ninguno</div>
-            </div>
+            <span class="stalling-label">> TACTICAL DISTRACTION RESPONSE:</span>
+            <p id="scamtrap-stalling-text" class="stalling-text"></p>
+            <button type="button" id="btn-copy-stalling" class="btn-tactical">[ 📋 COPIAR RESPUESTA ]</button>
+            <div id="scamtrap-intel-matrix" class="intel-matrix"></div>
           </div>
         </div>
+      </section>
+    </main>
 
-        <!-- GUARDIAN USER WARNING OVERLAY (PROTECTED USER UI) -->
-        <div class="user-warning-banner" id="user-warning-banner" style="display: none;">
-          <div class="warning-header">
-            <span class="warning-symbol">⚠️</span>
-            <span class="warning-headline" id="warning-headline">POSIBLE ESTAFA</span>
-          </div>
-          <div class="warning-body">
-            <div class="warning-directives" id="warning-directives">
-              <!-- Directives rendered dynamically -->
-            </div>
-          </div>
+    <section class="event-tty" aria-labelledby="event-title">
+      <div class="event-title-line">
+        <div class="tty-tab-group">
+          <button type="button" id="btn-tty-events" class="btn-tty-tab active">[ DOMAIN EVENT STREAM ]</button>
+          <button type="button" id="btn-tty-audit" class="btn-tty-tab">[ PERSISTENT DISK LOGS ]</button>
         </div>
-
-      </div>
-    </section>
-
-    <!-- BOTTOM ROW 1: SIGNALS MATRIX -->
-    <section class="panel panel-signals grid-full">
-      <div class="panel-header">
-        <span class="panel-title">[ 03 // EXTRACTED SCAM SIGNALS ]</span>
-        <span class="panel-tag">STRUCTURED ADK OUTPUT</span>
-      </div>
-      <div class="panel-body">
-        <div class="signals-grid" id="signals-grid">
-          <!-- Signals rendered dynamically -->
+        <div class="tty-actions">
+          <button type="button" id="btn-refresh-audit" class="btn-tactical" style="display:none;">[ 🔄 REFRESH ]</button>
+          <button type="button" id="btn-export-audit" class="btn-tactical" style="display:none;">[ 💾 EXPORT JSON ]</button>
+          <output id="event-line-count">LINES 001</output>
         </div>
       </div>
-    </section>
 
-    <!-- BOTTOM ROW 2: LIVE BACKEND EVENT STREAM TRAIL -->
-    <section class="panel panel-events grid-full">
-      <div class="panel-header">
-        <span class="panel-title">[ 04 // BACKEND EVENT STREAM TRAIL ]</span>
-        <span class="panel-tag">REAL-TIME DETERMINISTIC EVENT LOG</span>
-      </div>
-      <div class="panel-body">
-        <div class="event-stream" id="event-stream">
-          <div class="event-item event-empty">
-            <span class="evt-time">[00:00:00]</span>
-            <span class="evt-type">SYSTEM_READY</span>
-            <span class="evt-payload">Awaiting input submission to emit backend domain events...</span>
+      <!-- DOMAIN EVENT STREAM VIEW -->
+      <div id="event-stream-container">
+        <div class="event-head">
+          <span>TIME</span>
+          <span>EVENT</span>
+          <span>DETAILS</span>
+        </div>
+        <div class="audit-log" role="log" aria-live="polite" id="event-stream-terminal">
+          <div class="log-entry log-empty">
+            <span class="log-time">00:00:00</span>
+            <span class="log-event">SYSTEM_READY</span>
+            <span class="log-payload">Awaiting backend domain events.</span>
           </div>
         </div>
       </div>
-    <!-- BOTTOM ROW 3: PERSISTENT DISK AUDIT LOG TRAIL -->
-    <section class="panel panel-events grid-full" id="audit-log-section" style="margin-top: 1rem;">
-      <div class="panel-header" style="justify-content: space-between;">
-        <span class="panel-title">[ 05 // PERSISTENT AUDIT TRAIL LOGS (DATA/AUDIT_LOG.JSONL) ]</span>
-        <div>
-          <button type="button" class="btn btn-preset" id="btn-refresh-history" style="border-color: #38bdf8; color: #38bdf8; font-size: 0.75rem; padding: 2px 8px;">
-            🔄 REFRESH DISK LOGS
-          </button>
-          <button type="button" class="btn btn-preset" id="btn-export-history" style="border-color: var(--status-green); color: var(--status-green); font-size: 0.75rem; padding: 2px 8px;">
-            💾 EXPORT JSON
-          </button>
+
+      <!-- DISK AUDIT LOG STREAM VIEW -->
+      <div id="audit-log-container" style="display: none;">
+        <div class="event-head">
+          <span>TIMESTAMP</span>
+          <span>ACTION / EVENT</span>
+          <span>RECORD DATA</span>
         </div>
-      </div>
-      <div class="panel-body">
-        <div class="event-stream" id="audit-history-stream" style="max-height: 250px; overflow-y: auto;">
-          <div class="event-item event-empty">
-            <span class="evt-time">[LOGS]</span>
-            <span class="evt-type">AUDIT_LOG_STORE</span>
-            <span class="evt-payload">Click 'VER HISTORIAL DE AUDITORÍA' to load saved audit records from disk...</span>
+        <div class="audit-log" role="log" aria-live="polite" id="audit-history-terminal">
+          <div class="log-entry log-empty">
+            <span class="log-time">00:00:00</span>
+            <span class="log-event">DISK_STORE</span>
+            <span class="log-payload">Click '[ PERSISTENT DISK LOGS ]' to load saved records.</span>
           </div>
         </div>
       </div>
     </section>
 
-  </main>
+    <!-- CANARY INTERRUPT PLACARD -->
+    <div class="warning-interrupt" id="warning-interrupt" aria-labelledby="user-title" aria-hidden="true">
+      <div class="interrupt-title">
+        <h2 id="user-title">CANARY INTERRUPT</h2>
+        <button type="button" id="warning-close" aria-label="Acknowledge user warning interrupt">[ ACK ]</button>
+      </div>
+      <output id="placard-headline">NO USER_WARNING EVENT</output>
+      <div class="directive-bank" id="placard-directives">
+        <p class="empty">No authorized user-warning directives emitted.</p>
+      </div>
+    </div>
+  </div>
 
-  <!-- PROTECTED USER UI VIEW (MOBILE / SIMPLIFIED CALL PROTECTION) -->
+  <!-- PROTECTED USER MODE VIEW (SIMPLIFIED SMARTPHONE PROTECTED MODE) -->
   <div class="protected-user-view" id="protected-user-view" style="display: none;">
     <div class="phone-mockup">
       <div class="phone-header">
@@ -287,18 +263,12 @@
         </div>
       </div>
       <div class="phone-actions">
-        <button type="button" class="btn btn-phone-hangup" id="btn-phone-end">[ 📞 RECOMENDACIÓN: FINALIZAR LLAMADA ]</button>
+        <button type="button" class="btn-phone-hangup" id="btn-phone-end">[ 📞 RECOMENDACIÓN CANARY: FINALIZAR LLAMADA ]</button>
+        <button type="button" class="btn-phone-back" id="btn-phone-back">[ ⬅️ VOLVER A CONSOLA TELEMETRÍA ]</button>
       </div>
     </div>
   </div>
 
-  <!-- FOOTER METADATA -->
-  <footer class="telemetry-footer">
-    <span>GUARDIAN CALL // ALL THINGS AGENTIC HACKATHON 2026</span>
-    <span>FRAMEWORK: GOOGLE ADK + GEMINI 3.5</span>
-    <span>AUTHORITY: CANARY POLICY ENGINE</span>
-  </footer>
-
-  <script src="app.js"></script>
+  <script src="/visualizer/app.js"></script>
 </body>
 </html>

@@ -28,4 +28,4 @@ def test_temperature_benchmark_determinism():
 
         assert res1.risk_assessment.level == res2.risk_assessment.level
         assert res1.canary_decision.action == res2.canary_decision.action
-        assert res1.canary_decision.allowed == res2.canary_decision.allowed
+        assert res1.canary_decision.decision == res2.canary_decision.decision

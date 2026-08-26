@@ -22,6 +22,7 @@ def create_signals(
     special_offer_hook: bool = False,
     countdown_timer: bool = False,
     requested_action: Optional[str] = None,
+    raw_text: Optional[str] = None,
     claimed_entity_type: Optional[str] = None,
     context_type: Optional[str] = None,
     coercion_level: Optional[str] = None,
@@ -58,6 +59,7 @@ def create_signals(
         special_offer_hook=bool(special_offer_hook),
         countdown_timer=bool(countdown_timer),
         requested_action=normalized_requested_action,
+        raw_text=raw_text,
         claimed_entity_type=claimed_entity_type,
         context_type=context_type,
         coercion_level=coercion_level,
@@ -66,14 +68,14 @@ def create_signals(
     )
 
 
-_URGENCY_KEYWORDS = ("urgente", "urgent", "blocked", "bloquead", "deleted", "eliminad", "expire", "expirad", "immediately", "inmediatamen", "don't wait", "take action", "hours left", "minutes et")
-_FINANCIAL_KEYWORDS = ("payment declined", "payment-declined", "pago rechazado", "subscription fee", "cuota de suscripci", "bank account", "tarjeta", "wire transfer", "transferencia")
+_URGENCY_KEYWORDS = ("urgente", "urgent", "blocked", "bloquead", "deleted", "eliminad", "expire", "expirad", "immediately", "inmediatamen", "don't wait", "take action", "hours left", "minutes left", "minutes")
+_FINANCIAL_KEYWORDS = ("payment declined", "payment-declined", "pago rechazado", "subscription fee", "cuota de suscripcion", "cuota de suscripci", "bank account", "tarjeta", "wire transfer", "transferencia")
 _SERVICE_THREAT_KEYWORDS = ("storage full", "almacenamiento lleno", "photos and videos will be removed", "photos and videos", "will be removed", "account has been blocked", "account blocked", "cuenta bloqueada", "cuenta suspendida", "lost photos")
 _SUBSCRIPTION_KEYWORDS = ("payment declined", "payment-declined", "pago rechazado", "renovacion obligatoria", "unpaid invoice", "factura impagada")
 _LINK_KEYWORDS = ("bit.ly", "tinyurl", "click here", "haga clic", "actualizar pago", "update payment", "verify-account", "update now")
 _DOMAIN_KEYWORDS = ("importican", "neuralgrid", "vectorization", "verify-bank", "security-alert-update", "temp-mail", "fake-domain")
 _OFFER_KEYWORDS = ("extra 50 gb", "50gb bonus", "50 gb bonus", "descuento del 90%", "bonus storage", "free 100gb")
-_COUNTDOWN_KEYWORDS = ("expires in", "expira en", "24 hours left", "4 minutes", "minutes et")
+_COUNTDOWN_KEYWORDS = ("expires in", "expira en", "24 hours left", "4 minutes", "minutes left")
 _TRIGGER_KEYWORDS = ("storage full", "photos and videos will be removed", "photos and videos", "payment declined", "payment-declined", "account blocked", "account has been blocked", "cuenta bloqueada", "otp", "password", "clave", "pin", "transferencia", "giftcard", "ignora", "ignore", "system prompt", "<admin>", "<|start_header_id|>", "scamhunter")
 _INJECTION_PATTERNS = (
     "ignore previous instructions",
@@ -190,6 +192,7 @@ def heuristic_signals_from_text(text: str) -> Optional[ScamSignals]:
     return create_signals(
         identity_claim=identity,
         requested_action=action,
+        raw_text=text,
         **flags,
     )
 
@@ -214,6 +217,7 @@ def signals_from_dict(data: Dict[str, Any]) -> ScamSignals:
         special_offer_hook=data.get("special_offer_hook", False),
         countdown_timer=data.get("countdown_timer", False),
         requested_action=data.get("requested_action"),
+        raw_text=data.get("raw_text"),
         claimed_entity_type=data.get("claimed_entity_type"),
         context_type=data.get("context_type"),
         coercion_level=data.get("coercion_level"),

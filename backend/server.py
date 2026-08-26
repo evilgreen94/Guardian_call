@@ -194,12 +194,19 @@ async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
     pipeline = GuardianPipeline()
 
     force_escalate = None
+    accumulated_transcript = None
     if request.session_id:
         session = call_session_store.get_or_create(request.session_id)
         force_escalate = session.register_turn(request.text)
+        accumulated_transcript = " ".join(session.turns)
 
     try:
-        result = pipeline.process_text(request.text, event_sink=sink, force_escalate=force_escalate)
+        result = pipeline.process_text(
+            request.text,
+            event_sink=sink,
+            force_escalate=force_escalate,
+            accumulated_transcript=accumulated_transcript,
+        )
         resp = AnalyzeResponse(
             signals=result.signals.to_dict(),
             risk_assessment=result.risk_assessment.to_dict(),
@@ -447,11 +454,6 @@ async def analyze_image(file: UploadFile = File(...)) -> AnalyzeResponse:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Image processing error: {str(exc)}",
         ) from exc
-
-
-if frontend_dir.exists():
-    from fastapi.staticfiles import StaticFiles
-    app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="static_root")
 
 
 if __name__ == "__main__":

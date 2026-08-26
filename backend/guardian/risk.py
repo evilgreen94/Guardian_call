@@ -12,21 +12,7 @@ class RiskEngine:
         reasons: List[str] = []
         contributing: List[str] = []
 
-        # 1. Evaluate primary credential theft vectors
-        is_otp_theft = signals.otp_request and (signals.requested_action == "share_otp")
-        is_password_theft = signals.password_request and (
-            signals.requested_action in ("share_password", "reveal_password", "share_credentials")
-        )
-        is_remote_access = signals.remote_access_request
-        is_transfer_request = signals.transfer_request
-        is_service_threat = signals.service_cancellation_threat
-        is_subscription_claim = signals.subscription_fee_claim
-        is_unverified_link = signals.unverified_link_prompt
-        is_suspicious_domain = signals.suspicious_domain
-        is_countdown_timer = signals.countdown_timer
-        is_special_offer = signals.special_offer_hook
-
-        # 2. Gather contextual risk indicators
+        # 1. Gather contextual risk indicators
         has_unverified_claim = bool(signals.identity_claim) and not signals.identity_verified
         if has_unverified_claim:
             reasons.append(f"Unverified identity claim: '{signals.identity_claim}'")
@@ -43,6 +29,24 @@ class RiskEngine:
         if signals.secrecy_request:
             reasons.append("Caller requested secrecy or isolation")
             contributing.append("secrecy_request")
+
+        # 2. Evaluate primary credential theft vectors
+        is_otp_action = signals.requested_action in ("share_otp", "share_code", "reveal_otp", "provide_code", "dar_codigo", "share_credentials")
+        is_safe_otp_action = signals.requested_action in ("enter_in_app", "enter_in_official_app")
+        is_otp_theft = signals.otp_request and not is_safe_otp_action and (
+            is_otp_action or (has_unverified_claim and (signals.urgency or signals.financial_context))
+        )
+        is_password_theft = signals.password_request and (
+            signals.requested_action in ("share_password", "reveal_password", "share_credentials") or has_unverified_claim
+        )
+        is_remote_access = signals.remote_access_request
+        is_transfer_request = signals.transfer_request
+        is_service_threat = signals.service_cancellation_threat
+        is_subscription_claim = signals.subscription_fee_claim
+        is_unverified_link = signals.unverified_link_prompt
+        is_suspicious_domain = signals.suspicious_domain
+        is_countdown_timer = signals.countdown_timer
+        is_special_offer = signals.special_offer_hook
 
         # 3. Determine Risk Level based on explicit deterministic rules
         level: RiskLevel
