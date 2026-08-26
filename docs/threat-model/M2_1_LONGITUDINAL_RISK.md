@@ -57,6 +57,30 @@ destination must match exactly. Retraction does not delete audit history and
 does not prove safety by itself. Unrelated negations do not clear active
 factors.
 
+Occurrence count is audit metadata: it records how many times equivalent
+evidence was observed. It does not create multiple independently active copies
+of the same semantic factor. A current factor is active when its latest current
+observation is newer than its latest precise retraction, or when it has never
+been retracted. One later precise negation can therefore resolve repeated
+equivalent current evidence while preserving `first_seen`, `last_seen`, and
+`count`; a newer current occurrence of the same factor immediately reactivates
+it.
+
+Repeated equivalent current observations are also treated as bounded
+persistence / insistence evidence. M2.1 derives this mechanically from the
+M2.0 occurrence metadata, including the existing saturation limit, and does not
+introduce an unbounded score or probabilistic fraud estimate. When repeated
+current danger is precisely retracted, the transition may include a
+`RETRACTED_PERSISTENT_DANGER_HISTORY` reason at `SUSPICIOUS` level to preserve
+that history without treating it as an active request. This reason is emitted on
+the retraction transition only; subsequent benign transitions use the existing
+bounded residual-decay policy.
+
+If equivalent `CURRENT` and `NEGATED` acts are accepted in the same normalized
+turn, the deterministic ordering treats the factor as not currently active
+because the latest observation and latest precise retraction share the same
+turn number.
+
 ## Residual Policy
 
 The default residual policy is turn-relative and bounded. After an active

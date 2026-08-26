@@ -312,6 +312,43 @@ class TestLongitudinalCoordinatorPolicy(unittest.TestCase):
         self.assertIs(replay.next_conversation_state, h.conversation)
         self.assertIs(replay.next_risk_state, h.risk)
 
+    def test_repeated_same_factor_retraction_remains_duplicate_warning_compatible(
+        self,
+    ) -> None:
+        h = Harness()
+        first = h.apply(turn(1, acts=(act(asset=ProtectedAsset.OTP),)))
+        repeated = h.apply(turn(2, acts=(act(asset=ProtectedAsset.OTP),)))
+        retracted = h.apply(
+            turn(3, acts=(act(scope=TemporalScope.NEGATED, asset=ProtectedAsset.OTP),))
+        )
+
+        self.assertEqual(first.policy_event.event_type, PolicyEventType.ESCALATE)
+        self.assertEqual(repeated.policy_event.event_type, PolicyEventType.NO_ACTION)
+        self.assertTrue(repeated.policy_event.duplicate_suppressed)
+        self.assertEqual(
+            repeated.policy_event.suppression_reason,
+            PolicySuppressionReason.SAME_ACTIVE_DANGER,
+        )
+        self.assertEqual(retracted.policy_event.event_type, PolicyEventType.NO_ACTION)
+        self.assertEqual(retracted.policy_event.active_factors, ())
+        self.assertEqual(
+            retracted.policy_event.suppression_reason,
+            PolicySuppressionReason.NO_CURRENT_ACTIVE_DANGER,
+        )
+
+    def test_same_factor_danger_return_rewarns_after_retraction(self) -> None:
+        h = Harness()
+        first = h.apply(turn(1, acts=(act(asset=ProtectedAsset.OTP),)))
+        h.apply(turn(2, acts=(act(asset=ProtectedAsset.OTP),)))
+        h.apply(
+            turn(3, acts=(act(scope=TemporalScope.NEGATED, asset=ProtectedAsset.OTP),))
+        )
+        returned = h.apply(turn(4, acts=(act(asset=ProtectedAsset.OTP),)))
+
+        self.assertEqual(first.policy_event.event_type, PolicyEventType.ESCALATE)
+        self.assertEqual(returned.policy_event.event_type, PolicyEventType.ESCALATE)
+        self.assertEqual(returned.policy_event.new_factors, (act(asset=ProtectedAsset.OTP).fingerprint,))
+
     def test_policy_history_is_bounded(self) -> None:
         h = Harness()
         h.policy = PolicyState.initial("session-a", history_limit=2)

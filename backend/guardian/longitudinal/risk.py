@@ -244,10 +244,18 @@ def evaluate_risk_transition(
     residual_reasons = tuple(
         _residual_reasons(risk_state, active, state_transition.turn_number)
     )
+    persistence_reasons = tuple(
+        _persistence_reasons(conversation_state.acts, active, state_transition.turn_number)
+    )
     contradiction_reasons = tuple(
         _contradiction_reasons(active, conversation_state.acts)
     )
-    reasons = current_reasons + residual_reasons + contradiction_reasons
+    reasons = (
+        current_reasons
+        + residual_reasons
+        + persistence_reasons
+        + contradiction_reasons
+    )
     current_risk = _max_reason_level(reasons)
     peak_risk = _max_level(risk_state.peak_risk, current_risk)
     unresolved = tuple(sorted(item.act.fingerprint for item in active))
@@ -289,11 +297,17 @@ def _active_actionable_factors(
                 if item.act.scope == TemporalScope.CURRENT
                 and item.act.asset is not None
                 and item.act.destination in EXTERNAL_DESTINATIONS
-                and item.retraction_count < item.occurrence.count
+                and _is_current_factor_unresolved(item)
             ),
             key=lambda item: item.act.fingerprint,
         )
     )
+
+
+def _is_current_factor_unresolved(item: ActAggregate) -> bool:
+    if item.last_retracted_at is None:
+        return True
+    return item.occurrence.last_seen > item.last_retracted_at
 
 
 def _current_reasons(
@@ -355,6 +369,37 @@ def _residual_reasons(
             decayed_level,
             turn_number=turn_number,
         ),
+    )
+
+
+def _persistence_reasons(
+    aggregates: Iterable[ActAggregate],
+    active: Tuple[ActAggregate, ...],
+    turn_number: int,
+) -> Tuple[RiskReason, ...]:
+    if active:
+        return ()
+    persistent = tuple(
+        item
+        for item in aggregates
+        if item.act.scope == TemporalScope.CURRENT
+        and item.act.asset is not None
+        and item.act.destination in EXTERNAL_DESTINATIONS
+        and item.occurrence.count > 1
+        and item.last_retracted_at == turn_number
+        and item.last_retracted_at >= item.occurrence.last_seen
+    )
+    if not persistent:
+        return ()
+    return tuple(
+        RiskReason(
+            "RETRACTED_PERSISTENT_DANGER_HISTORY",
+            "Repeated equivalent dangerous evidence remains audit history after precise retraction.",
+            LongitudinalRiskLevel.SUSPICIOUS,
+            act_fingerprint=item.act.fingerprint,
+            turn_number=turn_number,
+        )
+        for item in sorted(persistent, key=lambda item: item.act.fingerprint)
     )
 
 
