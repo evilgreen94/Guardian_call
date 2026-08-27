@@ -76,7 +76,7 @@ _LINK_KEYWORDS = ("bit.ly", "tinyurl", "click here", "haga clic", "actualizar pa
 _DOMAIN_KEYWORDS = ("importican", "neuralgrid", "vectorization", "verify-bank", "security-alert-update", "temp-mail", "fake-domain")
 _OFFER_KEYWORDS = ("extra 50 gb", "50gb bonus", "50 gb bonus", "descuento del 90%", "bonus storage", "free 100gb")
 _COUNTDOWN_KEYWORDS = ("expires in", "expira en", "24 hours left", "4 minutes", "minutes left")
-_TRIGGER_KEYWORDS = ("storage full", "photos and videos will be removed", "photos and videos", "payment declined", "payment-declined", "account blocked", "account has been blocked", "cuenta bloqueada", "otp", "password", "clave", "pin", "transferencia", "giftcard", "ignora", "ignore", "system prompt", "<admin>", "<|start_header_id|>", "scamhunter")
+_TRIGGER_KEYWORDS = ("storage full", "photos and videos will be removed", "photos and videos", "payment declined", "payment-declined", "account blocked", "account has been blocked", "cuenta bloqueada", "otp", "password", "clave pin", "clave secreta", "clave de acceso", "pin", "transferencia", "giftcard", "ignora", "ignore", "system prompt", "<admin>", "<|start_header_id|>", "scamhunter")
 _INJECTION_PATTERNS = (
     "ignore previous instructions",
     "ignora todas las instrucciones",
