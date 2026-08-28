@@ -315,18 +315,25 @@ def _current_reasons(
     state: ConversationState,
 ) -> Tuple[RiskReason, ...]:
     reasons = []
-    has_manipulation = _has_current_manipulation(state.manipulations)
+    manipulation_count = _current_high_signal_manipulation_count(state.manipulations)
+    has_manipulation = manipulation_count > 0
     has_corroboration = _has_compatible_context_or_claim(state)
     for item in active:
+        can_context_raise = item.act.asset not in MONEY_ASSETS
         level = _base_risk_for_act(item.act)
-        if has_manipulation and level == LongitudinalRiskLevel.HIGH:
+        if item.act.asset in MONEY_ASSETS:
+            if manipulation_count >= 2:
+                level = LongitudinalRiskLevel.CRITICAL
+            elif manipulation_count == 1:
+                level = LongitudinalRiskLevel.HIGH
+        elif has_manipulation and level == LongitudinalRiskLevel.HIGH:
             level = LongitudinalRiskLevel.CRITICAL
-        if has_corroboration and level == LongitudinalRiskLevel.SUSPICIOUS:
+        if can_context_raise and has_corroboration and level == LongitudinalRiskLevel.SUSPICIOUS:
             level = LongitudinalRiskLevel.HIGH
         reasons.append(
             RiskReason(
                 "CURRENT_ACTIONABLE_SENSITIVE_ACT",
-                _act_detail(item.act, has_corroboration, has_manipulation),
+                _act_detail(item.act, can_context_raise and has_corroboration, has_manipulation),
                 level,
                 act_fingerprint=item.act.fingerprint,
                 turn_number=item.occurrence.last_seen,
@@ -430,17 +437,20 @@ def _base_risk_for_act(act: BehavioralAct) -> LongitudinalRiskLevel:
     if act.asset in SECRET_OR_ACCOUNT_ASSETS | REMOTE_ACCESS_ASSETS:
         return LongitudinalRiskLevel.CRITICAL
     if act.asset in MONEY_ASSETS:
-        return LongitudinalRiskLevel.HIGH
+        return LongitudinalRiskLevel.SUSPICIOUS
     return LongitudinalRiskLevel.SUSPICIOUS
 
 
-def _has_current_manipulation(
+def _current_high_signal_manipulation_count(
     manipulations: Iterable[Any],
-) -> bool:
-    return any(
-        item.evidence.scope == TemporalScope.CURRENT
-        and item.evidence.manipulation in HIGH_SIGNAL_MANIPULATIONS
-        for item in manipulations
+) -> int:
+    return len(
+        {
+            item.evidence.manipulation
+            for item in manipulations
+            if item.evidence.scope == TemporalScope.CURRENT
+            and item.evidence.manipulation in HIGH_SIGNAL_MANIPULATIONS
+        }
     )
 
 

@@ -225,7 +225,16 @@ class TestLongitudinalCoordinatorPolicy(unittest.TestCase):
                 ),
             )
         )
-        self.assertEqual(first.policy_event.event_type, PolicyEventType.WARN)
+        self.assertEqual(first.risk_transition.current_risk, LongitudinalRiskLevel.SUSPICIOUS)
+        self.assertEqual(first.policy_event.event_type, PolicyEventType.NO_ACTION)
+        self.assertEqual(
+            first.policy_event.active_factors,
+            first.next_risk_state.unresolved_factors,
+        )
+        self.assertEqual(
+            first.policy_event.suppression_reason,
+            PolicySuppressionReason.RISK_BELOW_WARNING_THRESHOLD,
+        )
         second = h.apply(
             turn(
                 2,
@@ -234,9 +243,34 @@ class TestLongitudinalCoordinatorPolicy(unittest.TestCase):
                 ),
             )
         )
-        self.assertEqual(second.risk_transition.current_risk, LongitudinalRiskLevel.CRITICAL)
-        self.assertEqual(second.policy_event.event_type, PolicyEventType.ESCALATE)
+        self.assertEqual(second.risk_transition.current_risk, LongitudinalRiskLevel.HIGH)
+        self.assertEqual(second.policy_event.event_type, PolicyEventType.WARN)
         self.assertTrue(second.policy_event.risk_increased)
+
+    def test_money_transfer_with_multiple_manipulations_still_escalates(self) -> None:
+        h = Harness()
+        decision = h.apply(
+            turn(
+                1,
+                acts=(
+                    act(
+                        asset=ProtectedAsset.BANK_FUNDS,
+                        action=Action.TRANSFER,
+                        destination=Destination.EXTERNAL_ACCOUNT,
+                    ),
+                ),
+                manipulations=frozenset(
+                    {
+                        ManipulationEvidence(Manipulation.URGENCY),
+                        ManipulationEvidence(Manipulation.SECRECY),
+                        ManipulationEvidence(Manipulation.ISOLATION),
+                    }
+                ),
+            )
+        )
+
+        self.assertEqual(decision.risk_transition.current_risk, LongitudinalRiskLevel.CRITICAL)
+        self.assertEqual(decision.policy_event.event_type, PolicyEventType.ESCALATE)
 
     def test_identity_claim_does_not_authenticate_or_suppress_otp_warning(self) -> None:
         h = Harness()

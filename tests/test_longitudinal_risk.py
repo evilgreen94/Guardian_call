@@ -63,6 +63,18 @@ def step(
     return state_transition.next_state, risk_transition.next_state, risk_transition
 
 
+def money_transfer() -> BehavioralAct:
+    return act(
+        asset=ProtectedAsset.BANK_FUNDS,
+        action=Action.TRANSFER,
+        destination=Destination.EXTERNAL_ACCOUNT,
+    )
+
+
+def manipulation(kind: Manipulation) -> ManipulationEvidence:
+    return ManipulationEvidence(kind)
+
+
 class TestLongitudinalRiskTransitions(unittest.TestCase):
     def test_repeated_current_occurrence_remains_one_active_factor(self) -> None:
         conversation = ConversationState.initial("session-a")
@@ -427,6 +439,160 @@ class TestLongitudinalRiskTransitions(unittest.TestCase):
         )
         for forbidden in ("Gemini", "Gemma", "Ollama", "Canary", "server"):
             self.assertNotIn(forbidden, source)
+
+
+class TestMoneyMovementCalibration(unittest.TestCase):
+    def test_bare_current_external_bank_transfer_preserves_factor_without_high_risk(
+        self,
+    ) -> None:
+        conversation = ConversationState.initial("session-a")
+        risk = LongitudinalRiskState.initial("session-a")
+        transfer = money_transfer()
+        conversation, risk, transition = step(
+            conversation, risk, turn(1, acts=(transfer,))
+        )
+
+        self.assertEqual(transition.current_risk, LongitudinalRiskLevel.SUSPICIOUS)
+        self.assertEqual(risk.unresolved_factors, (transfer.fingerprint,))
+        self.assertIn(
+            "CURRENT_ACTIONABLE_SENSITIVE_ACT",
+            [reason.code for reason in transition.reasons],
+        )
+
+        aggregate = next(item for item in conversation.acts if item.act == transfer)
+        self.assertEqual(aggregate.occurrence.first_seen, 1)
+        self.assertEqual(aggregate.occurrence.count, 1)
+
+    def test_transfer_plus_single_manipulation_increases_to_high(self) -> None:
+        for kind in (
+            Manipulation.URGENCY,
+            Manipulation.SECRECY,
+            Manipulation.ISOLATION,
+        ):
+            with self.subTest(manipulation=kind):
+                conversation = ConversationState.initial("session-a")
+                risk = LongitudinalRiskState.initial("session-a")
+                _, _, transition = step(
+                    conversation,
+                    risk,
+                    turn(
+                        1,
+                        acts=(money_transfer(),),
+                        manipulations=frozenset({manipulation(kind)}),
+                    ),
+                )
+                self.assertEqual(transition.current_risk, LongitudinalRiskLevel.HIGH)
+
+    def test_transfer_plus_urgency_secrecy_and_isolation_can_reach_critical(
+        self,
+    ) -> None:
+        conversation = ConversationState.initial("session-a")
+        risk = LongitudinalRiskState.initial("session-a")
+        _, _, transition = step(
+            conversation,
+            risk,
+            turn(
+                1,
+                acts=(money_transfer(),),
+                manipulations=frozenset(
+                    {
+                        manipulation(Manipulation.URGENCY),
+                        manipulation(Manipulation.SECRECY),
+                        manipulation(Manipulation.ISOLATION),
+                    }
+                ),
+            ),
+        )
+
+        self.assertEqual(transition.current_risk, LongitudinalRiskLevel.CRITICAL)
+
+    def test_claimed_identity_does_not_change_bare_money_movement_risk(self) -> None:
+        for claim in (
+            IdentityClaim.FAMILY_OR_ACQUAINTANCE,
+            IdentityClaim.FINANCIAL_INSTITUTION,
+        ):
+            with self.subTest(claim=claim):
+                conversation = ConversationState.initial("session-a")
+                risk = LongitudinalRiskState.initial("session-a")
+                _, _, transition = step(
+                    conversation,
+                    risk,
+                    turn(
+                        1,
+                        identity_claims=frozenset({IdentityClaimEvidence(claim)}),
+                        acts=(money_transfer(),),
+                    ),
+                )
+
+                self.assertEqual(
+                    transition.current_risk, LongitudinalRiskLevel.SUSPICIOUS
+                )
+                details = [reason.detail for reason in transition.reasons]
+                self.assertTrue(
+                    all(
+                        "compatible_context_or_identity_present" not in detail
+                        for detail in details
+                    )
+                )
+
+    def test_later_manipulation_amplifies_existing_money_factor(self) -> None:
+        conversation = ConversationState.initial("session-a")
+        risk = LongitudinalRiskState.initial("session-a")
+        conversation, risk, first = step(
+            conversation, risk, turn(1, acts=(money_transfer(),))
+        )
+        self.assertEqual(first.current_risk, LongitudinalRiskLevel.SUSPICIOUS)
+
+        conversation, risk, second = step(
+            conversation,
+            risk,
+            turn(2, manipulations=frozenset({manipulation(Manipulation.URGENCY)})),
+        )
+
+        self.assertEqual(second.previous_risk, LongitudinalRiskLevel.SUSPICIOUS)
+        self.assertEqual(second.current_risk, LongitudinalRiskLevel.HIGH)
+        self.assertEqual(second.peak_risk, LongitudinalRiskLevel.HIGH)
+
+    def test_negated_manipulation_does_not_amplify_existing_money_factor(self) -> None:
+        conversation = ConversationState.initial("session-a")
+        risk = LongitudinalRiskState.initial("session-a")
+        conversation, risk, _ = step(
+            conversation, risk, turn(1, acts=(money_transfer(),))
+        )
+        _, _, transition = step(
+            conversation,
+            risk,
+            turn(
+                2,
+                manipulations=frozenset(
+                    {
+                        ManipulationEvidence(
+                            Manipulation.URGENCY, TemporalScope.NEGATED
+                        )
+                    }
+                ),
+            ),
+        )
+
+        self.assertEqual(transition.current_risk, LongitudinalRiskLevel.SUSPICIOUS)
+
+    def test_secret_credentials_and_remote_access_remain_critical(self) -> None:
+        for asset, action in (
+            (ProtectedAsset.OTP, Action.DISCLOSE),
+            (ProtectedAsset.PASSWORD, Action.DISCLOSE),
+            (ProtectedAsset.REMOTE_CONTROL, Action.GRANT_ACCESS),
+        ):
+            with self.subTest(asset=asset):
+                conversation = ConversationState.initial("session-a")
+                risk = LongitudinalRiskState.initial("session-a")
+                _, _, transition = step(
+                    conversation,
+                    risk,
+                    turn(1, acts=(act(asset=asset, action=action),)),
+                )
+                self.assertEqual(
+                    transition.current_risk, LongitudinalRiskLevel.CRITICAL
+                )
 
 
 if __name__ == "__main__":
