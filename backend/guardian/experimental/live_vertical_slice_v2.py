@@ -15,7 +15,10 @@ from guardian.longitudinal.session import (
 
 from .extractor_v2 import GeminiV2Observation, V2ExtractionError
 from .signals_v2 import ScamSignalsV2
-from .v2_turn_adapter import UnsupportedV2MappingError, adapt_v2_turn
+from .v2_turn_adapter import (
+    UnsupportedV2MappingError,
+    adapt_v2_turn_with_neutral_losses,
+)
 
 
 class V2VerticalSliceStatus(str, Enum):
@@ -34,6 +37,8 @@ class V2VerticalSliceTurn:
     session_id: str
     turn_id: str
     turn_number: int
+    source_turn_number: int
+    applied_m2_turn_number: Optional[int]
     status: V2VerticalSliceStatus
     extracted_v2_summary: Optional[Dict[str, Any]]
     normalized_m2_summary: Optional[Dict[str, Any]]
@@ -41,6 +46,7 @@ class V2VerticalSliceTurn:
     peak_risk: Optional[str]
     policy_event: Optional[Dict[str, Any]]
     canary_authorization: Optional[Dict[str, Any]]
+    representational_losses: Tuple[Dict[str, str], ...] = ()
     extractor_error: Optional[Dict[str, Any]] = None
     mapping_error: Optional[Dict[str, str]] = None
 
@@ -49,6 +55,8 @@ class V2VerticalSliceTurn:
             "session_id": self.session_id,
             "turn_id": self.turn_id,
             "turn_number": self.turn_number,
+            "source_turn_number": self.source_turn_number,
+            "applied_m2_turn_number": self.applied_m2_turn_number,
             "status": self.status.value,
             "extracted_v2_summary": self.extracted_v2_summary,
             "normalized_m2_summary": self.normalized_m2_summary,
@@ -56,6 +64,7 @@ class V2VerticalSliceTurn:
             "peak_risk": self.peak_risk,
             "policy_event": self.policy_event,
             "canary_authorization": self.canary_authorization,
+            "representational_losses": list(self.representational_losses),
             "extractor_error": self.extractor_error,
             "mapping_error": self.mapping_error,
         }
@@ -99,6 +108,8 @@ def process_text_turn(
             session_id=state.session.session_id,
             turn_id=turn_id,
             turn_number=turn_number,
+            source_turn_number=turn_number,
+            applied_m2_turn_number=None,
             status=V2VerticalSliceStatus.EXTRACTION_FAILED,
             extracted_v2_summary=None,
             normalized_m2_summary=None,
@@ -111,11 +122,12 @@ def process_text_turn(
         return _append_turn(state, turn)
 
     extracted = summarize_observation(observation)
+    applied_m2_turn_number = state.session.conversation_state.turn_count + 1
     try:
-        evidence = adapt_v2_turn(
+        adaptation = adapt_v2_turn_with_neutral_losses(
             session_id=state.session.session_id,
             turn_id=turn_id,
-            ordinal=turn_number,
+            ordinal=applied_m2_turn_number,
             signals=observation.signals,
         )
     except UnsupportedV2MappingError as error:
@@ -123,6 +135,8 @@ def process_text_turn(
             session_id=state.session.session_id,
             turn_id=turn_id,
             turn_number=turn_number,
+            source_turn_number=turn_number,
+            applied_m2_turn_number=None,
             status=V2VerticalSliceStatus.UNSUPPORTED_MAPPING,
             extracted_v2_summary=extracted,
             normalized_m2_summary=None,
@@ -137,11 +151,14 @@ def process_text_turn(
         )
         return _append_turn(state, turn)
 
+    evidence = adaptation.normalized_turn
     result = process_normalized_turn(state.session, evidence)
     turn = V2VerticalSliceTurn(
         session_id=state.session.session_id,
         turn_id=turn_id,
         turn_number=turn_number,
+        source_turn_number=turn_number,
+        applied_m2_turn_number=applied_m2_turn_number,
         status=V2VerticalSliceStatus.PROCESSED,
         extracted_v2_summary=extracted,
         normalized_m2_summary=summarize_evidence(evidence),
@@ -149,6 +166,9 @@ def process_text_turn(
         peak_risk=result.policy_event.peak_risk.value,
         policy_event=summarize_policy_event(result),
         canary_authorization=result.canary_authorization.to_dict(),
+        representational_losses=tuple(
+            item.to_dict() for item in adaptation.representational_losses
+        ),
     )
     return V2VerticalSliceState(
         session=result.next_state,

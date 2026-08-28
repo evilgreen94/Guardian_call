@@ -44,6 +44,10 @@ class MappingClassification(str, Enum):
     NO_SAFE_MAPPING = "NO_SAFE_MAPPING"
 
 
+class RepresentationalLossDisposition(str, Enum):
+    DROPPED_NEUTRAL_CONTEXT = "DROPPED_NEUTRAL_CONTEXT"
+
+
 @dataclass(frozen=True)
 class V2MappingRecord:
     source_enum: str
@@ -64,6 +68,38 @@ class V2MappingRecord:
 
 class UnsupportedV2MappingError(ValueError):
     """Raised when V2 evidence cannot be safely represented by M2 evidence."""
+
+
+@dataclass(frozen=True)
+class V2RepresentationalLoss:
+    source_enum: str
+    source_value: str
+    classification: MappingClassification
+    disposition: RepresentationalLossDisposition
+    rationale: str
+
+    def to_dict(self) -> Dict[str, str]:
+        return {
+            "source_enum": self.source_enum,
+            "source_value": self.source_value,
+            "classification": self.classification.value,
+            "disposition": self.disposition.value,
+            "rationale": self.rationale,
+        }
+
+
+@dataclass(frozen=True)
+class AdaptedV2Turn:
+    normalized_turn: NormalizedTurnEvidence
+    representational_losses: Tuple[V2RepresentationalLoss, ...] = ()
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "normalized_turn": self.normalized_turn.to_dict(),
+            "representational_losses": [
+                item.to_dict() for item in self.representational_losses
+            ],
+        }
 
 
 CLAIM_MAPPING: Mapping[ClaimedEntityType, V2MappingRecord] = {
@@ -467,6 +503,45 @@ def adapt_v2_turn(
     )
 
 
+def adapt_v2_turn_with_neutral_losses(
+    *,
+    session_id: str,
+    turn_id: str,
+    ordinal: int,
+    signals: ScamSignalsV2,
+) -> AdaptedV2Turn:
+    """Adapt V2 evidence while explicitly recording allowlisted neutral loss."""
+    del session_id  # The conversation state owns session identity in M2.
+    if signals.identity_pretext.knowledge_categories:
+        unsupported = sorted(
+            item.value for item in signals.identity_pretext.knowledge_categories
+        )
+        raise UnsupportedV2MappingError(
+            "M2 cannot safely represent identity knowledge categories: "
+            + ", ".join(unsupported)
+        )
+    contexts, losses = _adapt_contexts_with_neutral_losses(signals.contexts)
+    return AdaptedV2Turn(
+        normalized_turn=NormalizedTurnEvidence(
+            turn_id=turn_id,
+            turn_number=ordinal,
+            contexts=contexts,
+            identity_claims=frozenset(
+                IdentityClaimEvidence(IdentityClaim(record.target_value))
+                for record in _records_for(
+                    signals.identity_pretext.claims, CLAIM_MAPPING
+                )
+            ),
+            manipulations=frozenset(
+                ManipulationEvidence(Manipulation(record.target_value))
+                for record in _records_for(signals.manipulation, MANIPULATION_MAPPING)
+            ),
+            acts=tuple(_adapt_act(item) for item in signals.interaction_acts),
+        ),
+        representational_losses=losses,
+    )
+
+
 def mapping_coverage_report() -> Tuple[V2MappingRecord, ...]:
     tables = (
         CLAIM_MAPPING,
@@ -502,6 +577,36 @@ def _adapt_act(act: InteractionAct) -> BehavioralAct:
             )
         asset = ProtectedAsset(asset_record.target_value)
     return BehavioralAct(scope, action, asset, actor, destination)
+
+
+def _adapt_contexts_with_neutral_losses(
+    contexts: object,
+) -> Tuple[frozenset[ContextEvidence], Tuple[V2RepresentationalLoss, ...]]:
+    mapped = []
+    losses = []
+    for item in sorted(contexts, key=lambda value: value.value):
+        record = CONTEXT_MAPPING[item]
+        if record.classification == MappingClassification.NO_SAFE_MAPPING:
+            if item == ContextType.FAMILY:
+                losses.append(
+                    V2RepresentationalLoss(
+                        source_enum=record.source_enum,
+                        source_value=record.source_value,
+                        classification=record.classification,
+                        disposition=RepresentationalLossDisposition.DROPPED_NEUTRAL_CONTEXT,
+                        rationale=record.rationale,
+                    )
+                )
+                continue
+            raise UnsupportedV2MappingError(
+                f"Unsupported V2 mapping for {record.source_enum}.{record.source_value}"
+            )
+        if record.target_value is None:
+            raise UnsupportedV2MappingError(
+                f"Missing M2 target for {record.source_enum}.{record.source_value}"
+            )
+        mapped.append(ContextEvidence(Context(record.target_value)))
+    return frozenset(mapped), tuple(losses)
 
 
 def _records_for(values: object, table: Mapping[object, V2MappingRecord]) -> Tuple[V2MappingRecord, ...]:

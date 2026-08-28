@@ -26,6 +26,10 @@ from guardian.experimental.extractor_v2 import (
     render_user_prompt,
     request_prompt_sha256,
 )
+from guardian.experimental.signals_v2 import (
+    ManipulationType,
+    ScamSignalsV2,
+)
 
 
 VALID_SIGNALS = {
@@ -76,11 +80,11 @@ class QuotaError(Exception):
 
 class TestCanonicalFingerprints(unittest.TestCase):
     def test_frozen_revisions_and_hashes(self) -> None:
-        self.assertEqual(PROMPT_REVISION, "m1.2b-prompt-v1")
+        self.assertEqual(PROMPT_REVISION, "m2.5-family-manipulation-prompt-v1")
         self.assertEqual(SCHEMA_REVISION, "m1.2b-schema-v1")
         self.assertEqual(
             PROMPT_SHA256,
-            "f2b4c476add079b6f082d9c38c64700817683c5f9668c48d8e555e3d833e08d4",
+            "9b43516799d62627b3a6198262ac120d16bc139cb0d2f721bc4abd19e7b6c83f",
         )
         self.assertEqual(
             SCHEMA_SHA256,
@@ -101,6 +105,140 @@ class TestCanonicalFingerprints(unittest.TestCase):
         self.assertNotEqual(request_prompt_sha256(composed), request_prompt_sha256(decomposed))
         self.assertEqual(render_user_prompt(" a "), render_user_prompt(" a "))
         self.assertIn("\n a \n", render_user_prompt(" a "))
+
+
+class TestManipulationCalibrationContract(unittest.TestCase):
+    def test_prompt_distinguishes_emergency_content_from_manipulation(self) -> None:
+        self.assertIn(
+            "Manipulation is observable pressure-tactic evidence",
+            SYSTEM_INSTRUCTION,
+        )
+        self.assertIn(
+            "Emergency content alone is not manipulation",
+            SYSTEM_INSTRUCTION,
+        )
+        self.assertIn(
+            "Do not mark this merely because the speaker describes an accident",
+            SYSTEM_INSTRUCTION,
+        )
+        self.assertIn(
+            "Permission to call back, verify independently, consult someone",
+            SYSTEM_INSTRUCTION,
+        )
+
+    def test_benign_family_money_request_contract_fixture(self) -> None:
+        text = (
+            "Pap\u00e1, soy yo. He tenido una aver\u00eda y necesito que me "
+            "prestes 300 euros para pagar la gr\u00faa."
+        )
+        signals = ScamSignalsV2.from_dict(
+            {
+                "identity_pretext": {
+                    "claims": ["FAMILY_MEMBER"],
+                    "knowledge_categories": [],
+                },
+                "contexts": ["FAMILY"],
+                "interaction_acts": [
+                    {
+                        "action": "TRANSFER",
+                        "asset": {
+                            "category": "ECONOMIC_VALUE",
+                            "subtype": "FIAT_FUNDS",
+                        },
+                        "semantic_direction": "DIRECT_REQUEST",
+                        "actor": "USER",
+                        "destination": "CALLER",
+                    }
+                ],
+                "manipulation": [],
+            }
+        )
+
+        self.assertEqual(signals.to_dict()["contexts"], ["FAMILY"])
+        self.assertEqual(
+            text,
+            "Pap\u00e1, soy yo. He tenido una aver\u00eda y necesito que me "
+            "prestes 300 euros para pagar la gr\u00faa.",
+        )
+        self.assertEqual(
+            signals.to_dict()["identity_pretext"]["claims"], ["FAMILY_MEMBER"]
+        )
+        self.assertNotIn(ManipulationType.URGENCY, signals.manipulation)
+        self.assertNotIn(ManipulationType.EMOTIONAL_EMERGENCY, signals.manipulation)
+
+    def test_explicit_urgency_with_callback_permission_contract_fixture(self) -> None:
+        text = (
+            "Es urgente porque tengo que pagarlo ahora, pero puedes llamarme "
+            "si quieres antes de hacer nada."
+        )
+        signals = ScamSignalsV2.from_dict(
+            {
+                "identity_pretext": {"claims": [], "knowledge_categories": []},
+                "contexts": [],
+                "interaction_acts": [
+                    {
+                        "action": "CONTACT",
+                        "asset": None,
+                        "semantic_direction": "INDIRECT_REQUEST",
+                        "actor": "USER",
+                        "destination": "CALLER",
+                    }
+                ],
+                "manipulation": ["URGENCY"],
+            }
+        )
+
+        self.assertEqual(
+            text,
+            "Es urgente porque tengo que pagarlo ahora, pero puedes llamarme "
+            "si quieres antes de hacer nada.",
+        )
+        self.assertIn(ManipulationType.URGENCY, signals.manipulation)
+        self.assertNotIn(ManipulationType.SECRECY, signals.manipulation)
+        self.assertNotIn(ManipulationType.ISOLATION, signals.manipulation)
+
+    def test_coercive_family_emergency_contract_fixture(self) -> None:
+        text = (
+            "Mam\u00e1, necesito que hagas la transferencia ahora mismo. "
+            "No llames a nadie y no me falles, estoy metido en un problema "
+            "muy serio."
+        )
+        signals = ScamSignalsV2.from_dict(
+            {
+                "identity_pretext": {
+                    "claims": ["FAMILY_MEMBER"],
+                    "knowledge_categories": [],
+                },
+                "contexts": ["FAMILY"],
+                "interaction_acts": [
+                    {
+                        "action": "TRANSFER",
+                        "asset": {
+                            "category": "ECONOMIC_VALUE",
+                            "subtype": "FIAT_FUNDS",
+                        },
+                        "semantic_direction": "DIRECT_REQUEST",
+                        "actor": "USER",
+                        "destination": "UNKNOWN",
+                    }
+                ],
+                "manipulation": [
+                    "EMOTIONAL_EMERGENCY",
+                    "ISOLATION",
+                    "URGENCY",
+                ],
+            }
+        )
+
+        self.assertEqual(
+            text,
+            "Mam\u00e1, necesito que hagas la transferencia ahora mismo. "
+            "No llames a nadie y no me falles, estoy metido en un problema "
+            "muy serio.",
+        )
+        self.assertIn(ManipulationType.URGENCY, signals.manipulation)
+        self.assertIn(ManipulationType.ISOLATION, signals.manipulation)
+        self.assertIn(ManipulationType.EMOTIONAL_EMERGENCY, signals.manipulation)
 
 
 class TestGeminiV2Extractor(unittest.TestCase):

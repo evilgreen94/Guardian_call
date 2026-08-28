@@ -331,11 +331,14 @@ class TestGemmaExtractor(unittest.TestCase):
         self.assertNotIn("identity_assurance", serialized.lower())
         self.assertIn("External identity assurance is outside this schema", SYSTEM_INSTRUCTION)
 
-    def test_gemini_extractor_untouched(self) -> None:
-        self.assertEqual(gemini_v2.PROMPT_REVISION, "m1.2b-prompt-v1")
+    def test_gemini_extractor_prompt_contract_reference(self) -> None:
+        self.assertEqual(
+            gemini_v2.PROMPT_REVISION,
+            "m2.5-family-manipulation-prompt-v1",
+        )
         self.assertEqual(
             gemini_v2.PROMPT_SHA256,
-            "f2b4c476add079b6f082d9c38c64700817683c5f9668c48d8e555e3d833e08d4",
+            "9b43516799d62627b3a6198262ac120d16bc139cb0d2f721bc4abd19e7b6c83f",
         )
 
     def test_production_isolation(self) -> None:

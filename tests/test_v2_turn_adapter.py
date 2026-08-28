@@ -39,8 +39,11 @@ from guardian.experimental.v2_turn_adapter import (
     KNOWLEDGE_MAPPING,
     MANIPULATION_MAPPING,
     MappingClassification,
+    RepresentationalLossDisposition,
     UnsupportedV2MappingError,
+    V2MappingRecord,
     adapt_v2_turn,
+    adapt_v2_turn_with_neutral_losses,
     mapping_coverage_report,
 )
 from guardian.longitudinal.evidence import (
@@ -112,6 +115,15 @@ def interaction(
 
 def adapt(item: ScamSignalsV2):
     return adapt_v2_turn(
+        session_id="session-a",
+        turn_id="turn-1",
+        ordinal=1,
+        signals=item,
+    )
+
+
+def adapt_lossy(item: ScamSignalsV2):
+    return adapt_v2_turn_with_neutral_losses(
         session_id="session-a",
         turn_id="turn-1",
         ordinal=1,
@@ -255,6 +267,120 @@ class TestV2MappingTables(unittest.TestCase):
     def test_generic_family_context_fails_without_inventing_emergency(self) -> None:
         with self.assertRaisesRegex(UnsupportedV2MappingError, "FAMILY"):
             adapt(signals(contexts=frozenset({ContextType.FAMILY})))
+
+    def test_family_context_can_be_recorded_as_neutral_loss_in_tolerant_adapter(
+        self,
+    ) -> None:
+        result = adapt_lossy(
+            signals(
+                claims=frozenset({ClaimedEntityType.FAMILY_MEMBER}),
+                contexts=frozenset({ContextType.FAMILY}),
+                acts=(
+                    interaction(
+                        subtype=AssetSubtype.FIAT_FUNDS,
+                        action=ActionTypeV2.TRANSFER,
+                        actor=Actor.USER,
+                        destination=Destination.CALLER,
+                    ),
+                ),
+                manipulation=frozenset({ManipulationType.URGENCY}),
+            )
+        )
+        evidence = result.normalized_turn
+
+        self.assertEqual(evidence.contexts, frozenset())
+        self.assertNotIn(Context.FAMILY_EMERGENCY, {item.context for item in evidence.contexts})
+        self.assertEqual(
+            {item.claim for item in evidence.identity_claims},
+            {IdentityClaim.FAMILY_OR_ACQUAINTANCE},
+        )
+        self.assertEqual(len(evidence.acts), 1)
+        self.assertEqual(evidence.acts[0].action, Action.TRANSFER)
+        self.assertEqual(evidence.acts[0].asset, ProtectedAsset.BANK_FUNDS)
+        self.assertEqual(evidence.acts[0].actor, M2Actor.USER)
+        self.assertEqual(evidence.acts[0].destination, M2Destination.OTHER_PARTY)
+        self.assertEqual(
+            {item.manipulation for item in evidence.manipulations},
+            {Manipulation.URGENCY},
+        )
+
+        self.assertEqual(len(result.representational_losses), 1)
+        loss = result.representational_losses[0].to_dict()
+        self.assertEqual(loss["source_enum"], "ContextType")
+        self.assertEqual(loss["source_value"], "FAMILY")
+        self.assertEqual(loss["classification"], MappingClassification.NO_SAFE_MAPPING.value)
+        self.assertEqual(
+            loss["disposition"],
+            RepresentationalLossDisposition.DROPPED_NEUTRAL_CONTEXT.value,
+        )
+        self.assertIn("family context", loss["rationale"].lower())
+
+    def test_tolerant_adapter_keeps_security_code_and_knowledge_fail_closed(
+        self,
+    ) -> None:
+        with self.assertRaisesRegex(UnsupportedV2MappingError, "UNSPECIFIED"):
+            adapt_lossy(
+                signals(
+                    contexts=frozenset({ContextType.FAMILY}),
+                    acts=(
+                        interaction(subtype=AssetSubtype.UNSPECIFIED_SECURITY_CODE),
+                    ),
+                )
+            )
+        for item in KnowledgeCategory:
+            with self.subTest(knowledge=item):
+                with self.assertRaisesRegex(UnsupportedV2MappingError, "knowledge"):
+                    adapt_lossy(signals(knowledge=frozenset({item})))
+
+    def test_tolerant_adapter_keeps_core_mapping_failures_fatal(self) -> None:
+        cases = (
+            (
+                ACTION_MAPPING,
+                ActionTypeV2.DISCLOSE,
+                "ActionTypeV2",
+                lambda: signals(acts=(interaction(action=ActionTypeV2.DISCLOSE),)),
+            ),
+            (
+                ASSET_MAPPING,
+                AssetSubtype.OTP,
+                "AssetSubtype",
+                lambda: signals(acts=(interaction(subtype=AssetSubtype.OTP),)),
+            ),
+            (
+                DIRECTION_MAPPING,
+                SemanticDirection.DIRECT_REQUEST,
+                "SemanticDirection",
+                lambda: signals(acts=(interaction(SemanticDirection.DIRECT_REQUEST),)),
+            ),
+            (
+                ACTOR_MAPPING,
+                Actor.USER,
+                "Actor",
+                lambda: signals(acts=(interaction(actor=Actor.USER),)),
+            ),
+            (
+                DESTINATION_MAPPING,
+                Destination.CALLER,
+                "Destination",
+                lambda: signals(acts=(interaction(destination=Destination.CALLER),)),
+            ),
+        )
+        for table, source, source_enum, factory in cases:
+            with self.subTest(source_enum=source_enum):
+                with patch.dict(
+                    table,
+                    {
+                        source: V2MappingRecord(
+                            source_enum,
+                            source.value,
+                            None,
+                            MappingClassification.NO_SAFE_MAPPING,
+                            "Synthetic fatal mapping for regression.",
+                        )
+                    },
+                ):
+                    with self.assertRaises(UnsupportedV2MappingError):
+                        adapt_lossy(factory())
 
     def test_actor_destination_identity_context_and_manipulation_mappings(self) -> None:
         evidence = adapt(

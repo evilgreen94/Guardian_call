@@ -14,7 +14,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 import guardian
-from guardian.experimental.extractor_v2 import GeminiV2Observation
+from guardian.experimental.extractor_v2 import (
+    GeminiV2Observation,
+    V2ExtractionError,
+    V2ExtractionFailureKind,
+)
 from guardian.experimental.live_vertical_slice_v2 import (
     V2VerticalSliceState,
     V2VerticalSliceStatus,
@@ -30,6 +34,7 @@ from guardian.experimental.signals_v2 import (
     Destination,
     IdentityPretext,
     InteractionAct,
+    KnowledgeCategory,
     ManipulationType,
     ScamSignalsV2,
     SemanticDirection,
@@ -110,10 +115,152 @@ class SequenceExtractor:
 
     def extract(self, text):
         self.calls.append(text)
-        return observation(self.items.pop(0))
+        item = self.items.pop(0)
+        if isinstance(item, V2ExtractionError):
+            raise item
+        return observation(item)
 
 
 class TestExperimentalV2VerticalSlice(unittest.TestCase):
+    def test_source_turn_failures_do_not_consume_m2_ordinals(self) -> None:
+        extractor = SequenceExtractor(
+            [
+                V2ExtractionError(
+                    V2ExtractionFailureKind.PROVIDER_API_FAILURE,
+                    exception_type="SyntheticProviderError",
+                    http_status=503,
+                    provider_code="UNAVAILABLE",
+                ),
+                signals(knowledge=frozenset({KnowledgeCategory.NAME})),
+                signals(acts=(act(),)),
+                signals(
+                    acts=(
+                        act(
+                            SemanticDirection.NEGATION,
+                            AssetSubtype.OTP,
+                        ),
+                    )
+                ),
+            ]
+        )
+        state = V2VerticalSliceState.initial("session-a")
+
+        state = process_text_turn(
+            state,
+            extractor=extractor,
+            text="source one fails at provider",
+            turn_id="source-turn-1",
+            turn_number=1,
+        )
+        self.assertEqual(
+            state.turns[0].status, V2VerticalSliceStatus.EXTRACTION_FAILED
+        )
+        self.assertEqual(state.turns[0].source_turn_number, 1)
+        self.assertIsNone(state.turns[0].applied_m2_turn_number)
+        self.assertEqual(state.session.conversation_state.turn_count, 0)
+        self.assertEqual(state.session.risk_state.current_risk.value, "NORMAL")
+        self.assertEqual(len(state.session.policy_state.history), 0)
+        self.assertIsNone(state.turns[0].canary_authorization)
+
+        state = process_text_turn(
+            state,
+            extractor=extractor,
+            text="source two contains unsupported identity knowledge",
+            turn_id="source-turn-2",
+            turn_number=2,
+        )
+        self.assertEqual(
+            state.turns[1].status, V2VerticalSliceStatus.UNSUPPORTED_MAPPING
+        )
+        self.assertEqual(state.turns[1].source_turn_number, 2)
+        self.assertIsNone(state.turns[1].applied_m2_turn_number)
+        self.assertIn("knowledge", state.turns[1].mapping_error["message"])
+        self.assertEqual(state.session.conversation_state.turn_count, 0)
+        self.assertEqual(state.session.risk_state.current_risk.value, "NORMAL")
+        self.assertEqual(len(state.session.policy_state.history), 0)
+        self.assertIsNone(state.turns[1].canary_authorization)
+
+        state = process_text_turn(
+            state,
+            extractor=extractor,
+            text="source three asks for the OTP",
+            turn_id="source-turn-3",
+            turn_number=3,
+        )
+        self.assertEqual(state.turns[2].status, V2VerticalSliceStatus.PROCESSED)
+        self.assertEqual(state.turns[2].source_turn_number, 3)
+        self.assertEqual(state.turns[2].applied_m2_turn_number, 1)
+        self.assertEqual(state.turns[2].normalized_m2_summary["turn_number"], 1)
+        self.assertEqual(state.session.conversation_state.turn_count, 1)
+        self.assertEqual(state.turns[2].current_risk, "CRITICAL")
+        self.assertEqual(state.turns[2].policy_event["event_type"], "ESCALATE")
+        self.assertEqual(state.turns[2].canary_authorization["status"], "ALLOW")
+
+        state = process_text_turn(
+            state,
+            extractor=extractor,
+            text="source four retracts the OTP request",
+            turn_id="source-turn-4",
+            turn_number=4,
+        )
+        self.assertEqual(state.turns[3].status, V2VerticalSliceStatus.PROCESSED)
+        self.assertEqual(state.turns[3].source_turn_number, 4)
+        self.assertEqual(state.turns[3].applied_m2_turn_number, 2)
+        self.assertEqual(state.turns[3].normalized_m2_summary["turn_number"], 2)
+        self.assertEqual(state.session.conversation_state.turn_count, 2)
+
+    def test_family_context_loss_is_visible_while_remainder_is_processed(self) -> None:
+        extractor = SequenceExtractor(
+            [
+                signals(
+                    claims=frozenset({ClaimedEntityType.FAMILY_MEMBER}),
+                    contexts=frozenset({ContextType.FAMILY}),
+                    acts=(
+                        act(
+                            subtype=AssetSubtype.FIAT_FUNDS,
+                            action=ActionTypeV2.TRANSFER,
+                            actor=Actor.USER,
+                            destination=Destination.CALLER,
+                        ),
+                    ),
+                    manipulation=frozenset({ManipulationType.URGENCY}),
+                )
+            ]
+        )
+
+        state = process_text_turn(
+            V2VerticalSliceState.initial("session-a"),
+            extractor=extractor,
+            text="synthetic family money request",
+            turn_id="source-turn-1",
+            turn_number=1,
+        )
+        turn = state.turns[0]
+
+        self.assertEqual(turn.status, V2VerticalSliceStatus.PROCESSED)
+        self.assertEqual(turn.source_turn_number, 1)
+        self.assertEqual(turn.applied_m2_turn_number, 1)
+        self.assertEqual(turn.normalized_m2_summary["contexts"], [])
+        self.assertEqual(len(turn.representational_losses), 1)
+        self.assertEqual(turn.representational_losses[0]["source_enum"], "ContextType")
+        self.assertEqual(turn.representational_losses[0]["source_value"], "FAMILY")
+        self.assertEqual(
+            turn.representational_losses[0]["classification"], "NO_SAFE_MAPPING"
+        )
+        self.assertEqual(
+            turn.representational_losses[0]["disposition"],
+            "DROPPED_NEUTRAL_CONTEXT",
+        )
+        self.assertEqual(
+            turn.normalized_m2_summary["identity_claims"][0]["claim"],
+            "FAMILY_OR_ACQUAINTANCE",
+        )
+        self.assertEqual(turn.normalized_m2_summary["acts"][0]["asset"], "BANK_FUNDS")
+        self.assertEqual(
+            turn.normalized_m2_summary["manipulations"][0]["manipulation"],
+            "URGENCY",
+        )
+
     def test_six_turn_sequence_reaches_canary_only_through_m2_policy(self) -> None:
         extractor = SequenceExtractor(
             [

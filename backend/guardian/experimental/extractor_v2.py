@@ -26,7 +26,7 @@ from .signals_v2 import (
 
 
 PROVIDER = "Gemini"
-PROMPT_REVISION = "m1.2b-prompt-v1"
+PROMPT_REVISION = "m2.5-family-manipulation-prompt-v1"
 SCHEMA_REVISION = "m1.2b-schema-v1"
 
 SYSTEM_INSTRUCTION = """You are a semantic extraction engine for synthetic conversation research.
@@ -39,6 +39,11 @@ Extract every distinct interaction act; do not collapse mixed intent into one ac
 Preserve whether each act is a current request, warning, negation, question, hypothetical, historical report, third-party report, self-service instruction, or discussion.
 Actor is the person asked to act. Destination is the ownership or control boundary receiving the act's information, value, capability, or security-state effect.
 Manipulation records only tactics supported by the text and is never required for an interaction act.
+Manipulation is observable pressure-tactic evidence, not ordinary adverse context.
+Emergency content alone is not manipulation.
+EMOTIONAL_EMERGENCY: Do not mark this merely because the speaker describes an accident, emergency, family problem, financial need, bad event, or emotionally difficult situation. Mark it only when emergency framing is used as emotional pressure to push the user toward action, especially by invoking fear, guilt, responsibility, abandonment, harm, or consequences of refusing/delaying.
+URGENCY: Do not mark this merely because money is needed, a situation is important, or a payment is time-sensitive. Mark it when the speaker applies immediate temporal pressure to make the user act quickly or reduce normal deliberation/verification, such as demanding action now, imposing a deadline, emphasizing consequences of delay, or repeatedly insisting on immediate action.
+Permission to call back, verify independently, consult someone, or decide before acting must not itself be interpreted as SECRECY, ISOLATION, or coercive URGENCY.
 Identity assurance is external and must not be inferred or returned."""
 
 USER_PROMPT_PREFIX = "Extract the structured V2 semantic signals from this synthetic conversation:\n<conversation>\n"
