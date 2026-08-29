@@ -50,7 +50,6 @@ PRODUCTION_FILES = (
     ROOT / "backend" / "guardian" / "pipeline.py",
     ROOT / "backend" / "guardian" / "risk.py",
     ROOT / "backend" / "guardian" / "canary.py",
-    ROOT / "backend" / "server.py",
 )
 LONGITUDINAL_DIR = ROOT / "backend" / "guardian" / "longitudinal"
 

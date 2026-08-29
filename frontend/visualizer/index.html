@@ -52,6 +52,17 @@
           <button type="button" id="btn-analyze">EXECUTE ANALYSIS</button>
           <button type="button" id="btn-clear">RESET BUFFER</button>
         </div>
+        <div class="command-line voice-line">
+          <span>INPUT SOURCE: PUSH TO TALK</span>
+          <select id="stt-language" aria-label="Speech language hint">
+            <option value="auto">AUTO</option>
+            <option value="es">ES</option>
+            <option value="en">EN</option>
+          </select>
+          <span id="stt-state">STT IDLE</span>
+          <button type="button" id="btn-record-start">START RECORDING</button>
+          <button type="button" id="btn-record-stop" disabled>STOP + TRANSCRIBE</button>
+        </div>
       </section>
 
       <section class="rail-zone" aria-labelledby="rail-title">

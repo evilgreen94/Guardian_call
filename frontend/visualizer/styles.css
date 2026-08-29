@@ -223,7 +223,7 @@ select {
 }
 
 textarea {
-  height: calc(100% - 88px);
+  height: calc(100% - 118px);
   min-height: 74px;
   display: block;
   margin-top: 7px;
@@ -247,8 +247,16 @@ textarea:focus {
   font-weight: 900;
 }
 
+.voice-line {
+  grid-template-columns: 1fr 72px auto auto auto;
+}
+
 #input-state {
   color: var(--green);
+}
+
+#stt-state {
+  color: var(--cyan);
 }
 
 button {

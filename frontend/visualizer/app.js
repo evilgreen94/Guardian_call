@@ -23,6 +23,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const inputState = document.getElementById('input-state');
   const btnAnalyze = document.getElementById('btn-analyze');
   const btnClear = document.getElementById('btn-clear');
+  const sttLanguage = document.getElementById('stt-language');
+  const sttState = document.getElementById('stt-state');
+  const btnRecordStart = document.getElementById('btn-record-start');
+  const btnRecordStop = document.getElementById('btn-record-stop');
   const scenarioSelect = document.getElementById('scenario-select');
   const expectedRiskTag = document.getElementById('expected-risk-tag');
 
@@ -58,6 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let visualProcessing = false;
   let visualRunId = 0;
   let sseLive = false;
+  const liveSessionId = `m2-5-stt-${Date.now().toString(36)}`;
+  let sourceTurnNumber = 0;
+  let mediaRecorder = null;
+  let recordingStream = null;
+  let recordingChunks = [];
+  let recordingTimer = null;
+  const MAX_RECORDING_MS = 15000;
   const VISUAL_STEP_MS = 450;
   const RAIL_POINTS = {
     idle: { x: '6%', color: 'var(--text-dim)' },
@@ -94,6 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(pipeGeminiState, 'PROCESSING');
     setClass(pipeGeminiState, 'state', 'state-eval');
     setRailPoint('gemini-pending');
+  }
+
+  function setSTTStatus(text) {
+    setText(sttState, text);
   }
 
   function enqueueVisualEvent(evt) {
@@ -347,6 +362,113 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(canaryReason, decision.reason || '-');
   }
 
+  function renderV2Signals(summary) {
+    signalRegisterBody.textContent = '';
+    if (!summary) {
+      resetRegister();
+      return;
+    }
+    const rows = [
+      ['identity_claims', (summary.identity_claims || []).join(', ')],
+      ['contexts', (summary.contexts || []).join(', ')],
+      ['manipulation', (summary.manipulation || []).join(', ')],
+      [
+        'interaction_acts',
+        (summary.interaction_acts || [])
+          .map((act) => `${act.action}/${act.asset ? act.asset.subtype : 'NO_ASSET'}/${act.actor}->${act.destination}`)
+          .join(' | '),
+      ],
+    ];
+    rows.forEach(([field, value]) => {
+      const asserted = isAsserted(value);
+      const row = document.createElement('div');
+      row.className = 'signal-row';
+
+      const mark = document.createElement('span');
+      mark.className = `signal-mark ${asserted ? 'state-asserted' : 'state-cleared'}`;
+      mark.textContent = asserted ? '\u25a0' : '.';
+
+      const key = document.createElement('span');
+      key.textContent = field;
+
+      const val = document.createElement('span');
+      val.textContent = value || '-';
+
+      row.append(mark, key, val);
+      signalRegisterBody.appendChild(row);
+    });
+  }
+
+  function renderV2TurnData(data) {
+    if (data.error || !data.turn) {
+      const error = data.error || {};
+      setText(inputState, 'ERROR');
+      setRailPoint('gemini');
+      setText(pipeCallState, 'RX');
+      setText(pipeGeminiState, 'FAIL');
+      setClass(pipeGeminiState, 'state', 'state-error');
+      renderReasons([error.kind || error.message || 'V2 turn failed.']);
+      resetCanary();
+      resetWarning();
+      return;
+    }
+
+    const turn = data.turn;
+    const extracted = turn.extracted_v2_summary && turn.extracted_v2_summary.signals;
+    const normalized = turn.normalized_m2_summary || {};
+    const policy = turn.policy_event || {};
+    const canary = turn.canary_authorization || {};
+    const currentRisk = turn.current_risk || policy.current_risk || 'NORMAL';
+    const policyDecision = canary.status || policy.canary_decision || 'NOT_REQUESTED';
+
+    setText(inputState, turn.status || 'COMPLETE');
+    setText(pipeCallState, `S${turn.source_turn_number || '-'}`);
+    setText(pipeGeminiState, turn.status === 'PROCESSED' ? 'EXTRACTED' : 'FAIL');
+    setClass(pipeGeminiState, 'state', turn.status === 'PROCESSED' ? 'state-ok' : 'state-error');
+    setText(pipeRiskState, currentRisk);
+    setClass(pipeRiskState, 'state', classForRisk(currentRisk));
+    setText(riskLevelReadout, currentRisk);
+    setClass(riskLevelReadout, 'state', classForRisk(currentRisk));
+    renderV2Signals(extracted);
+    renderReasons(policy.reasons || []);
+
+    const factorSummary = [
+      `applied=${turn.applied_m2_turn_number || '-'}`,
+      `factors=${policy.active_factor_count || 0}`,
+      `losses=${(turn.representational_losses || []).length}`,
+      `acts=${(normalized.acts || []).length}`,
+      `manipulations=${(normalized.manipulations || []).map((item) => item.manipulation).join(',') || '-'}`,
+    ];
+    setText(contributingSignals, factorSummary.join('  '));
+
+    setText(pipeCanaryState, policyDecision);
+    setClass(pipeCanaryState, 'state', classForDecision(policyDecision));
+    setText(canaryAction, canary.action || policy.canary_action || '-');
+    setText(canaryDecision, policyDecision);
+    setClass(canaryDecision, 'state', classForDecision(policyDecision));
+    setText(canaryRiskLevel, canary.risk_level || currentRisk);
+    setText(canaryReason, canary.reason || policy.canary_reason || '-');
+
+    if (policyDecision === 'ALLOW' && (canary.action || policy.canary_action) === 'warn_user') {
+      setText(pipeActionState, 'USER_WARNING');
+      setRailPoint('action');
+      warningInterrupt?.classList.add('warning-interrupt-active');
+      warningInterrupt?.setAttribute('aria-hidden', 'false');
+      setText(placardHeadline, 'POSIBLE ESTAFA');
+      placardDirectives.textContent = '';
+      ['NO COMPARTA CODIGOS', 'NO REALICE TRANSFERENCIAS SIN VERIFICAR'].forEach((directive) => {
+        const line = document.createElement('output');
+        line.className = 'directive-line';
+        line.textContent = directive;
+        placardDirectives.appendChild(line);
+      });
+    } else {
+      setText(pipeActionState, '-');
+      setRailPoint(policyDecision === 'ALLOW' ? 'crossed' : 'denied');
+      resetWarning();
+    }
+  }
+
   function renderWarning(warning) {
     const payload = warning && warning.payload ? warning.payload : null;
     if (!payload) {
@@ -546,23 +668,29 @@ document.addEventListener('DOMContentLoaded', () => {
     if (event.key === 'Escape') closeWarningInterrupt();
   });
 
-  btnAnalyze?.addEventListener('click', async () => {
-    const text = inputText.value.trim();
-    if (!text) {
+  async function submitTurnText(text, inputSource = 'TEXT') {
+    const trimmed = String(text || '').trim();
+    if (!trimmed) {
       alert('Please enter call text or load a test tape.');
       return;
     }
 
+    sourceTurnNumber += 1;
     resetWorkstation({ clearInput: false, clearScenario: false });
     setPendingExtractionState();
+    appendLogRow(eventTime(), 'TURN_TEXT_SUBMITTED', `source=${inputSource} source_turn=${sourceTurnNumber}`);
     btnAnalyze.disabled = true;
     btnAnalyze.textContent = 'RUNNING';
 
     try {
-      const response = await fetch('/api/v1/analyze', {
+      const response = await fetch('/api/v1/experimental/v2/turn', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({
+          text: trimmed,
+          session_id: liveSessionId,
+          source_turn_number: sourceTurnNumber,
+        }),
       });
 
       if (!response.ok) {
@@ -571,12 +699,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      if (!sseLive && Array.isArray(data.events)) {
-        data.events.forEach((evt) => {
-          appendRealDomainEvent(evt);
-          enqueueVisualEvent(evt);
-        });
-      }
+      renderV2TurnData(data);
+      appendLogRow(eventTime(), 'V2_TURN_RESULT', `status=${data.status || '-'} source_turn=${sourceTurnNumber}`);
     } catch (err) {
       console.error('Pipeline execution error:', err);
       alert(`Pipeline error: ${err.message}`);
@@ -585,7 +709,130 @@ document.addEventListener('DOMContentLoaded', () => {
       btnAnalyze.disabled = false;
       btnAnalyze.textContent = 'EXECUTE ANALYSIS';
     }
+  }
+
+  btnAnalyze?.addEventListener('click', async () => {
+    const text = inputText.value.trim();
+    if (!text) {
+      alert('Please enter call text or load a test tape.');
+      return;
+    }
+    await submitTurnText(text, 'TEXT');
   });
+
+  function clearRecordingTimer() {
+    if (recordingTimer) {
+      clearTimeout(recordingTimer);
+      recordingTimer = null;
+    }
+  }
+
+  function stopRecordingTracks() {
+    if (recordingStream) {
+      recordingStream.getTracks().forEach((track) => track.stop());
+      recordingStream = null;
+    }
+  }
+
+  function audioBlobToBase64(blob) {
+    return blob.arrayBuffer().then((buffer) => {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      const chunkSize = 8192;
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        const chunk = bytes.subarray(offset, offset + chunkSize);
+        binary += String.fromCharCode(...chunk);
+      }
+      return btoa(binary);
+    });
+  }
+
+  async function submitAudioBlob(blob) {
+    setSTTStatus('TRANSCRIBING');
+    btnRecordStart.disabled = true;
+    btnRecordStop.disabled = true;
+    try {
+      const response = await fetch('/api/v1/experimental/stt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          audio_base64: await audioBlobToBase64(blob),
+          mime_type: blob.type || 'audio/webm',
+          language_hint: sttLanguage?.value || 'auto',
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.status !== 'TRANSCRIBED' || !data.transcript) {
+        const failure = data.error && data.error.kind ? data.error.kind : 'STT_FAILED';
+        setSTTStatus(failure);
+        appendLogRow(eventTime(), 'STT_FAILED', `kind=${failure}`);
+        return;
+      }
+      setSTTStatus('TRANSCRIBED');
+      inputText.value = data.transcript;
+      appendLogRow(eventTime(), 'STT_TRANSCRIBED', `language=${data.language_hint || 'auto'} bytes=${data.audio_bytes || 0}`);
+      await submitTurnText(data.transcript, 'VOICE');
+    } catch (err) {
+      console.error('STT execution error:', err);
+      setSTTStatus('STT ERROR');
+      appendLogRow(eventTime(), 'STT_FAILED', err.message || 'STT error');
+    } finally {
+      btnRecordStart.disabled = false;
+      btnRecordStop.disabled = true;
+    }
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setSTTStatus('UNAVAILABLE');
+      return;
+    }
+    try {
+      recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordingChunks = [];
+      mediaRecorder = new MediaRecorder(recordingStream);
+      mediaRecorder.addEventListener('dataavailable', (event) => {
+        if (event.data && event.data.size > 0) recordingChunks.push(event.data);
+      });
+      mediaRecorder.addEventListener('stop', async () => {
+        clearRecordingTimer();
+        stopRecordingTracks();
+        const blob = new Blob(recordingChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        recordingChunks = [];
+        await submitAudioBlob(blob);
+      }, { once: true });
+      mediaRecorder.start();
+      setSTTStatus('RECORDING');
+      btnRecordStart.disabled = true;
+      btnRecordStop.disabled = false;
+      recordingTimer = setTimeout(() => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
+        }
+      }, MAX_RECORDING_MS);
+    } catch (err) {
+      console.error('Microphone capture error:', err);
+      setSTTStatus('MIC FAILED');
+      stopRecordingTracks();
+      btnRecordStart.disabled = false;
+      btnRecordStop.disabled = true;
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+    }
+  }
+
+  btnRecordStart?.addEventListener('click', startRecording);
+  btnRecordStop?.addEventListener('click', stopRecording);
 
   resetWorkstation();
   loadScenarios();

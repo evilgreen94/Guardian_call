@@ -34,6 +34,19 @@ from backend.guardian.extractor import (
     SignalExtractor,
 )
 from backend.guardian.pipeline import GuardianPipeline, PipelineResult
+from backend.guardian.experimental.extractor_v2 import (
+    GeminiV2Extractor,
+    V2ExtractionError,
+)
+from backend.guardian.experimental.live_vertical_slice_v2 import (
+    V2VerticalSliceState,
+    process_text_turn,
+)
+from backend.guardian.experimental.stt import (
+    GoogleGenAISpeechToTextProvider,
+    STTError,
+    decode_audio_base64,
+)
 
 
 class LazyGeminiExtractor:
@@ -70,6 +83,9 @@ app.add_middleware(
 
 # SSE event broadcast subscribers
 event_subscribers: List[asyncio.Queue] = []
+experimental_v2_sessions: Dict[str, V2VerticalSliceState] = {}
+experimental_v2_extractor_factory = GeminiV2Extractor
+experimental_stt_provider_factory = GoogleGenAISpeechToTextProvider
 
 
 async def broadcast_event(event_data: Dict[str, Any]) -> None:
@@ -92,6 +108,34 @@ class AnalyzeResponse(BaseModel):
     warning: Optional[Dict[str, Any]] = None
     events: List[Dict[str, Any]] = Field(default_factory=list)
     error: Optional[str] = None
+
+
+class ExperimentalV2TurnRequest(BaseModel):
+    text: str = Field(..., min_length=1, description="Canonical text turn")
+    session_id: str = Field("m2-5-stt-demo", min_length=1)
+    source_turn_number: Optional[int] = Field(None, ge=1)
+
+
+class ExperimentalV2TurnResponse(BaseModel):
+    status: str
+    turn: Optional[Dict[str, Any]] = None
+    error: Optional[Dict[str, Any]] = None
+
+
+class ExperimentalSTTRequest(BaseModel):
+    audio_base64: str = Field(..., min_length=1)
+    mime_type: str = Field(..., min_length=1)
+    language_hint: Optional[str] = None
+
+
+class ExperimentalSTTResponse(BaseModel):
+    status: str
+    transcript: Optional[str] = None
+    language_hint: Optional[str] = None
+    provider: Optional[str] = None
+    requested_model: Optional[str] = None
+    audio_bytes: Optional[int] = None
+    error: Optional[Dict[str, Any]] = None
 
 
 @app.get("/health", tags=["System"])
@@ -159,6 +203,78 @@ async def analyze_text(request: AnalyzeRequest) -> AnalyzeResponse:
         warning=result.warning_event.to_dict() if result.warning_event else None,
         events=[e.to_dict() for e in result.events],
         error=str(result.error) if result.error else None,
+    )
+
+
+@app.post(
+    "/api/v1/experimental/v2/turn",
+    response_model=ExperimentalV2TurnResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Experimental"],
+)
+async def experimental_v2_turn(
+    request: ExperimentalV2TurnRequest,
+) -> ExperimentalV2TurnResponse:
+    """Process one canonical text turn through the frozen M2.5 V2 slice."""
+    state = experimental_v2_sessions.get(request.session_id)
+    if state is None:
+        state = V2VerticalSliceState.initial(request.session_id)
+    source_turn_number = request.source_turn_number or (len(state.turns) + 1)
+    turn_id = f"source-turn-{source_turn_number}"
+    try:
+        extractor = experimental_v2_extractor_factory(
+            model=os.environ.get("GEMINI_V2_MODEL") or "gemini-3.6-flash"
+        )
+    except V2ExtractionError as error:
+        return ExperimentalV2TurnResponse(
+            status="EXTRACTION_FAILED",
+            error=error.to_dict(),
+        )
+    next_state = process_text_turn(
+        state,
+        extractor=extractor,
+        text=request.text,
+        turn_id=turn_id,
+        turn_number=source_turn_number,
+    )
+    experimental_v2_sessions[request.session_id] = next_state
+    return ExperimentalV2TurnResponse(
+        status=next_state.turns[-1].status.value,
+        turn=next_state.turns[-1].to_dict(),
+    )
+
+
+@app.post(
+    "/api/v1/experimental/stt",
+    response_model=ExperimentalSTTResponse,
+    status_code=status.HTTP_200_OK,
+    tags=["Experimental"],
+)
+async def experimental_stt(
+    request: ExperimentalSTTRequest,
+) -> ExperimentalSTTResponse:
+    """Transcribe one bounded audio blob without entering M2.5 on failure."""
+    try:
+        audio = decode_audio_base64(request.audio_base64)
+        provider = experimental_stt_provider_factory()
+        result = provider.transcribe(
+            audio=audio,
+            mime_type=request.mime_type,
+            language_hint=request.language_hint,
+        )
+    except STTError as error:
+        return ExperimentalSTTResponse(
+            status="FAILED",
+            language_hint=request.language_hint,
+            error=error.to_dict(),
+        )
+    return ExperimentalSTTResponse(
+        status="TRANSCRIBED",
+        transcript=result.transcript,
+        language_hint=result.language_hint,
+        provider=result.provider,
+        requested_model=result.requested_model,
+        audio_bytes=result.audio_bytes,
     )
 
 
