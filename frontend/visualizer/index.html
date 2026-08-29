@@ -3,40 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Guardian Call GC-80 Signal Instrument</title>
+  <title>CANARY — Guardian Call Observability</title>
   <link rel="stylesheet" href="/visualizer/styles.css">
 </head>
 <body>
   <div class="instrument-surface">
     <header class="system-header" aria-label="Guardian Call system header">
       <div class="unit-mark">
-        <span>GC-80</span>
-        <span>UNIT 04</span>
+        <span>CANARY</span>
+        <span>M2.5 LIVE</span>
       </div>
       <div class="system-title">
-        <h1>GUARDIAN CALL INSTRUMENTS</h1>
-        <p>GC-80 PROTECTIVE CALL WORKSTATION</p>
+        <h1>CANARY</h1>
+        <p>GUARDIAN CALL TECHNICAL OBSERVABILITY WORKSTATION</p>
       </div>
       <div class="system-status">
         <span><b>STREAM</b><output id="stream-status" class="state state-eval">CONNECTING</output></span>
+        <span><b>SESSION</b><output id="header-session">-</output></span>
+        <span><b>INPUT</b><output id="header-input">-</output></span>
+        <span><b>PROVIDER</b><output id="header-provider">-</output></span>
         <span><b>SYSTEM</b><output id="system-status" class="state state-ok">ONLINE</output></span>
         <span><b>TIME</b><output id="sys-clock">00:00:00 UTC</output></span>
       </div>
     </header>
 
     <nav class="mode-line" aria-label="Workstation mode line">
-      <span>MODE SELECT</span>
-      <span class="active-mode">[ EXECUTION ]</span>
-      <span>REGISTER</span>
-      <span>CANARY</span>
-      <span>LOG</span>
-      <span>POLICY ENGINE&nbsp;&nbsp; CANARY AUTHORITY v0.1</span>
+      <span>CANARY LIVE</span>
+      <span class="active-mode">[ OBSERVABILITY ]</span>
+      <span>VOICE/TEXT</span>
+      <span>RISK</span>
+      <span>POLICY</span>
+      <span>M2.5 LIVE PIPELINE&nbsp;&nbsp; RISK ≠ CANARY AUTHORITY</span>
     </nav>
 
-    <main class="signal-instrument">
-      <section class="conversation-zone" aria-labelledby="conversation-title">
+    <main class="canary-workbench">
+      <section class="conversation-zone panel" aria-labelledby="conversation-title">
         <div class="zone-title">
-          <h2 id="conversation-title">CONVERSATION BUFFER</h2>
+          <h2 id="conversation-title">LIVE TRANSCRIPT</h2>
           <output id="expected-risk-tag"></output>
         </div>
         <div class="input-line">
@@ -65,66 +68,81 @@
         </div>
       </section>
 
-      <section class="rail-zone" aria-labelledby="rail-title">
+      <section class="analysis-zone panel" aria-labelledby="analysis-title">
         <div class="zone-title">
-          <h2 id="rail-title">LIVE SIGNAL RAIL</h2>
-          <output id="rail-state">AWAITING INPUT</output>
+          <h2 id="analysis-title">ANALYSIS</h2>
+          <output id="analysis-state">AWAITING TURN</output>
         </div>
-        <div class="pipeline-rail point-idle" id="pipeline-rail" aria-label="Guardian Call live execution rail">
-          <div class="rail-line" aria-hidden="true"></div>
-          <div class="canary-boundary" aria-hidden="true"></div>
-          <div class="data-point" id="data-point" aria-hidden="true"></div>
-
-          <div class="rail-node node-call">
-            <span>CALL</span>
-            <output id="pipe-call-state">-</output>
-          </div>
-          <div class="rail-node node-gemini">
-            <span>GEMINI</span>
-            <output id="pipe-gemini-state">-</output>
-          </div>
-          <div class="rail-node node-risk">
-            <span>RISK</span>
-            <output id="pipe-risk-state" class="state state-ok">NORMAL</output>
-          </div>
-          <div class="rail-node node-canary">
-            <span>CANARY</span>
-            <output id="pipe-canary-state" class="state state-deny">DENY</output>
-          </div>
-          <div class="rail-node node-action">
-            <span>ACTION</span>
-            <output id="pipe-action-state">-</output>
-          </div>
+        <dl class="identity-grid">
+          <div><dt>SESSION</dt><dd id="vm-session-id">-</dd></div>
+          <div><dt>INPUT</dt><dd id="vm-input-source">-</dd></div>
+          <div><dt>SOURCE TURN</dt><dd id="vm-source-turn">-</dd></div>
+          <div><dt>APPLIED M2</dt><dd id="vm-applied-turn">-</dd></div>
+          <div><dt>EXTRACTION</dt><dd id="vm-extraction-status">-</dd></div>
+          <div><dt>LOSS</dt><dd id="vm-loss-status">-</dd></div>
+        </dl>
+        <div class="failure-banner" id="failure-banner" aria-live="polite">
+          <b>ANALYSIS UNAVAILABLE</b>
+          <span>STATE UNCHANGED/PRESERVED</span>
+          <span>NOT A NEW SAFETY VERDICT</span>
         </div>
       </section>
 
-      <section class="risk-zone" aria-labelledby="risk-title">
+      <section class="risk-zone panel" aria-labelledby="risk-title">
         <div class="zone-title">
           <h2 id="risk-title">RISK</h2>
           <output id="risk-level-readout" class="state state-ok">NORMAL</output>
         </div>
+        <div class="dominant-risk" aria-label="Current qualitative risk">
+          <span>CURRENT RISK</span>
+          <output id="risk-dominant" class="state state-ok">NORMAL</output>
+        </div>
+        <div class="risk-rail" id="risk-rail" aria-label="Qualitative risk rail">
+          <span data-risk="NORMAL">NORMAL</span>
+          <span data-risk="SUSPICIOUS">SUSPICIOUS</span>
+          <span data-risk="HIGH">HIGH</span>
+          <span data-risk="CRITICAL">CRITICAL</span>
+        </div>
+        <dl class="risk-readout">
+          <div><dt>CURRENT</dt><dd id="vm-current-risk">NORMAL</dd></div>
+          <div><dt>PEAK</dt><dd id="vm-peak-risk">NORMAL</dd></div>
+          <div><dt>MOTION</dt><dd id="vm-risk-motion">-</dd></div>
+        </dl>
         <ol id="reasons-telemetry" class="reason-lines">
           <li class="empty">No risk assessment recorded.</li>
         </ol>
         <div class="contributing-lines">
-          <h3>CONTRIBUTING SIGNALS</h3>
+          <h3>ACTIVE FACTOR SUMMARY</h3>
           <div id="contributing-signals">-</div>
         </div>
       </section>
 
-      <section class="register-zone" aria-labelledby="register-title">
+      <section class="evidence-zone panel" aria-labelledby="evidence-title">
         <div class="zone-title">
-          <h2 id="register-title">SIGNAL REGISTER</h2>
-          <span>square = asserted&nbsp;&nbsp; dot = cleared</span>
+          <h2 id="evidence-title">SEMANTIC EVIDENCE</h2>
+          <span>V2 + M2 NORMALIZED</span>
         </div>
         <div id="signal-register-body" class="signal-register">
           <p class="empty">Awaiting ScamSignals output.</p>
         </div>
       </section>
 
-      <section class="canary-zone" aria-labelledby="canary-title">
+      <section class="policy-zone panel" aria-labelledby="policy-title">
+        <div class="zone-title">
+          <h2 id="policy-title">POLICY</h2>
+          <output id="vm-policy-event">-</output>
+        </div>
+        <dl class="policy-readout">
+          <div><dt>EVENT</dt><dd id="policy-event-type">-</dd></div>
+          <div><dt>DUPLICATE</dt><dd id="policy-duplicate">-</dd></div>
+          <div><dt>SUPPRESSION</dt><dd id="policy-suppression">-</dd></div>
+        </dl>
+      </section>
+
+      <section class="canary-zone panel" aria-labelledby="canary-title">
         <div class="zone-title">
           <h2 id="canary-title">CANARY AUTHORITY</h2>
+          <output id="canary-evaluated">NOT EVALUATED</output>
         </div>
         <dl class="canary-readout">
           <div>
@@ -144,12 +162,22 @@
             <dd id="canary-reason">No Canary evaluation recorded.</dd>
           </div>
         </dl>
+        <div class="warning-interrupt" id="warning-interrupt" aria-labelledby="user-title" aria-hidden="true">
+          <div class="interrupt-title">
+            <h2 id="user-title">AUTHORIZATION MODULE</h2>
+            <button type="button" id="warning-close" aria-label="Acknowledge Canary authorization">[ ACK ]</button>
+          </div>
+          <output id="placard-headline">NO CANARY AUTHORIZATION</output>
+          <div class="directive-bank" id="placard-directives">
+            <p class="empty">No Canary-controlled intervention authorized.</p>
+          </div>
+        </div>
       </section>
     </main>
 
     <section class="event-tty" aria-labelledby="event-title">
       <div class="event-title-line">
-        <h2 id="event-title">DOMAIN EVENT TTY</h2>
+        <h2 id="event-title">CLIENT-OBSERVED TIMELINE</h2>
         <output id="event-line-count">LINES 001</output>
       </div>
       <div class="event-head">
@@ -161,21 +189,11 @@
         <div class="log-entry log-empty">
           <span class="log-time">00:00:00</span>
           <span class="log-event">SYSTEM_READY</span>
-          <span class="log-payload">Awaiting backend domain events.</span>
+          <span class="log-payload">Awaiting client-observed REST/STT lifecycle events.</span>
         </div>
       </div>
     </section>
 
-    <div class="warning-interrupt" id="warning-interrupt" aria-labelledby="user-title" aria-hidden="true">
-      <div class="interrupt-title">
-        <h2 id="user-title">CANARY INTERRUPT</h2>
-        <button type="button" id="warning-close" aria-label="Acknowledge user warning interrupt">[ ACK ]</button>
-      </div>
-      <output id="placard-headline">NO USER_WARNING EVENT</output>
-      <div class="directive-bank" id="placard-directives">
-        <p class="empty">No authorized user-warning directives emitted.</p>
-      </div>
-    </div>
   </div>
 
   <script src="/visualizer/app.js"></script>

@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const streamStatus = document.getElementById('stream-status');
   const inputText = document.getElementById('input-text');
   const inputState = document.getElementById('input-state');
+  const headerSession = document.getElementById('header-session');
+  const headerInput = document.getElementById('header-input');
+  const headerProvider = document.getElementById('header-provider');
   const btnAnalyze = document.getElementById('btn-analyze');
   const btnClear = document.getElementById('btn-clear');
   const sttLanguage = document.getElementById('stt-language');
@@ -37,8 +40,26 @@ document.addEventListener('DOMContentLoaded', () => {
   const pipeRiskState = document.getElementById('pipe-risk-state');
   const pipeCanaryState = document.getElementById('pipe-canary-state');
   const pipeActionState = document.getElementById('pipe-action-state');
+  const analysisState = document.getElementById('analysis-state');
+  const vmSessionId = document.getElementById('vm-session-id');
+  const vmInputSource = document.getElementById('vm-input-source');
+  const vmSourceTurn = document.getElementById('vm-source-turn');
+  const vmAppliedTurn = document.getElementById('vm-applied-turn');
+  const vmExtractionStatus = document.getElementById('vm-extraction-status');
+  const vmLossStatus = document.getElementById('vm-loss-status');
+  const failureBanner = document.getElementById('failure-banner');
+  const riskRail = document.getElementById('risk-rail');
+  const vmCurrentRisk = document.getElementById('vm-current-risk');
+  const vmPeakRisk = document.getElementById('vm-peak-risk');
+  const vmRiskMotion = document.getElementById('vm-risk-motion');
+  const vmPolicyEvent = document.getElementById('vm-policy-event');
+  const policyEventType = document.getElementById('policy-event-type');
+  const policyDuplicate = document.getElementById('policy-duplicate');
+  const policySuppression = document.getElementById('policy-suppression');
+  const canaryEvaluated = document.getElementById('canary-evaluated');
 
   const riskLevelReadout = document.getElementById('risk-level-readout');
+  const riskDominant = document.getElementById('risk-dominant');
   const reasonsTelemetry = document.getElementById('reasons-telemetry');
   const contributingSignals = document.getElementById('contributing-signals');
   const signalRegisterBody = document.getElementById('signal-register-body');
@@ -68,6 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let recordingStream = null;
   let recordingChunks = [];
   let recordingTimer = null;
+  let lastCanaryViewModel = null;
+  let lastSTTMeta = null;
   const MAX_RECORDING_MS = 15000;
   const VISUAL_STEP_MS = 450;
   const RAIL_POINTS = {
@@ -157,6 +180,143 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(value);
   }
 
+  function valueOrDash(value) {
+    return value === null || value === undefined || value === '' ? '-' : String(value);
+  }
+
+  function classifyRiskMotion(policy) {
+    if (!policy) return '-';
+    if (policy.risk_increased === true) return 'INCREASED';
+    if (policy.risk_increased === false) return 'STABLE/NO NEW INCREASE';
+    return '-';
+  }
+
+  function canaryWasEvaluated(canary) {
+    return !!canary && canary.status && canary.status !== 'NOT_REQUESTED';
+  }
+
+  function buildCanaryViewModel(data, inputSource, transcript) {
+    const turn = data && data.turn ? data.turn : null;
+    const policy = turn && turn.policy_event ? turn.policy_event : null;
+    const canary = turn && turn.canary_authorization ? turn.canary_authorization : null;
+    const extracted = turn && turn.extracted_v2_summary ? turn.extracted_v2_summary : null;
+    const normalized = turn && turn.normalized_m2_summary ? turn.normalized_m2_summary : null;
+    const failed = !turn || turn.status === 'EXTRACTION_FAILED' || turn.status === 'UNSUPPORTED_MAPPING' || !!data.error;
+    const unchangedRisk = failed && turn ? {
+      current: turn.current_risk,
+      peak: turn.peak_risk,
+    } : null;
+
+    return {
+      input: {
+        source: inputSource,
+        transcript,
+        stt: inputSource === 'VOICE' ? lastSTTMeta : null,
+      },
+      turn: {
+        session_id: turn ? turn.session_id : liveSessionId,
+        source_turn_number: turn ? turn.source_turn_number : sourceTurnNumber,
+        applied_m2_turn_number: turn ? turn.applied_m2_turn_number : null,
+        status: turn ? turn.status : 'FAILED',
+      },
+      extraction: {
+        status: turn ? turn.status : 'FAILED',
+        provenance: extracted ? extracted.provenance : null,
+        v2_signals: extracted ? extracted.signals : null,
+        extractor_error: turn ? turn.extractor_error : data.error,
+        mapping_error: turn ? turn.mapping_error : null,
+        representational_losses: turn ? turn.representational_losses || [] : [],
+      },
+      evidence: {
+        normalized_m2_summary: normalized,
+      },
+      risk: {
+        current_risk: turn ? turn.current_risk : (lastCanaryViewModel ? lastCanaryViewModel.risk.current_risk : null),
+        peak_risk: turn ? turn.peak_risk : (lastCanaryViewModel ? lastCanaryViewModel.risk.peak_risk : null),
+        unchanged: unchangedRisk,
+        risk_increased: policy ? policy.risk_increased : null,
+        reasons: policy ? policy.reasons || [] : [],
+      },
+      policy: {
+        event_type: policy ? policy.event_type : null,
+        duplicate_suppressed: policy ? policy.duplicate_suppressed : null,
+        suppression_reason: policy ? policy.suppression_reason : null,
+        canary_action: policy ? policy.canary_action : null,
+        canary_decision: policy ? policy.canary_decision : null,
+        canary_reason: policy ? policy.canary_reason : null,
+        active_factor_count: policy ? policy.active_factor_count : null,
+        new_factor_count: policy ? policy.new_factor_count : null,
+      },
+      canary: {
+        evaluated: canaryWasEvaluated(canary),
+        status: canary ? canary.status : null,
+        action: canary ? canary.action : null,
+        reason: canary ? canary.reason : null,
+        risk_level: canary ? canary.risk_level : null,
+      },
+      failure: failed,
+    };
+  }
+
+  function buildSTTFailureViewModel(error, languageHint) {
+    return {
+      input: {
+        source: 'VOICE',
+        transcript: inputText.value.trim() || null,
+        stt: {
+          status: 'FAILED',
+          language_hint: languageHint,
+          error,
+        },
+      },
+      turn: {
+        session_id: liveSessionId,
+        source_turn_number: null,
+        applied_m2_turn_number: null,
+        status: 'STT_FAILED',
+      },
+      extraction: {
+        status: 'NOT_RUN',
+        provenance: null,
+        v2_signals: null,
+        extractor_error: null,
+        mapping_error: null,
+        representational_losses: [],
+      },
+      evidence: {
+        normalized_m2_summary: null,
+      },
+      risk: {
+        current_risk: lastCanaryViewModel ? lastCanaryViewModel.risk.current_risk : null,
+        peak_risk: lastCanaryViewModel ? lastCanaryViewModel.risk.peak_risk : null,
+        unchanged: lastCanaryViewModel ? {
+          current: lastCanaryViewModel.risk.current_risk,
+          peak: lastCanaryViewModel.risk.peak_risk,
+        } : null,
+        risk_increased: null,
+        reasons: [],
+      },
+      policy: {
+        event_type: null,
+        duplicate_suppressed: null,
+        suppression_reason: null,
+        canary_action: null,
+        canary_decision: null,
+        canary_reason: null,
+        active_factor_count: null,
+        new_factor_count: null,
+      },
+      canary: {
+        evaluated: false,
+        status: 'NOT_REQUESTED',
+        action: null,
+        reason: 'STT failed before canonical text turn submission.',
+        risk_level: lastCanaryViewModel ? lastCanaryViewModel.risk.current_risk : null,
+      },
+      failure: true,
+    };
+  }
+
   function eventTime(timestamp) {
     const raw = timestamp || new Date().toISOString();
     if (!raw.includes('T')) return '00:00:00';
@@ -176,11 +336,33 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(railState, 'AWAITING INPUT');
     setText(pipeCallState, '-');
     setText(pipeGeminiState, '-');
-    setText(pipeRiskState, 'NORMAL');
-    setClass(pipeRiskState, 'state', 'state-ok');
+    setText(pipeRiskState, '-');
+    setClass(pipeRiskState, 'state', 'state-muted');
     setText(pipeCanaryState, 'DENY');
     setClass(pipeCanaryState, 'state', 'state-deny');
     setText(pipeActionState, '-');
+    setText(analysisState, 'AWAITING TURN');
+    setText(headerSession, liveSessionId);
+    setText(headerInput, '-');
+    setText(headerProvider, '-');
+    setText(vmSessionId, liveSessionId);
+    setText(vmInputSource, '-');
+    setText(vmSourceTurn, '-');
+    setText(vmAppliedTurn, '-');
+    setText(vmExtractionStatus, '-');
+    setText(vmLossStatus, '-');
+    failureBanner?.classList.remove('failure-banner-active');
+    setText(vmCurrentRisk, '-');
+    setText(vmPeakRisk, '-');
+    setText(riskDominant, 'NO ASSESSMENT');
+    setClass(riskDominant, 'state risk-dominant-value', 'state-muted');
+    setText(vmRiskMotion, '-');
+    setText(vmPolicyEvent, '-');
+    setText(policyEventType, '-');
+    setText(policyDuplicate, '-');
+    setText(policySuppression, '-');
+    setText(canaryEvaluated, 'NOT EVALUATED');
+    updateRiskRail(null);
   }
 
   function resetRegister() {
@@ -210,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function resetWarning() {
     warningInterrupt?.classList.remove('warning-interrupt-active');
+    warningInterrupt?.classList.remove('warning-sync');
     warningInterrupt?.setAttribute('aria-hidden', 'true');
     setText(placardHeadline, 'NO USER_WARNING EVENT');
     placardDirectives.textContent = '';
@@ -227,7 +410,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function resetAuditLog() {
     printedLines = 0;
     eventStreamTerminal.textContent = '';
-    appendLogRow('00:00:00', 'SYSTEM_READY', 'Awaiting backend domain events.');
+    appendLogRow('00:00:00', 'SYSTEM_READY', 'Awaiting client-observed REST/STT lifecycle events.');
     eventStreamTerminal.querySelector('.log-entry')?.classList.add('log-empty');
   }
 
@@ -368,17 +551,17 @@ document.addEventListener('DOMContentLoaded', () => {
       resetRegister();
       return;
     }
-    const rows = [
-      ['identity_claims', (summary.identity_claims || []).join(', ')],
-      ['contexts', (summary.contexts || []).join(', ')],
-      ['manipulation', (summary.manipulation || []).join(', ')],
-      [
-        'interaction_acts',
-        (summary.interaction_acts || [])
-          .map((act) => `${act.action}/${act.asset ? act.asset.subtype : 'NO_ASSET'}/${act.actor}->${act.destination}`)
-          .join(' | '),
-      ],
-    ];
+    const rows = [];
+    rows.push(['V2 IDENTITY', (summary.identity_claims || []).join(', ')]);
+    rows.push(['V2 CONTEXT', (summary.contexts || []).join(', ')]);
+    rows.push(['V2 MANIPULATION', (summary.manipulation || []).join(', ')]);
+    (summary.interaction_acts || []).forEach((act, index) => {
+      const asset = act.asset ? act.asset.subtype : 'NO_ASSET';
+      rows.push([
+        `V2 ACT ${String(index + 1).padStart(2, '0')}`,
+        `${act.actor} -- ${act.action} / ${asset} --> ${act.destination} [${act.semantic_direction}]`,
+      ]);
+    });
     rows.forEach(([field, value]) => {
       const asserted = isAsserted(value);
       const row = document.createElement('div');
@@ -399,72 +582,194 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function renderV2TurnData(data) {
-    if (data.error || !data.turn) {
-      const error = data.error || {};
-      setText(inputState, 'ERROR');
-      setRailPoint('gemini');
-      setText(pipeCallState, 'RX');
-      setText(pipeGeminiState, 'FAIL');
-      setClass(pipeGeminiState, 'state', 'state-error');
-      renderReasons([error.kind || error.message || 'V2 turn failed.']);
-      resetCanary();
-      resetWarning();
+  function renderEvidence(vm) {
+    const signals = vm.extraction.v2_signals;
+    const normalized = vm.evidence.normalized_m2_summary;
+    signalRegisterBody.textContent = '';
+    if (!signals && !normalized) {
+      resetRegister();
       return;
     }
 
-    const turn = data.turn;
-    const extracted = turn.extracted_v2_summary && turn.extracted_v2_summary.signals;
-    const normalized = turn.normalized_m2_summary || {};
-    const policy = turn.policy_event || {};
-    const canary = turn.canary_authorization || {};
-    const currentRisk = turn.current_risk || policy.current_risk || 'NORMAL';
-    const policyDecision = canary.status || policy.canary_decision || 'NOT_REQUESTED';
+    const appendSection = (title, rows) => {
+      const section = document.createElement('section');
+      section.className = 'evidence-section';
+      const heading = document.createElement('h3');
+      heading.textContent = title;
+      section.appendChild(heading);
+      if (!rows.length) {
+        const empty = document.createElement('p');
+        empty.className = 'empty';
+        empty.textContent = '-';
+        section.appendChild(empty);
+      }
+      rows.forEach(([field, value, className = 'evidence-row']) => {
+        const row = document.createElement('div');
+        row.className = className;
 
-    setText(inputState, turn.status || 'COMPLETE');
-    setText(pipeCallState, `S${turn.source_turn_number || '-'}`);
-    setText(pipeGeminiState, turn.status === 'PROCESSED' ? 'EXTRACTED' : 'FAIL');
-    setClass(pipeGeminiState, 'state', turn.status === 'PROCESSED' ? 'state-ok' : 'state-error');
+        const key = document.createElement('span');
+        key.textContent = field;
+
+        const val = document.createElement('span');
+        val.textContent = value || '-';
+
+        row.append(key, val);
+        section.appendChild(row);
+      });
+      signalRegisterBody.appendChild(section);
+    };
+
+    if (signals) {
+      appendSection('EXTRACTED V2 SEMANTICS', [
+        ['IDENTITY', (signals.identity_claims || []).join(', ')],
+        ['CONTEXT', (signals.contexts || []).join(', ')],
+      ]);
+      appendSection('EXTRACTED INTERACTION ACTS', (signals.interaction_acts || []).map((act, index) => {
+        const asset = act.asset ? act.asset.subtype : 'NO_ASSET';
+        return [
+          `V2 ${String(index + 1).padStart(2, '0')}`,
+          `${act.actor} ── ${act.action} / ${asset} ──► ${act.destination} [${act.semantic_direction}]`,
+          'semantic-act',
+        ];
+      }));
+      appendSection('PRESSURE / MANIPULATION', [
+        ['V2', (signals.manipulation || []).join(', ')],
+      ]);
+    }
+    if (normalized) {
+      appendSection('NORMALIZED M2 CONTEXT', [
+        ['CLAIMS', (normalized.identity_claims || []).map((claim) => `${claim.claim} [${claim.scope}]`).join(', ')],
+        ['CONTEXTS', (normalized.contexts || []).map((context) => `${context.context} [${context.scope}]`).join(', ')],
+        ['MANIPULATION', (normalized.manipulations || []).map((item) => `${item.manipulation} [${item.scope}]`).join(', ')],
+      ]);
+      appendSection('NORMALIZED M2 ACTS', (normalized.acts || []).map((act, index) => [
+        `M2 ${String(index + 1).padStart(2, '0')}`,
+          `${act.actor} ── ${act.action} / ${act.asset || 'NO_ASSET'} ──► ${act.destination} [${act.scope}]`,
+          'semantic-act semantic-act-normalized',
+      ]));
+    }
+    appendSection('REPRESENTATIONAL LOSSES', (vm.extraction.representational_losses || []).map((loss, index) => [
+        `LOSS ${String(index + 1).padStart(2, '0')}`,
+        [loss.source_value, loss.disposition, loss.source_enum].filter(Boolean).join(' / '),
+        'loss-row',
+    ]));
+  }
+
+  function updateRiskRail(level) {
+    if (!riskRail) return;
+    const current = String(level || '').toUpperCase();
+    riskRail.querySelectorAll('[data-risk]').forEach((item) => {
+      item.classList.toggle('risk-active', !!current && item.getAttribute('data-risk') === current);
+    });
+  }
+
+  function renderCanaryViewModel(vm) {
+    const currentRisk = vm.risk.current_risk || '-';
+    const peakRisk = vm.risk.peak_risk || '-';
+    const policyDecision = vm.canary.status || 'NOT_REQUESTED';
+    const lossCount = vm.extraction.representational_losses.length;
+    const lossSummary = lossCount > 0
+      ? vm.extraction.representational_losses
+          .map((loss) => [loss.source_value, loss.disposition].filter(Boolean).join(' / '))
+          .join(' | ')
+      : 'NONE';
+    const hasPreservedRisk = vm.failure && !!vm.risk.unchanged && !!vm.risk.unchanged.current;
+    const dominantRiskLabel = hasPreservedRisk
+      ? 'PRESERVED STATE'
+      : vm.failure
+        ? 'NO ASSESSMENT'
+        : currentRisk;
+    const dominantRiskClass = hasPreservedRisk
+      ? 'state-eval'
+      : vm.failure
+        ? 'state-muted'
+        : classForRisk(currentRisk);
+    const provider = vm.input.stt
+      ? `${vm.input.stt.provider}/${vm.input.stt.requested_model}`
+      : vm.extraction.provenance
+        ? `${vm.extraction.provenance.provider}/${vm.extraction.provenance.requested_model}`
+        : '-';
+
+    setText(inputState, vm.failure ? 'ANALYSIS UNAVAILABLE' : vm.turn.status);
+    setText(analysisState, vm.failure ? 'STATE PRESERVED' : 'ANALYSIS RETURNED');
+    setText(headerSession, valueOrDash(vm.turn.session_id));
+    setText(headerInput, valueOrDash(vm.input.source));
+    setText(headerProvider, provider);
+    setText(vmSessionId, valueOrDash(vm.turn.session_id));
+    setText(vmInputSource, valueOrDash(vm.input.source));
+    setText(vmSourceTurn, valueOrDash(vm.turn.source_turn_number));
+    setText(vmAppliedTurn, valueOrDash(vm.turn.applied_m2_turn_number));
+    setText(vmExtractionStatus, valueOrDash(vm.extraction.status));
+    setText(vmLossStatus, lossSummary);
+
+    failureBanner?.classList.toggle('failure-banner-active', vm.failure);
+
+    setText(pipeCallState, vm.turn.source_turn_number ? `S${vm.turn.source_turn_number}` : '-');
+    setText(pipeGeminiState, vm.failure ? 'FAIL' : 'EXTRACTED');
+    setClass(pipeGeminiState, 'state', vm.failure ? 'state-error' : 'state-ok');
     setText(pipeRiskState, currentRisk);
     setClass(pipeRiskState, 'state', classForRisk(currentRisk));
-    setText(riskLevelReadout, currentRisk);
-    setClass(riskLevelReadout, 'state', classForRisk(currentRisk));
-    renderV2Signals(extracted);
-    renderReasons(policy.reasons || []);
-
-    const factorSummary = [
-      `applied=${turn.applied_m2_turn_number || '-'}`,
-      `factors=${policy.active_factor_count || 0}`,
-      `losses=${(turn.representational_losses || []).length}`,
-      `acts=${(normalized.acts || []).length}`,
-      `manipulations=${(normalized.manipulations || []).map((item) => item.manipulation).join(',') || '-'}`,
-    ];
-    setText(contributingSignals, factorSummary.join('  '));
-
     setText(pipeCanaryState, policyDecision);
     setClass(pipeCanaryState, 'state', classForDecision(policyDecision));
-    setText(canaryAction, canary.action || policy.canary_action || '-');
+
+    setText(riskLevelReadout, currentRisk);
+    setClass(riskLevelReadout, 'state', classForRisk(currentRisk));
+    setText(riskDominant, dominantRiskLabel);
+    setClass(riskDominant, 'state risk-dominant-value', dominantRiskClass);
+    setText(vmCurrentRisk, currentRisk);
+    setText(vmPeakRisk, peakRisk);
+    setText(vmRiskMotion, classifyRiskMotion(vm.policy));
+    updateRiskRail(vm.failure ? null : currentRisk);
+    renderReasons(vm.failure ? ['NOT A NEW SAFETY VERDICT'] : vm.risk.reasons);
+
+    const factorSummary = [
+      `active_factors=${valueOrDash(vm.policy.active_factor_count)}`,
+      `new_factors=${valueOrDash(vm.policy.new_factor_count)}`,
+      `losses=${lossCount}`,
+      `canary=${policyDecision}`,
+    ];
+    if (vm.risk.unchanged) {
+      factorSummary.push(`preserved_current=${valueOrDash(vm.risk.unchanged.current)}`);
+      factorSummary.push(`preserved_peak=${valueOrDash(vm.risk.unchanged.peak)}`);
+    }
+    setText(contributingSignals, factorSummary.join('  '));
+
+    renderEvidence(vm);
+
+    setText(vmPolicyEvent, valueOrDash(vm.policy.event_type));
+    setText(policyEventType, valueOrDash(vm.policy.event_type));
+    setText(policyDuplicate, vm.policy.duplicate_suppressed === null ? '-' : String(vm.policy.duplicate_suppressed).toUpperCase());
+    setText(policySuppression, valueOrDash(vm.policy.suppression_reason));
+
+    setText(canaryEvaluated, vm.canary.evaluated ? 'EVALUATED' : 'NOT REQUESTED');
+    setText(canaryAction, vm.canary.evaluated ? valueOrDash(vm.canary.action) : '-');
     setText(canaryDecision, policyDecision);
     setClass(canaryDecision, 'state', classForDecision(policyDecision));
-    setText(canaryRiskLevel, canary.risk_level || currentRisk);
-    setText(canaryReason, canary.reason || policy.canary_reason || '-');
+    setText(canaryRiskLevel, valueOrDash(vm.canary.risk_level || currentRisk));
+    setText(canaryReason, valueOrDash(vm.canary.reason));
 
-    if (policyDecision === 'ALLOW' && (canary.action || policy.canary_action) === 'warn_user') {
+    if (vm.canary.evaluated && policyDecision === 'ALLOW' && vm.canary.action === 'warn_user') {
       setText(pipeActionState, 'USER_WARNING');
       setRailPoint('action');
       warningInterrupt?.classList.add('warning-interrupt-active');
+      warningInterrupt?.classList.add('warning-sync');
       warningInterrupt?.setAttribute('aria-hidden', 'false');
-      setText(placardHeadline, 'POSIBLE ESTAFA');
+      setText(placardHeadline, `AUTHORIZATION: ${policyDecision}`);
       placardDirectives.textContent = '';
-      ['NO COMPARTA CODIGOS', 'NO REALICE TRANSFERENCIAS SIN VERIFICAR'].forEach((directive) => {
+      [
+        `ACTION  ${vm.canary.action}`,
+        `RISK    ${valueOrDash(vm.canary.risk_level || currentRisk)}`,
+        `REASON  ${valueOrDash(vm.canary.reason)}`,
+      ].forEach((directive) => {
         const line = document.createElement('output');
         line.className = 'directive-line';
         line.textContent = directive;
         placardDirectives.appendChild(line);
       });
+      setTimeout(() => warningInterrupt?.classList.remove('warning-sync'), 520);
     } else {
       setText(pipeActionState, '-');
-      setRailPoint(policyDecision === 'ALLOW' ? 'crossed' : 'denied');
+      setRailPoint(vm.failure ? 'denied' : 'crossed');
       resetWarning();
     }
   }
@@ -577,6 +882,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     entry.append(timeCell, eventCell, payloadCell);
     eventStreamTerminal.appendChild(entry);
+    while (eventStreamTerminal.children.length > 40) {
+      eventStreamTerminal.removeChild(eventStreamTerminal.firstElementChild);
+    }
     eventStreamTerminal.scrollTop = eventStreamTerminal.scrollHeight;
   }
 
@@ -699,12 +1007,19 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       const data = await response.json();
-      renderV2TurnData(data);
+      const vm = buildCanaryViewModel(data, inputSource, trimmed);
+      renderCanaryViewModel(vm);
+      if (!vm.failure) {
+        lastCanaryViewModel = vm;
+      }
       appendLogRow(eventTime(), 'V2_TURN_RESULT', `status=${data.status || '-'} source_turn=${sourceTurnNumber}`);
+      appendLogRow(eventTime(), 'RISK_RESULT', `current=${valueOrDash(vm.risk.current_risk)} peak=${valueOrDash(vm.risk.peak_risk)}`);
+      appendLogRow(eventTime(), 'CANARY_RESULT', `status=${valueOrDash(vm.canary.status)} action=${valueOrDash(vm.canary.action)}`);
     } catch (err) {
       console.error('Pipeline execution error:', err);
       alert(`Pipeline error: ${err.message}`);
       setText(inputState, 'ERROR');
+      renderCanaryViewModel(buildCanaryViewModel({ error: { kind: 'REQUEST_FAILED', message: err.message } }, inputSource, trimmed));
     } finally {
       btnAnalyze.disabled = false;
       btnAnalyze.textContent = 'EXECUTE ANALYSIS';
@@ -772,9 +1087,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const failure = data.error && data.error.kind ? data.error.kind : 'STT_FAILED';
         setSTTStatus(failure);
         appendLogRow(eventTime(), 'STT_FAILED', `kind=${failure}`);
+        renderCanaryViewModel(buildSTTFailureViewModel(data.error || { kind: failure }, sttLanguage?.value || 'auto'));
         return;
       }
       setSTTStatus('TRANSCRIBED');
+      lastSTTMeta = {
+        status: data.status,
+        provider: data.provider,
+        requested_model: data.requested_model,
+        language_hint: data.language_hint,
+        audio_bytes: data.audio_bytes,
+      };
       inputText.value = data.transcript;
       appendLogRow(eventTime(), 'STT_TRANSCRIBED', `language=${data.language_hint || 'auto'} bytes=${data.audio_bytes || 0}`);
       await submitTurnText(data.transcript, 'VOICE');
@@ -782,6 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('STT execution error:', err);
       setSTTStatus('STT ERROR');
       appendLogRow(eventTime(), 'STT_FAILED', err.message || 'STT error');
+      renderCanaryViewModel(buildSTTFailureViewModel({ kind: 'REQUEST_FAILED', message: err.message }, sttLanguage?.value || 'auto'));
     } finally {
       btnRecordStart.disabled = false;
       btnRecordStop.disabled = true;

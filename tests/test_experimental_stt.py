@@ -252,6 +252,51 @@ class TestExperimentalSTT(unittest.TestCase):
         self.assertIn("/api/v1/experimental/stt", source)
         self.assertNotIn("/api/v1/analyze',", source)
 
+    def test_canary_view_model_uses_real_rest_fields_without_scores(self):
+        source = (ROOT / "frontend" / "visualizer" / "app.js").read_text(encoding="utf-8")
+        html = (ROOT / "frontend" / "visualizer" / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("function buildCanaryViewModel", source)
+        self.assertIn("renderCanaryViewModel(vm)", source)
+        self.assertIn("RISK ≠ CANARY AUTHORITY", html)
+        for field in (
+            "source_turn_number",
+            "applied_m2_turn_number",
+            "representational_losses",
+            "normalized_m2_summary",
+            "policy_event",
+            "canary_authorization",
+        ):
+            self.assertIn(field, source)
+        self.assertNotIn("scamScore", source)
+        self.assertNotIn("scam_score", source)
+        self.assertNotIn("0-100", html)
+
+    def test_canary_redesign_renders_failure_as_not_new_safety_verdict(self):
+        source = (ROOT / "frontend" / "visualizer" / "app.js").read_text(encoding="utf-8")
+        html = (ROOT / "frontend" / "visualizer" / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("NO ASSESSMENT", source)
+        self.assertIn("PRESERVED STATE", source)
+        self.assertIn("ANALYSIS UNAVAILABLE", html)
+        self.assertIn("STATE UNCHANGED/PRESERVED", html)
+        self.assertIn("NOT A NEW SAFETY VERDICT", html)
+        self.assertIn("buildSTTFailureViewModel", source)
+        self.assertIn("renderCanaryViewModel(buildSTTFailureViewModel", source)
+        self.assertIn("failureBanner?.classList.toggle", source)
+        self.assertIn("updateRiskRail(vm.failure ? null : currentRisk)", source)
+
+    def test_canary_redesign_final_polish_keeps_real_state_boundaries(self):
+        source = (ROOT / "frontend" / "visualizer" / "app.js").read_text(encoding="utf-8")
+        css = (ROOT / "frontend" / "visualizer" / "styles.css").read_text(encoding="utf-8")
+
+        self.assertIn("setText(riskDominant, 'NO ASSESSMENT')", source)
+        self.assertIn("const dominantRiskLabel = hasPreservedRisk", source)
+        self.assertIn("'PRESERVED STATE'", source)
+        self.assertIn("setText(canaryAction, vm.canary.evaluated ? valueOrDash(vm.canary.action) : '-')", source)
+        self.assertIn("[loss.source_value, loss.disposition, loss.source_enum]", source)
+        self.assertIn("grid-template-columns: 72px minmax(112px, 0.9fr) 62px minmax(150px, 1fr) 68px 142px", css)
+
 
 if __name__ == "__main__":
     unittest.main()
