@@ -2,9 +2,8 @@
 
 ## Reading this document
 
-The diagrams below describe three different systems. Only the first is the
-current production path. The second is isolated experimental research. The
-third is planned work.
+The diagrams below describe the stable M0 core, the current hackathon demo
+surface, isolated experimental research, and planned work.
 
 ## 1. Current M0 production architecture
 
@@ -105,6 +104,32 @@ INPUT_RECEIVED -> EXTRACTION_FAILED
 ```
 
 Risk and Canary do not run after extraction failure.
+
+## Current Guardian/Canary hackathon demo surface
+
+**IMPLEMENTED / TESTED routing, EXPERIMENTAL V2/STT demo path**
+
+```text
+/guardian/ protected-user UI
+        |
+        +--> POST /api/v1/experimental/v2/turn
+        |        -> Gemini V2 extractor
+        |        -> V2-to-longitudinal adapter
+        |        -> longitudinal demo risk/session state
+        |        -> Canary authorization
+        |
+        +--> POST /api/v1/experimental/stt
+                 -> browser audio blob transcription
+                 -> canonical text submission path
+
+/visualizer/ Canary diagnostic visualizer
+/ redirects to /guardian/
+```
+
+The Guardian UI is the intended human-facing demo. The visualizer remains the
+technical/diagnostic surface. The STT route accepts controlled browser audio
+for the hackathon demo; it is not direct phone-call interception, carrier
+integration, or production telephony.
 
 ## 2. Experimental research architecture
 

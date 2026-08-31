@@ -25,12 +25,13 @@ access. Guardian Call focuses on that decision window."
 
 **ON SCREEN**
 
-Show the GC-80 operator workstation at rest. Do not show unsupported audio or
-phone-carrier integration.
+Show `/guardian/` as the protected-user surface and `/visualizer/` as the
+technical Canary/observability surface. Do not show unsupported phone-carrier
+integration.
 
 ## 2. Sophisticated scam example
 
-**IMPLEMENTED M0 text path, subject to live Gemini availability**
+**IMPLEMENTED demo text path, subject to live Gemini availability**
 
 Use a synthetic OTP scenario such as:
 
@@ -49,7 +50,10 @@ No real OTP, account, name, phone number, or personal information may be used.
 
 **IMPLEMENTED / TESTED**
 
-Execute the text through `/api/v1/analyze`. Point out the real signal rail:
+Execute the text through the Guardian UI, which submits to
+`/api/v1/experimental/v2/turn`. The older `/api/v1/analyze` M0 endpoint remains
+useful for core regression, but it is not the primary protected-user demo
+surface. Point out the Canary boundary in the technical visualizer:
 
 ```text
 CALL -> GEMINI -> RISK -> CANARY -> ACTION
@@ -57,9 +61,8 @@ CALL -> GEMINI -> RISK -> CANARY -> ACTION
 
 **NARRATION**
 
-"Gemini extracts factual M0 signals. It does not decide whether this is fraud
-and it cannot authorize an intervention. The deterministic RiskEngine evaluates
-the structured evidence and gives explicit reasons."
+"Gemini extracts structured evidence. It does not authorize an intervention.
+Canary remains the authority boundary for user-facing warning behavior."
 
 Call out `identity_verified=false`, OTP involvement, requested action, urgency,
 and the resulting explainable risk only if those values are present in the real
@@ -236,8 +239,10 @@ expected human-curated ground truth ->
 frozen comparator. Only after reviewing that evidence should the project design
 future risk policy or revisit multi-turn sessions."
 
-Mention separately as planned: session semantics, controlled audio, independent
-identity assurance, Trusted Circle integration, and deployment hardening.
+Mention separately as planned or limited: direct telephony integration,
+independent identity assurance, Trusted Circle delivery, production
+persistence, and deployment hardening. Browser microphone STT is a controlled
+hackathon demo path, not phone-call interception.
 
 M2 work is preserved outside `main` on `wip/m2-paused-session` and is not part
 of the demo's implemented path.

@@ -313,6 +313,26 @@ async def stream_events():
     )
 
 
+# Mount human-facing Guardian static files separately from the frozen visualizer.
+guardian_frontend_dir = root_dir / "frontend" / "guardian"
+if guardian_frontend_dir.exists():
+    @app.get("/guardian/", response_class=HTMLResponse, include_in_schema=False)
+    def guardian_index():
+        return HTMLResponse(
+            (guardian_frontend_dir / "index.html").read_text(encoding="utf-8")
+        )
+
+    @app.get("/guardian", include_in_schema=False)
+    def guardian_redirect():
+        return RedirectResponse(url="/guardian/")
+
+    app.mount(
+        "/guardian",
+        StaticFiles(directory=str(guardian_frontend_dir), html=True),
+        name="guardian",
+    )
+
+
 # Mount frontend visualizer static files
 frontend_dir = root_dir / "frontend" / "visualizer"
 if frontend_dir.exists():
@@ -320,7 +340,7 @@ if frontend_dir.exists():
 
     @app.get("/", include_in_schema=False)
     def root_redirect():
-        return RedirectResponse(url="/visualizer/")
+        return RedirectResponse(url="/guardian/")
 
 
 if __name__ == "__main__":

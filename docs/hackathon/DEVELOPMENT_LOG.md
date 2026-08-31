@@ -3,8 +3,8 @@
 ## Evidence and status
 
 This record follows the first-parent history of `main`. Dates, commits, and tags
-come from Git. Capability claims come from source and tests at checkpoint
-`guardian-m1.2a`.
+come from Git. Earlier capability claims were written at checkpoint
+`guardian-m1.2a`; later entries record the hackathon demo work that followed.
 
 Status terms have fixed meanings: **IMPLEMENTED**, **TESTED**, **EXPERIMENTAL**,
 and **PLANNED**. The 105-test count is software regression coverage, not Gemini
@@ -435,3 +435,49 @@ Freeze the comparator before adding a live provider path.
 
 **PLANNED:** M1.2B may produce observed V2 signals with Gemini and feed the
 unchanged comparator. No live V2 benchmark results currently exist.
+
+## M2.5 / STT / Canary UI checkpoint
+
+**Commits:** `a789674`, `8516384`, `01272cc`, `bcfffa2`
+**Tags:** `guardian-m2.5`, `guardian-m2.5a-money-calibration`,
+`guardian-m2.5-live`, `guardian-stt-live`, `guardian-canary-ui`
+**Status:** IMPLEMENTED / TESTED demo path, EXPERIMENTAL semantics
+
+### OBJECTIVE
+
+Stabilize a hackathon demo path that can accept controlled browser text or
+browser microphone input, run the experimental V2 turn flow, adapt supported
+acts into longitudinal demo state, and preserve Canary as the warning authority.
+
+### IMPLEMENTATION
+
+The FastAPI app exposes `/api/v1/experimental/v2/turn` and
+`/api/v1/experimental/stt`. The Canary visualizer remains available at
+`/visualizer/`.
+
+### LIMITATIONS
+
+This is not direct phone-call interception, carrier integration, production
+identity assurance, production persistence, or a hardened public API.
+
+## Guardian primary UI reconciliation
+
+**Status:** IMPLEMENTED locally / pending reconciliation commit
+
+### OBJECTIVE
+
+Make the currently intended protected-user Guardian UI reproducible from the
+repository and keep `/visualizer/` as the technical Canary diagnostic surface.
+
+### IMPLEMENTATION
+
+The local reconciliation work serves `/guardian/`, redirects `/` to
+`/guardian/`, and adds Guardian/Canary navigation between `/guardian/` and
+`/visualizer/`. Deployment files prepare a conservative Cloud Run container
+build from the repository.
+
+### LIMITATIONS
+
+This entry does not prove parity with any already-running Cloud Run revision.
+That evidence requires deployment metadata or a fresh deployment from an exact
+Git SHA.

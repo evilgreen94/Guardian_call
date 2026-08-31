@@ -7,6 +7,15 @@
 - **EXPERIMENTAL**: implemented for research but isolated from production.
 - **PLANNED**: proposed direction with no claim of current implementation.
 
+## Reconciliation note
+
+This document originally described checkpoint `guardian-m1.2a` at commit
+`f058fa6`. The current hackathon demo has since advanced to a protected-user
+Guardian UI at `/guardian/`, a technical Canary visualizer at `/visualizer/`,
+an experimental V2 turn endpoint, and controlled browser STT. The historical
+105-test count below remains evidence for the older checkpoint only; it is not
+the current regression count and is not model accuracy.
+
 This document describes checkpoint `guardian-m1.2a` at commit `f058fa6`.
 The complete software regression suite at that checkpoint contains 105 passing
 tests. That number measures engineering coverage, not model accuracy.
@@ -58,6 +67,10 @@ consequential action is allowed under policy. Current M0 processing asks Canary
 whether `warn_user` is authorized. A warning action cannot execute when Canary
 denies it.
 
+The current demo presents Guardian and Canary as two browser surfaces:
+`/guardian/` is the intended protected-user UI and `/visualizer/` is the
+technical/diagnostic visualizer. The root route `/` redirects to `/guardian/`.
+
 ## Current production architecture
 
 **IMPLEMENTED / TESTED**
@@ -91,6 +104,11 @@ USER_WARNING
 
 Denied actions stop at `ACTION_DENIED`. Extraction failures stop before risk
 and Canary evaluation.
+
+The Guardian UI uses the experimental demo endpoints
+`/api/v1/experimental/v2/turn` and `/api/v1/experimental/stt`. Browser STT is a
+controlled hackathon input path, not direct cellular call capture or production
+telephony integration.
 
 ## What M0 demonstrates
 
@@ -149,9 +167,10 @@ manipulation. All 57 cases have human-curated V2 mappings. V2 stores categories,
 not OTPs, passwords, card values, recovery codes, seed phrases, private keys,
 addresses, government identifiers, or transcript text.
 
-V2 is not exported through the production package and is not connected to
-Gemini, GuardianPipeline, RiskEngine, Canary, FastAPI, or the frontend. There
-is no RiskEngineV2.
+V2 is not exported through the public production package. The current
+hackathon demo does expose an experimental Gemini V2 turn endpoint and adapts
+supported V2 acts into the longitudinal demo path for Canary authorization.
+There is still no production RiskEngineV2.
 
 ## Offline extraction evaluator
 
@@ -178,9 +197,11 @@ They are not observed model failures.
   fully local or private.
 - M0's signal vocabulary is narrower than the documented threat model.
 - Caller identity is not independently verified.
-- V2 extraction by Gemini is not implemented.
-- Live V2 benchmark results do not exist.
-- Audio and direct phone-call integration are not implemented.
+- V2 extraction by Gemini is implemented only as an experimental demo path.
+- Live V2 benchmark results are separate evidence and must not be presented as
+  production accuracy.
+- Browser microphone STT is implemented for the demo; direct phone-call
+  integration is not implemented.
 - Trusted Circle delivery is not integrated into the current M0 pipeline.
 - RiskEngineV2 does not exist.
 

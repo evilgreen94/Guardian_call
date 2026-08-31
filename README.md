@@ -8,6 +8,20 @@ Agentic protection against conversational phone scams.
 2. Coding agents must also follow `AGENTS.md`.
 3. Current milestone: **M0 — Text Detection**.
 
+## Current demo surfaces
+
+- `/guardian/` is the intended protected-user demo UI.
+- `/visualizer/` is the technical Canary/observability visualizer.
+- `/` redirects to `/guardian/`.
+
+The Guardian UI uses the current experimental demo endpoints:
+
+- `/api/v1/experimental/v2/turn`
+- `/api/v1/experimental/stt`
+
+The STT path is a controlled browser/demo path, not direct phone-call
+interception or production telephony integration.
+
 ## Current target
 
 ```text

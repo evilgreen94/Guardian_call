@@ -2,8 +2,9 @@
 
 ## Scope of these claims
 
-This document describes checkpoint `guardian-m1.2a`. It distinguishes current
-M0 production behavior from isolated experimental V2 work and future plans. It
+This document originally described checkpoint `guardian-m1.2a`. The current
+hackathon demo now includes a protected-user Guardian UI, a Canary diagnostic
+visualizer, an experimental V2 turn endpoint, and controlled browser STT. It
 does not claim certified security, regulatory compliance, production-grade
 privacy, or protection against every scam.
 
@@ -119,12 +120,24 @@ Production M0 also makes extraction failure explicit through
 `EXTRACTION_FAILED`. It does not fabricate replacement signals or continue to
 RiskEngine and Canary.
 
-## Experimental isolation
+## Current demo surfaces and experimental isolation
+
+The current browser demo serves:
+
+- `/guardian/` as the protected-user Guardian UI;
+- `/visualizer/` as the technical Canary/observability visualizer;
+- `/api/v1/experimental/v2/turn` for the experimental V2 turn path;
+- `/api/v1/experimental/stt` for controlled browser-audio transcription.
+
+The STT route receives browser-recorded audio blobs in the demo. It is not a
+phone-carrier integration, not direct cellular-call capture, and not a
+production telephony privacy model.
 
 V2 and M1.2A live under `guardian.experimental` and are not exported through
-the production package. They do not enter the M0 extractor, pipeline,
-RiskEngine, Canary, FastAPI, SSE events, or frontend. This prevents experimental
-semantics and impact labels from silently changing user-facing behavior.
+the production package. The hackathon demo intentionally exposes an
+experimental V2 turn route and adapts supported V2 acts into the demo
+longitudinal/Canary path. This should be described as experimental demo
+integration, not as a hardened production API or RiskEngineV2.
 
 M2 session work remains outside `main` on `wip/m2-paused-session`. It must not be
 used as evidence of current privacy, retention, or session behavior.
@@ -143,7 +156,8 @@ used as evidence of current privacy, retention, or session behavior.
 - V2 privacy properties apply to V2 structured mappings and evaluator output,
   not automatically to future provider prompts or production logs.
 - No live V2 extraction benchmark exists.
-- No audio or direct telephony privacy model exists because those paths are not
+- Browser microphone STT exists for the controlled demo, but no direct
+  telephony privacy model exists because phone/carrier integration is not
   implemented.
 
 ## Requirements before broader deployment

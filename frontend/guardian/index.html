@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guardian Call</title>
+  <link rel="stylesheet" href="/guardian/styles.css">
+</head>
+<body>
+  <nav class="surface-nav" aria-label="Product surfaces">
+    <a href="/guardian/" aria-current="page">Guardian</a>
+    <span aria-hidden="true">|</span>
+    <a href="/visualizer/">Canary</a>
+  </nav>
+
+  <main class="guardian-shell" data-state="READY">
+    <section class="presence" aria-live="polite">
+      <p class="signature">Protected by CANARY</p>
+      <h1><span>Guardian</span><span>Call</span></h1>
+
+      <div class="living-core" id="living-core" aria-hidden="true">
+        <div class="presence-mark">
+          <span class="presence-mark-core"></span>
+        </div>
+      </div>
+
+      <section class="human-state" aria-labelledby="guardian-headline">
+        <p id="state-label">Protection active</p>
+        <h2 id="guardian-headline">You can keep talking normally.</h2>
+        <p id="guardian-detail">Guardian stays with you while you talk.</p>
+      </section>
+
+      <section class="warning-panel" id="warning-panel" hidden>
+        <p id="preview-disclaimer" class="preview-disclaimer" hidden>DEMO PREVIEW</p>
+        <button type="button" id="btn-ack-warning">I understand</button>
+      </section>
+    </section>
+
+    <section class="controls" aria-label="Guardian input controls">
+      <div class="primary-control">
+        <button type="button" id="btn-record-start">Start listening</button>
+        <button type="button" id="btn-record-stop" disabled hidden>Stop and check</button>
+      </div>
+
+      <details class="demo-input">
+        <summary>Demo controls</summary>
+        <label class="demo-field" for="language-hint">
+          <span>Speech language</span>
+          <select id="language-hint" aria-label="Speech language hint">
+            <option value="auto">Auto</option>
+            <option value="es">ES</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+        <textarea id="manual-text" spellcheck="false" placeholder="Type a synthetic call turn for demo testing."></textarea>
+        <div class="preview-panel" aria-label="Visual demo preview controls">
+          <p>Visual/demo preview only. No speech transcription or real protection decision is created.</p>
+          <div class="preview-actions">
+            <button type="button" data-preview-state="PROTECTED_NO_INTERVENTION">Protected</button>
+            <button type="button" data-preview-state="LISTENING">Listening</button>
+            <button type="button" data-preview-state="CHECKING">Checking</button>
+            <button type="button" data-preview-state="CAUTION">Caution</button>
+            <button type="button" data-preview-state="INTERVENTION">Intervention</button>
+            <button type="button" data-preview-state="ANALYSIS_UNAVAILABLE">Unavailable</button>
+          </div>
+          <div class="preview-actions">
+            <button type="button" id="btn-preview-mic">Preview mic response</button>
+            <button type="button" id="btn-preview-mic-stop" disabled>Stop mic preview</button>
+            <button type="button" id="btn-preview-cue">Preview intervention cue</button>
+          </div>
+        </div>
+        <div class="demo-actions">
+          <button type="button" id="btn-submit-text">Check typed turn</button>
+          <button type="button" id="btn-reset" class="quiet">Reset session</button>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script src="/guardian/app.js"></script>
+</body>
+</html>
