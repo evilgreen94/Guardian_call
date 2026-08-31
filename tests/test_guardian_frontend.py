@@ -32,8 +32,8 @@ class TestGuardianFrontend(unittest.TestCase):
         self.assertEqual(canary.status_code, 200)
         self.assertIn("Guardian Call", guardian.text)
         self.assertIn("Guardian Call", guardian_index.text)
-        self.assertIn("Protected by CANARY", guardian.text)
-        self.assertIn("CANARY", canary.text)
+        self.assertIn("Protected by KERN-3", guardian.text)
+        self.assertIn("KERN-3", canary.text)
         self.assertNotEqual(guardian.text, canary.text)
 
     def test_root_routes_to_guardian_primary_surface(self):
@@ -65,14 +65,18 @@ class TestGuardianFrontend(unittest.TestCase):
         self.assertIn("min-height: 24px", css)
         self.assertIn(".surface-switch a:focus-visible", css)
 
-    def test_guardian_uses_only_existing_stt_and_v2_turn_contracts(self):
+    def test_guardian_uses_canonical_m0_analysis_contract_for_text(self):
         source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")
 
         self.assertIn("/api/v1/experimental/stt", source)
-        self.assertIn("/api/v1/experimental/v2/turn", source)
-        self.assertIn("session_id: liveSessionId", source)
-        self.assertIn("source_turn_number: sourceTurnNumber", source)
-        self.assertNotIn("/api/v1/analyze", source)
+        self.assertIn("/api/v1/analyze", source)
+        submit_section = source[
+            source.index("async function submitCanonicalText"):
+            source.index("async function transcribeAudio")
+        ]
+        self.assertNotIn("/api/v1/experimental/v2/turn", submit_section)
+        self.assertNotIn("session_id: liveSessionId", submit_section)
+        self.assertNotIn("source_turn_number: sourceTurnNumber", submit_section)
 
     def test_manual_and_stt_text_converge_to_one_submit_function(self):
         source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")
@@ -80,7 +84,7 @@ class TestGuardianFrontend(unittest.TestCase):
         self.assertIn("async function submitCanonicalText", source)
         self.assertIn("await submitCanonicalText(manualText.value, 'TEXT')", source)
         self.assertIn("await submitCanonicalText(data.transcript, 'VOICE')", source)
-        self.assertEqual(source.count("fetch('/api/v1/experimental/v2/turn'"), 1)
+        self.assertEqual(source.count("fetch('/api/v1/analyze'"), 1)
 
     def test_not_requested_cannot_create_intervention(self):
         source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")
@@ -144,30 +148,32 @@ class TestGuardianFrontend(unittest.TestCase):
         self.assertIn("Guardian stays with you while you talk.", html)
         self.assertIn("Demo controls", html)
 
-    def test_living_element_uses_amplitude_without_extra_audio_transport(self):
+    def test_living_element_uses_canvas_soft_field_without_extra_audio_transport(self):
         source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")
         html = (GUARDIAN_DIR / "index.html").read_text(encoding="utf-8")
         css = (GUARDIAN_DIR / "styles.css").read_text(encoding="utf-8")
+        visual_source = (GUARDIAN_DIR / "guardian-visual.js").read_text(encoding="utf-8")
 
-        self.assertFalse((GUARDIAN_DIR / "presence.js").exists())
+        self.assertIn("id=\"guardian-visual\"", html)
+        self.assertIn("class=\"guardian-visual\"", html)
+        self.assertIn("/guardian/guardian-visual.js", html)
         self.assertIn("class=\"presence-mark\"", html)
         self.assertIn("class=\"presence-mark-core\"", html)
         self.assertNotIn("presence-field", html)
         self.assertNotIn("presence-atmosphere", html)
-        self.assertNotIn("presence-fallback", html)
         self.assertNotIn("presence-asset", html)
         self.assertNotIn("decoding=\"async\"", html)
-        self.assertNotIn("presence-canvas", html)
-        self.assertNotIn("<canvas", html)
         self.assertNotIn("<svg", html)
         self.assertNotIn("<feTurbulence", html)
         self.assertNotIn("<feDisplacementMap", html)
         self.assertNotIn("<feGaussianBlur", html)
-        self.assertNotIn("/guardian/presence.js", html)
         self.assertIn("createAnalyser", source)
         self.assertIn("function setPresenceState", source)
         self.assertIn("function setPresenceAmplitude", source)
         self.assertIn("function triggerPresenceIntervention", source)
+        self.assertIn("guardianVisual?.setState(nextState)", source)
+        self.assertIn("guardianVisual?.setActivity(value)", source)
+        self.assertIn("guardianVisual?.triggerSignal()", source)
         self.assertNotIn("PRESENCE_ASSET", source)
         self.assertNotIn("showPresenceAsset", source)
         self.assertNotIn("preloadPresenceAssets", source)
@@ -180,7 +186,34 @@ class TestGuardianFrontend(unittest.TestCase):
         self.assertNotIn("GuardianPresence", source)
         self.assertNotIn("WebGLRenderer", source)
         self.assertNotIn("three", source.lower())
+        self.assertIn("getContext('2d'", visual_source)
+        self.assertIn("buildField", visual_source)
+        self.assertIn("mulberry32(0x51A7E11)", visual_source)
+        self.assertIn("document.createElement('canvas')", visual_source)
+        self.assertIn("createRadialGradient", visual_source)
+        self.assertIn("quadraticCurveTo", visual_source)
+        self.assertIn("setState(nextState)", visual_source)
+        self.assertIn("setActivity(value)", visual_source)
+        self.assertIn("triggerSignal(origin)", visual_source)
+        self.assertIn("guardianVisualDebug", visual_source)
+        self.assertIn("prefers-reduced-motion: reduce", visual_source)
+        self.assertIn("canvas2d-sentient-network-orb", visual_source)
+        self.assertIn("originZ", visual_source)
+        self.assertIn("drawClusterTissue", visual_source)
+        self.assertIn("drawLinks", visual_source)
+        self.assertIn("drawNodes", visual_source)
+        self.assertNotIn("getContext('webgl'", visual_source)
+        self.assertNotIn("WebGLRenderingContext", visual_source)
+        self.assertNotIn("gl_PointCoord", visual_source)
+        self.assertNotIn("gl.drawArrays", visual_source)
         self.assertIn(".presence-mark", css)
+        self.assertIn(".guardian-visual", css)
+        self.assertIn(".living-core.visual-ready .guardian-visual", css)
+        self.assertIn("display: none", css)
+        self.assertIn(".living-core.visual-fallback .presence-mark", css)
+        self.assertIn(".living-core.visual-fallback .guardian-visual", css)
+        self.assertIn("background: transparent", css)
+        self.assertNotIn("radial-gradient(circle at 52% 48%", css)
         self.assertIn(".presence-mark::before", css)
         self.assertIn(".presence-mark::after", css)
         self.assertIn(".presence-mark-core", css)
@@ -192,12 +225,42 @@ class TestGuardianFrontend(unittest.TestCase):
         self.assertNotIn("--presence-field", css)
         self.assertNotIn("object-fit: contain", css)
         self.assertNotIn("data-asset-status", css)
-        self.assertNotIn("presence-canvas", css)
         self.assertNotIn("living-signal", css)
         self.assertNotIn("filter=\"url", html)
         self.assertNotIn("WebGLRenderer", css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", css)
         self.assertEqual(source.count("audio_base64:"), 1)
+
+    def test_soft_field_visual_supports_required_states_and_fallback(self):
+        source = (GUARDIAN_DIR / "guardian-visual.js").read_text(encoding="utf-8")
+        app_source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")
+
+        for state in (
+            "READY",
+            "LISTENING",
+            "CHECKING",
+            "PROTECTED_NO_INTERVENTION",
+            "CAUTION",
+            "INTERVENTION",
+            "ANALYSIS_UNAVAILABLE",
+        ):
+            self.assertIn(state, source)
+        self.assertIn("window.createGuardianVisual", source)
+        self.assertIn("return createCssFallback(canvas)", source)
+        self.assertIn("visualRenderer = 'canvas2d-sentient-network-orb'", source)
+        self.assertIn("visualRenderer = 'css-fallback'", source)
+        self.assertIn("visual-fallback", app_source)
+        self.assertIn("prefers-reduced-motion: reduce", source)
+        self.assertIn("const field = buildField()", source)
+        self.assertIn("requestAnimationFrame(render)", source)
+
+    def test_nebula_visual_review_mode_is_query_param_only(self):
+        source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")
+        html = (GUARDIAN_DIR / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("guardianVisualReview", source)
+        self.assertIn("startVisualReviewMode", source)
+        self.assertNotIn("guardianVisualReview", html)
 
     def test_conversation_mode_reduces_branding_and_avoids_duplicate_warning(self):
         source = (GUARDIAN_DIR / "app.js").read_text(encoding="utf-8")

@@ -3,7 +3,7 @@
 ## Scope of these claims
 
 This document originally described checkpoint `guardian-m1.2a`. The current
-hackathon demo now includes a protected-user Guardian UI, a Canary diagnostic
+hackathon demo now includes a protected-user Guardian UI, a KERN-3 diagnostic
 visualizer, an experimental V2 turn endpoint, and controlled browser STT. It
 does not claim certified security, regulatory compliance, production-grade
 privacy, or protection against every scam.
@@ -34,7 +34,7 @@ local and must not be described as private on-device transcript processing.
 Provider handling, transport, retention, deployment configuration, and user
 consent require separate production review beyond this repository.
 
-The FastAPI response can include structured signals, risk reasons, Canary
+The FastAPI response can include structured signals, risk reasons, KERN-3
 decisions, warnings, and event payloads. Extraction failures include an error
 type and message. These surfaces must be reviewed before any real-user or
 production deployment.
@@ -95,8 +95,8 @@ Tests enforce that:
 - high and critical M0 states do authorize `warn_user`;
 - transcript sharing is denied by default policy;
 - autonomous call termination requires user involvement in the policy model;
-- extraction failure stops before risk, Canary, and warning execution;
-- `USER_WARNING` follows an allowed Canary decision.
+- extraction failure stops before risk, KERN-3 policy, and warning execution;
+- `USER_WARNING` follows an allowed KERN-3 decision.
 
 Defining a policy type is not the same as integrating a feature. Trusted Circle
 delivery, autonomous telephony control, and production notification channels are
@@ -118,14 +118,14 @@ risk assessment.
 
 Production M0 also makes extraction failure explicit through
 `EXTRACTION_FAILED`. It does not fabricate replacement signals or continue to
-RiskEngine and Canary.
+RiskEngine and KERN-3 policy.
 
 ## Current demo surfaces and experimental isolation
 
 The current browser demo serves:
 
 - `/guardian/` as the protected-user Guardian UI;
-- `/visualizer/` as the technical Canary/observability visualizer;
+- `/visualizer/` as the technical KERN-3 observability visualizer;
 - `/api/v1/experimental/v2/turn` for the experimental V2 turn path;
 - `/api/v1/experimental/stt` for controlled browser-audio transcription.
 
@@ -136,7 +136,7 @@ production telephony privacy model.
 V2 and M1.2A live under `guardian.experimental` and are not exported through
 the production package. The hackathon demo intentionally exposes an
 experimental V2 turn route and adapts supported V2 acts into the demo
-longitudinal/Canary path. This should be described as experimental demo
+longitudinal/KERN-3 path. This should be described as experimental demo
 integration, not as a hardened production API or RiskEngineV2.
 
 M2 session work remains outside `main` on `wip/m2-paused-session`. It must not be
@@ -155,7 +155,7 @@ used as evidence of current privacy, retention, or session behavior.
 - M0's schema omits several sensitive asset and action categories.
 - V2 privacy properties apply to V2 structured mappings and evaluator output,
   not automatically to future provider prompts or production logs.
-- No live V2 extraction benchmark exists.
+- No reviewed aggregate V2 extraction result is claimed as production accuracy.
 - Browser microphone STT exists for the controlled demo, but no direct
   telephony privacy model exists because phone/carrier integration is not
   implemented.

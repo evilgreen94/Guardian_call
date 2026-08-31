@@ -10,15 +10,16 @@
   <nav class="surface-nav" aria-label="Product surfaces">
     <a href="/guardian/" aria-current="page">Guardian</a>
     <span aria-hidden="true">|</span>
-    <a href="/visualizer/">Canary</a>
+    <a href="/visualizer/">KERN-3</a>
   </nav>
 
   <main class="guardian-shell" data-state="READY">
     <section class="presence" aria-live="polite">
-      <p class="signature">Protected by CANARY</p>
+      <p class="signature">Protected by KERN-3</p>
       <h1><span>Guardian</span><span>Call</span></h1>
 
       <div class="living-core" id="living-core" aria-hidden="true">
+        <canvas class="guardian-visual" id="guardian-visual" width="640" height="640"></canvas>
         <div class="presence-mark">
           <span class="presence-mark-core"></span>
         </div>
@@ -77,6 +78,7 @@
     </section>
   </main>
 
+  <script src="/guardian/guardian-visual.js"></script>
   <script src="/guardian/app.js"></script>
 </body>
 </html>

@@ -35,6 +35,21 @@ class TestGeminiSignalExtractor(unittest.TestCase):
         """Verify the canonical default model is gemini-3.6-flash."""
         self.assertEqual(DEFAULT_GEMINI_MODEL, "gemini-3.6-flash")
 
+    def test_m0_schema_uses_standard_json_schema_contract(self) -> None:
+        """Verify the provider request uses the current JSON Schema contract."""
+        self.assertEqual(SCAM_SIGNALS_JSON_SCHEMA["type"], "object")
+        self.assertFalse(SCAM_SIGNALS_JSON_SCHEMA["additionalProperties"])
+        self.assertEqual(
+            SCAM_SIGNALS_JSON_SCHEMA["properties"]["identity_claim"]["type"],
+            ["string", "null"],
+        )
+        self.assertEqual(
+            SCAM_SIGNALS_JSON_SCHEMA["properties"]["requested_action"]["type"],
+            ["string", "null"],
+        )
+        self.assertIn("identity_claim", SCAM_SIGNALS_JSON_SCHEMA["required"])
+        self.assertIn("requested_action", SCAM_SIGNALS_JSON_SCHEMA["required"])
+
     def test_missing_api_key_raises_typed_extraction_error(self) -> None:
         """Verify instantiating without API key raises typed ExtractionError."""
         # Clear env vars temporarily
@@ -103,6 +118,8 @@ class TestGeminiSignalExtractor(unittest.TestCase):
         call_kwargs = mock_client.models.generate_content.call_args.kwargs
         self.assertEqual(call_kwargs["model"], DEFAULT_GEMINI_MODEL)
         self.assertIn("Tell me the six-digit code", call_kwargs["contents"])
+        config = call_kwargs["config"]
+        self.assertEqual(config.response_json_schema, SCAM_SIGNALS_JSON_SCHEMA)
 
     def test_legitimate_otp_extraction_success(self) -> None:
         """Verify extraction of legitimate in-app OTP guidance."""

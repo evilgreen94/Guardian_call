@@ -387,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setText(canaryDecision, 'DENY');
     setClass(canaryDecision, 'state', 'state-deny');
     setText(canaryRiskLevel, '-');
-    setText(canaryReason, 'No Canary evaluation recorded.');
+    setText(canaryReason, 'No KERN-3 evaluation recorded.');
   }
 
   function resetWarning() {
@@ -524,11 +524,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderRisk(riskAssessment) {
     if (!riskAssessment) return;
-    const level = riskAssessment.level || 'NORMAL';
-    setText(pipeRiskState, level);
-    setClass(pipeRiskState, 'state', classForRisk(level));
-    setText(riskLevelReadout, level);
-    setClass(riskLevelReadout, 'state', classForRisk(level));
+    const currentRisk = riskAssessment.current_risk || riskAssessment.level || 'NORMAL';
+    const peakRisk = riskAssessment.peak_risk || currentRisk;
+    setText(pipeRiskState, currentRisk);
+    setClass(pipeRiskState, 'state', classForRisk(currentRisk));
+    setText(riskLevelReadout, currentRisk);
+    setClass(riskLevelReadout, 'state', classForRisk(currentRisk));
+    setText(riskDominant, currentRisk);
+    setClass(riskDominant, 'state risk-dominant-value', classForRisk(currentRisk));
+    setText(vmCurrentRisk, currentRisk);
+    setText(vmPeakRisk, peakRisk);
+    updateRiskRail(currentRisk);
     renderReasons(riskAssessment.reasons || []);
     setText(contributingSignals, (riskAssessment.contributing_signals || []).join('  ') || '-');
   }
@@ -916,14 +922,14 @@ document.addEventListener('DOMContentLoaded', () => {
       setRailPoint('risk');
       renderRisk(payload);
     } else if (evt.event_type === 'CANARY_EVALUATION') {
-      setText(railState, 'CANARY EVALUATION');
+      setText(railState, 'KERN-3 EVALUATION');
       setRailPoint('canary');
       renderCanary(payload);
     } else if (evt.event_type === 'ACTION_ALLOWED') {
-      setText(railState, 'CANARY ALLOW - BOUNDARY CROSSED');
+      setText(railState, 'KERN-3 ALLOW - BOUNDARY CROSSED');
       setRailPoint('crossed');
     } else if (evt.event_type === 'ACTION_DENIED') {
-      setText(railState, 'CANARY DENY - BOUNDARY STOP');
+      setText(railState, 'KERN-3 DENY - BOUNDARY STOP');
       setRailPoint('denied');
       setText(pipeActionState, '-');
     } else if (evt.event_type === 'USER_WARNING') {
@@ -1014,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       appendLogRow(eventTime(), 'V2_TURN_RESULT', `status=${data.status || '-'} source_turn=${sourceTurnNumber}`);
       appendLogRow(eventTime(), 'RISK_RESULT', `current=${valueOrDash(vm.risk.current_risk)} peak=${valueOrDash(vm.risk.peak_risk)}`);
-      appendLogRow(eventTime(), 'CANARY_RESULT', `status=${valueOrDash(vm.canary.status)} action=${valueOrDash(vm.canary.action)}`);
+      appendLogRow(eventTime(), 'KERN3_RESULT', `status=${valueOrDash(vm.canary.status)} action=${valueOrDash(vm.canary.action)}`);
     } catch (err) {
       console.error('Pipeline execution error:', err);
       alert(`Pipeline error: ${err.message}`);

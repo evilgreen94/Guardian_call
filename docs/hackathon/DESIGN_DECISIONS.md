@@ -21,15 +21,16 @@ model cannot directly choose intervention severity.
 **TRADE-OFF:** M0 can reason only about concepts its schema and rules represent.
 **STATUS:** IMPLEMENTED / TESTED.
 
-## DD-02 - Canary is the action-authorization boundary
+## DD-02 - KERN-3 is the action-authorization boundary
 
 **CONTEXT:** Detecting risk and performing an intervention are different
 authorities.
-**DECISION:** Consequential actions require a `CanaryPolicy` decision; the
+**DECISION:** Consequential actions require a KERN-3 decision, internally
+implemented by `CanaryPolicy`; the
 current pipeline evaluates `warn_user`.
 **RATIONALE:** Policy, privacy, and autonomy remain explicit and testable.
 **TRADE-OFF:** A correct risk assessment cannot execute an action absent an
-applicable Canary rule.
+applicable KERN-3 policy rule.
 **STATUS:** IMPLEMENTED / TESTED.
 
 ## DD-03 - Extraction is separate from deterministic reasoning

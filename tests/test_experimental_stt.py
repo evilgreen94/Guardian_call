@@ -258,7 +258,7 @@ class TestExperimentalSTT(unittest.TestCase):
 
         self.assertIn("function buildCanaryViewModel", source)
         self.assertIn("renderCanaryViewModel(vm)", source)
-        self.assertIn("RISK ≠ CANARY AUTHORITY", html)
+        self.assertIn("RISK != KERN-3 AUTHORITY", html)
         for field in (
             "source_turn_number",
             "applied_m2_turn_number",

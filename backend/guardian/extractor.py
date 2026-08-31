@@ -16,52 +16,52 @@ EXTRACTION_SYSTEM_INSTRUCTION = (
 )
 
 SCAM_SIGNALS_JSON_SCHEMA: Dict[str, Any] = {
-    "type": "OBJECT",
+    "type": "object",
+    "additionalProperties": False,
     "properties": {
         "identity_claim": {
-            "type": "STRING",
+            "type": ["string", "null"],
             "description": "Factual entity the caller claims to represent (e.g. 'bank', 'police', 'tech_support', 'government') or null if none.",
-            "nullable": True,
         },
         "identity_verified": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether the caller's identity was proven or verified through official means during the call.",
         },
         "financial_context": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether the conversation relates to bank accounts, transfers, debts, refunds, or financial assets.",
         },
         "urgency": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether the caller uses time pressure, threats of imminent penalty, or demands immediate action.",
         },
         "secrecy_request": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether the caller asks the user not to tell family, bank staff, or authorities.",
         },
         "otp_request": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether a one-time passcode (OTP), verification code, or 2FA code is mentioned or involved.",
         },
         "password_request": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether an account password, PIN, or credential is requested.",
         },
         "transfer_request": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether the caller asks the user to send money, wire funds, or make a payment.",
         },
         "remote_access_request": {
-            "type": "BOOLEAN",
+            "type": "boolean",
             "description": "Whether the caller asks the user to install remote desktop software (e.g. AnyDesk, TeamViewer) or grant device control.",
         },
         "requested_action": {
-            "type": "STRING",
+            "type": ["string", "null"],
             "description": "The specific action the caller asks the user to take (e.g. 'share_otp', 'enter_in_app', 'share_password', 'wire_funds', 'install_software') or null if none.",
-            "nullable": True,
         },
     },
     "required": [
+        "identity_claim",
         "identity_verified",
         "financial_context",
         "urgency",
@@ -70,6 +70,7 @@ SCAM_SIGNALS_JSON_SCHEMA: Dict[str, Any] = {
         "password_request",
         "transfer_request",
         "remote_access_request",
+        "requested_action",
     ],
 }
 
@@ -149,14 +150,14 @@ class GeminiSignalExtractor:
                 config = types.GenerateContentConfig(
                     system_instruction=EXTRACTION_SYSTEM_INSTRUCTION,
                     response_mime_type="application/json",
-                    response_schema=SCAM_SIGNALS_JSON_SCHEMA,
+                    response_json_schema=SCAM_SIGNALS_JSON_SCHEMA,
                     temperature=0.0,
                 )
             except (ImportError, AttributeError):
                 config = {
                     "system_instruction": EXTRACTION_SYSTEM_INSTRUCTION,
                     "response_mime_type": "application/json",
-                    "response_schema": SCAM_SIGNALS_JSON_SCHEMA,
+                    "response_json_schema": SCAM_SIGNALS_JSON_SCHEMA,
                     "temperature": 0.0,
                 }
 

@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let lastValidatedViewModel = null;
   let lastInterventionKey = null;
   let lastHapticKey = null;
+  let guardianVisual = null;
   const reduceMotionQuery = window.matchMedia
     ? window.matchMedia('(prefers-reduced-motion: reduce)')
     : null;
@@ -71,6 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function setGuardianState(nextState) {
     if (shell) shell.dataset.state = nextState;
     setPresenceState(nextState);
+    guardianVisual?.setState(nextState);
     setText(uxState, humanStateLabel(nextState));
   }
 
@@ -79,11 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function setPresenceAmplitude(value) {
+    guardianVisual?.setActivity(value);
     if (reduceMotionQuery && reduceMotionQuery.matches) return;
     if (livingCore) livingCore.style.setProperty('--presence-energy', String(Math.max(0, Math.min(1, value || 0)).toFixed(3)));
   }
 
   function triggerPresenceIntervention() {
+    guardianVisual?.triggerSignal();
     if (!livingCore) return;
     livingCore.classList.remove('presence-intervention-pulse');
     void livingCore.offsetWidth;
@@ -191,6 +195,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return canary && canary.status === 'ALLOW' && canary.action === 'warn_user';
   }
 
+  function isM0CanaryIntervention(data) {
+    const canary = data && data.canary_decision;
+    return canary && canary.decision === 'ALLOW' && canary.action === 'warn_user';
+  }
+
   function extractActs(turn) {
     const normalized = turn && turn.normalized_m2_summary;
     const extracted = turn && turn.extracted_v2_summary && turn.extracted_v2_summary.signals;
@@ -243,7 +252,66 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  function warningFromM0Response(data) {
+    const warning = data && data.warning && data.warning.payload ? data.warning.payload : null;
+    const directives = warning && Array.isArray(warning.directives) ? warning.directives : [];
+    if (directives.some((directive) => String(directive).toUpperCase().includes('CODIGO'))) {
+      return {
+        primary: 'Do not share that code.',
+        secondary: "It's private. It's only for you.",
+      };
+    }
+    if (directives.some((directive) => String(directive).toUpperCase().includes('TRANSFER'))) {
+      return {
+        primary: 'Do not make the transfer yet.',
+        secondary: 'Pause and verify independently before sending money.',
+      };
+    }
+    if (directives.some((directive) => String(directive).toUpperCase().includes('REMOTO'))) {
+      return {
+        primary: 'Do not allow remote access.',
+        secondary: 'Do not install software or let anyone control your device.',
+      };
+    }
+    if (directives.some((directive) => String(directive).toUpperCase().includes('CONTRASENA'))) {
+      return {
+        primary: 'Do not share your credentials.',
+        secondary: 'Passwords, PINs and recovery details are only for you.',
+      };
+    }
+    return {
+      primary: 'Do not act yet.',
+      secondary: 'Pause and verify independently before continuing.',
+    };
+  }
+
   function buildGuardianViewModel(data, submittedText, source) {
+    if (data && (data.risk_assessment || data.canary_decision || data.warning || data.signals)) {
+      const risk = data.risk_assessment && data.risk_assessment.level ? data.risk_assessment.level : null;
+      const failed = !!data.error || !data.risk_assessment || !data.canary_decision;
+      const intervention = !failed && isM0CanaryIntervention(data);
+      let state = UX_STATES.PROTECTED_NO_INTERVENTION;
+      if (failed) {
+        state = UX_STATES.ANALYSIS_UNAVAILABLE;
+      } else if (intervention) {
+        state = UX_STATES.INTERVENTION;
+      } else if (risk === 'HIGH' || risk === 'CRITICAL') {
+        state = UX_STATES.CAUTION;
+      }
+      return {
+        ux_state: state,
+        input_source: source,
+        submitted_text: submittedText,
+        turn_status: data.error ? 'EXTRACTION_FAILED' : 'ANALYZED',
+        current_risk: risk,
+        canary_status: data.canary_decision ? data.canary_decision.decision : 'NOT_REQUESTED',
+        canary_action: data.canary_decision ? data.canary_decision.action : null,
+        warning: intervention ? warningFromM0Response(data) : null,
+        failure_kind: data.error ? 'EXTRACTION_FAILED' : null,
+        preserved_risk: failed && lastValidatedViewModel ? lastValidatedViewModel.current_risk : null,
+      };
+    }
+
     const turn = data && data.turn ? data.turn : null;
     const status = turn ? turn.status : (data && data.status) || 'REQUEST_FAILED';
     const risk = turn && turn.current_risk ? turn.current_risk : null;
@@ -436,14 +504,10 @@ document.addEventListener('DOMContentLoaded', () => {
     sourceTurnNumber += 1;
     renderImmediateState(UX_STATES.CHECKING, source);
     try {
-      const response = await fetch('/api/v1/experimental/v2/turn', {
+      const response = await fetch('/api/v1/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: trimmed,
-          session_id: liveSessionId,
-          source_turn_number: sourceTurnNumber,
-        }),
+        body: JSON.stringify({ text: trimmed }),
       });
       const data = await response.json();
       if (!response.ok) {
@@ -628,14 +692,53 @@ document.addEventListener('DOMContentLoaded', () => {
     renderPreviewState(UX_STATES.INTERVENTION);
   });
 
+  function startVisualReviewMode() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('guardianVisualReview')) return;
+    const states = [
+      UX_STATES.READY,
+      UX_STATES.LISTENING,
+      UX_STATES.CHECKING,
+      UX_STATES.CAUTION,
+      UX_STATES.INTERVENTION,
+      UX_STATES.PROTECTED_NO_INTERVENTION,
+      UX_STATES.ANALYSIS_UNAVAILABLE,
+    ];
+    let index = 0;
+    setInterval(() => {
+      index = (index + 1) % states.length;
+      renderPreviewState(states[index]);
+    }, 2200);
+  }
+
+  function initializeGuardianVisual() {
+    const canvas = document.getElementById('guardian-visual');
+    if (!canvas || !window.createGuardianVisual) return;
+    try {
+      guardianVisual = window.createGuardianVisual(canvas);
+      if (!guardianVisual) {
+        livingCore?.classList.add('visual-fallback');
+        return;
+      }
+      livingCore?.classList.add('visual-ready');
+      guardianVisual.start();
+    } catch (error) {
+      guardianVisual = null;
+      livingCore?.classList.add('visual-fallback');
+    }
+  }
+
   window.guardianCall = {
     UX_STATES,
     buildGuardianViewModel,
     warningFromEvidence,
     submitCanonicalText,
+    initializeGuardianVisual,
   };
 
+  initializeGuardianVisual();
   setConversationActive(false);
   renderImmediateState(UX_STATES.READY);
   showRecordingAction('start');
+  startVisualReviewMode();
 });

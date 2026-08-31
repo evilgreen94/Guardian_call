@@ -1,4 +1,8 @@
-# Demo Script — Draft
+# Demo Script - Archived Draft
+
+> Historical draft. Superseded by `docs/hackathon/DEMO_SCRIPT.md`. Public
+> branding is now KERN-3; historical Canary wording below is retained as an
+> implementation-era record and must not be used for the final recording.
 
 ## Opening
 

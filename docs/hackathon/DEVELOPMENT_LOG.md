@@ -7,8 +7,10 @@ come from Git. Earlier capability claims were written at checkpoint
 `guardian-m1.2a`; later entries record the hackathon demo work that followed.
 
 Status terms have fixed meanings: **IMPLEMENTED**, **TESTED**, **EXPERIMENTAL**,
-and **PLANNED**. The 105-test count is software regression coverage, not Gemini
-or fraud-detection accuracy.
+and **PLANNED**. Historical 105-test references belong to the named checkpoint;
+the final local freeze passes 331 software regression tests. Neither count is
+Gemini or fraud-detection accuracy. Public branding now uses KERN-3; historical
+Canary names, commits, tags, classes, fields, and events remain unchanged here.
 
 ## M0.1 - Deterministic core
 
@@ -462,19 +464,19 @@ identity assurance, production persistence, or a hardened public API.
 
 ## Guardian primary UI reconciliation
 
-**Status:** IMPLEMENTED locally / pending reconciliation commit
+**Status:** IMPLEMENTED locally / uncommitted final freeze
 
 ### OBJECTIVE
 
 Make the currently intended protected-user Guardian UI reproducible from the
-repository and keep `/visualizer/` as the technical Canary diagnostic surface.
+repository and keep `/visualizer/` as the technical KERN-3 diagnostic surface.
 
 ### IMPLEMENTATION
 
 The local reconciliation work serves `/guardian/`, redirects `/` to
-`/guardian/`, and adds Guardian/Canary navigation between `/guardian/` and
-`/visualizer/`. Deployment files prepare a conservative Cloud Run container
-build from the repository.
+`/guardian/`, and adds Guardian/KERN-3 navigation between `/guardian/` and
+`/visualizer/`. The primary Guardian UI submits typed text to `/api/v1/analyze`;
+browser STT returns a transcript that enters the same canonical text path.
 
 ### LIMITATIONS
 

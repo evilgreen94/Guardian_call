@@ -1,123 +1,49 @@
-# Guardian Call Conservative Cloud Run Deployment
+# Guardian Call Cloud Run Deployment Evidence
 
-This document prepares the first conservative Cloud Run deployment. It does
-not change application semantics and does not introduce Vertex AI.
-It does not prove parity with any currently running Cloud Run revision; that
-must be established separately from deployment metadata or a fresh deployment
-from an exact Git SHA.
+## Verified deployment identity
+
+| Field | Value |
+|---|---|
+| Google Cloud project | `guardian-call-hackathon` |
+| Cloud Run service | `guardian-stable` |
+| Region | `europe-west1` |
+| Public service URL | `https://guardian-stable-601044791798.europe-west1.run.app` |
+| Guardian UI | `/guardian/` |
+| KERN-3 visualizer | `/visualizer/` |
+| Health | `/health` |
+
+The known recovered healthy revision before the final local UI freeze was `guardian-stable-00007-zp9`. This document does not claim that the current uncommitted frontend and documentation changes are deployed, and it does not claim a later revision without fresh verification.
 
 ## Runtime
 
-- Service: `guardian-stable`
-- Application: `backend.server:app`
-- Container port: `8080`
-- Uvicorn bind: `0.0.0.0:${PORT:-8080}`
-- Frontends:
-  - `/` redirects to `/guardian/`
-  - `/guardian/` serves the protected-user Guardian demo UI
-  - `/visualizer/` serves the technical Canary/observability visualizer
-- Guardian demo API dependencies:
-  - `/api/v1/experimental/v2/turn`
-  - `/api/v1/experimental/stt`
+The service runs `backend.server:app` on Cloud Run and serves the API plus both static frontend surfaces from one container. `/` redirects to `/guardian/`.
 
-## Required Secret
+The primary Guardian dependencies are:
 
-The application reads the current provider key from either:
+- `POST /api/v1/analyze` for canonical M0 text analysis.
+- `POST /api/v1/experimental/stt` for bounded browser audio transcription; the resulting transcript is then sent to `/api/v1/analyze`.
 
-- `GEMINI_API_KEY`
-- `GOOGLE_API_KEY`
+The KERN-3 technical visualizer additionally uses `POST /api/v1/experimental/v2/turn` and process-local in-memory session state.
 
-Do not bake keys into the image, Dockerfile, frontend, or repository. For Cloud
-Run, inject the key with Secret Manager.
+## Credential handling
 
-Prepare the secret during deployment setup:
+The runtime reads `GEMINI_API_KEY` or `GOOGLE_API_KEY` from the process environment. The Cloud Run service receives the Gemini credential from Secret Manager. Secret values must never be baked into images, frontend assets, documentation, shell history, or repository files.
 
-```bash
-printf '%s' "$GEMINI_API_KEY" | gcloud secrets create guardian-gemini-api-key \
-  --data-file=- \
-  --replication-policy=automatic
-```
+## Current model
 
-For later rotations:
+The stable M0 extractor default is `gemini-3.6-flash`, unless `GEMINI_MODEL` explicitly overrides it. The health route reports the effective model name and whether a key is configured, never the key value.
 
-```bash
-printf '%s' "$GEMINI_API_KEY" | gcloud secrets versions add guardian-gemini-api-key \
-  --data-file=-
-```
+## Deployment boundary
 
-## Optional Model Configuration
+No Cloud Run deployment is part of the final UI/documentation freeze. A later deployment must preserve the existing project, service name, region, environment variables, secret reference, and unrelated Cloud Run settings. The exact deployed revision and traffic state must be read back after deployment before updating this evidence.
 
-The application already supports these optional environment variables:
-
-- `GEMINI_V2_MODEL`
-- `GEMINI_STT_MODEL`
-- `GEMINI_MODEL`
-
-Do not set them unless we intentionally want to override the application
-defaults during deployment.
-
-## In-Memory Session Constraint
-
-The experimental V2 session state is process-local and in-memory.
-
-For the hackathon demo deployment, configure Cloud Run with:
+## Read-only smoke routes
 
 ```text
---max-instances=1
+GET /
+GET /guardian/
+GET /visualizer/
+GET /health
 ```
 
-This means:
-
-- active sessions are lost on container restart;
-- concurrent sessions only share state inside the same running instance;
-- this is acceptable for the hackathon demo;
-- this is not the intended production persistence architecture.
-
-## Proposed Build And Deploy Commands
-
-Select the Google Cloud project and region before deployment. Region is not
-guessed by this document.
-
-```bash
-gcloud config set project PROJECT_ID
-gcloud config set run/region REGION
-gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT_ID/guardian/guardian-stable:latest
-gcloud run deploy guardian-stable \
-  --image REGION-docker.pkg.dev/PROJECT_ID/guardian/guardian-stable:latest \
-  --platform managed \
-  --allow-unauthenticated \
-  --port 8080 \
-  --max-instances 1 \
-  --min-instances 0 \
-  --memory 512Mi \
-  --cpu 1 \
-  --set-secrets GEMINI_API_KEY=guardian-gemini-api-key:latest
-```
-
-If using Artifact Registry for the first time, create the repository before
-`gcloud builds submit`:
-
-```bash
-gcloud artifacts repositories create guardian \
-  --repository-format=docker \
-  --location=REGION \
-  --description="Guardian Call demo images"
-```
-
-## Local Container Smoke
-
-If Docker is available locally:
-
-```bash
-docker build -t guardian-stable:local .
-docker run --rm -p 8080:8080 --name guardian-stable-smoke guardian-stable:local
-```
-
-Then verify without provider-backed endpoints:
-
-```bash
-curl -i http://127.0.0.1:8080/health
-curl -i http://127.0.0.1:8080/guardian/
-curl -i http://127.0.0.1:8080/visualizer/
-curl -i http://127.0.0.1:8080/
-```
+Provider-backed smoke tests should use only synthetic benign and scam fixtures and must never print credentials or private transcripts.

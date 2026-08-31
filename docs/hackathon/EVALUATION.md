@@ -5,10 +5,11 @@
 Guardian Call currently has three distinct evaluation layers. Their numbers are
 not interchangeable.
 
-1. **TESTED software behavior:** 105 automated regression tests at
-   `guardian-m1.2a`. This is not model accuracy.
+1. **TESTED software behavior:** 331 automated regression tests at the final
+   local freeze. This is not model accuracy.
 2. **TESTED M0 deterministic baseline:** human-curated M0 signals run through
-   the unchanged RiskEngine and CanaryPolicy. This is not Gemini extraction.
+   the unchanged RiskEngine and KERN-3 authority implementation
+   (`CanaryPolicy`). This is not Gemini extraction.
 3. **EXPERIMENTAL M1.2A replay:** deliberately altered V2 observations compared
    with expected V2 mappings. This validates the comparator and is not Gemini
    accuracy.
@@ -72,7 +73,7 @@ Constitutional memberships also overlap and are reporting metadata only.
 
 > **SENSITIVE REQUESTS OUTWEIGH APPARENT LEGITIMACY.**
 
-Membership does not alter extraction, risk, Canary, comparison, or impact
+Membership does not alter extraction, risk, KERN-3 policy, comparison, or impact
 results.
 
 ## M0 adversarial baseline
@@ -213,25 +214,25 @@ implementation can be replaced without changing result types.
 
 ## Software regression suite
 
-At checkpoint `guardian-m1.2a`:
+At the final local freeze:
 
 ```text
-105 tests passed
+331 tests passed
 ```
 
 The suite covers M0 signals, extraction contracts and failures, deterministic
-risk, Canary policy, action authority, domain events, pipeline lifecycles,
+risk, KERN-3 policy authority, action authority, domain events, pipeline lifecycles,
 FastAPI/SSE behavior, M0 oracle evaluation, V2 schema validation, 57-case V2
 mapping, comparator semantics, matching determinism, replay fixtures, privacy
 constraints, and experimental isolation.
 
 The suite uses mocks and deterministic fixtures where appropriate. The number
-105 must never be presented as Gemini accuracy, scam-detection accuracy, recall,
+331 must never be presented as Gemini accuracy, scam-detection accuracy, recall,
 precision, or production reliability.
 
-## Future live V2 benchmark
+## Experimental live V2 path
 
-**PLANNED / NOT YET IMPLEMENTED**
+**IMPLEMENTED / EXPERIMENTAL / NO PUBLISHED ACCURACY CLAIM**
 
 ```text
 conversation -> Gemini V2 extractor -> observed ScamSignalsV2
@@ -239,15 +240,14 @@ conversation -> Gemini V2 extractor -> observed ScamSignalsV2
 expected human-curated V2 ground truth ->
 ```
 
-No live V2 measurements exist.
+The repository contains an experimental Gemini V2 extractor and turn endpoint.
+No reviewed aggregate result in this document is presented as production
+accuracy.
 
 Future results must record provider/model provenance, distinguish extraction
 failure from semantic mismatch, preserve ambiguous references, report
 denominators, and remain separate from future deterministic risk evaluation.
 
-### M1.2B live benchmark results
-
-**PLANNED / NO RESULTS**
-
-This section is intentionally empty until an implemented provider path produces
-reviewed evidence.
+Any future benchmark result must record provider/model provenance, distinguish
+extraction failure from semantic mismatch, preserve ambiguous references,
+report denominators, and remain separate from deterministic risk evaluation.
