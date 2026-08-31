@@ -1,107 +1,156 @@
-# Guardian Call
+# GUARDIAN CALL / KERN-3
 
-Agentic protection at the moment a conversation becomes dangerous.
+> Conversation-risk analysis with an explicit, deterministic authority boundary.
 
-Guardian Call analyzes synthetic or user-provided conversation text, extracts factual scam signals with Gemini, evaluates them with deterministic rules, and permits a warning only through the KERN-3 policy authority boundary.
+Guardian Call extracts structured scam evidence from conversation text, assesses risk with deterministic rules, and permits a user warning only when KERN-3 authorizes it.
 
-## What it does
+`PRODUCTION` / `OBSERVABILITY` / `DETERMINISTIC AUTHORITY`
 
-- Accepts typed text or a bounded browser microphone recording.
-- Uses Gemini for structured fact extraction, never for policy decisions.
-- Produces explainable qualitative risk with explicit contributing signals.
-- Routes consequential warning behavior through KERN-3.
-- Exposes real pipeline events in a separate technical visualizer.
+---
 
-## Architecture
+## SYSTEM STATUS
+
+| Release signal | Frozen state |
+|---|---|
+| Build | Hackathon release |
+| Semantic model | Gemini 3.6 Flash |
+| Provider SDK | Google GenAI SDK |
+| Runtime | Google Cloud Run |
+| Regression gate | **331 PASS** |
+| Primary Guardian flow | Single-turn text analysis |
+
+The regression count measures software behavior and contract coverage. It is not a model-accuracy, precision, recall, or production-reliability metric.
+
+## WHY GUARDIAN
+
+Scam calls often succeed through manipulation rather than technical compromise: urgency, false authority, secrecy, and requests for credentials or one-time codes. Guardian Call makes those signals visible before they become an irreversible action.
+
+The prototype deliberately separates language interpretation from intervention authority. A model can identify what is being requested; it cannot decide what the system is allowed to do.
+
+## ARCHITECTURE
+
+### KERN-3 / SYSTEM ARCHITECTURE
+
+![Guardian Call KERN-3 system architecture](docs/assets/guardian-kern3-architecture.png)
+
+Gemini converts conversation language into structured evidence. The deterministic `RiskEngine` calculates an explainable qualitative risk level. KERN-3 evaluates policy at the authority boundary before any warning action can execute.
 
 ```mermaid
 flowchart TD
-    U[User conversation] --> G[Guardian UI]
-    G --> X[Gemini structured extraction<br/>LLM - NON-AUTHORITATIVE]
-    X --> R[Deterministic Risk Engine<br/>DETERMINISTIC]
-    R --> K[KERN-3 policy authority<br/>AUTHORITY BOUNDARY]
-    K -->|DENY| N[No intervention]
-    K -->|ALLOW| W[User warning]
-    C[Google Cloud Run<br/>FastAPI and static frontends] -. hosts .-> G
-    C -. hosts .-> X
+    U[USER / CONVERSATION] --> G[GUARDIAN CALL]
+    G --> X[Gemini 3.6 Flash<br/>Semantic extraction<br/>NON-AUTHORITATIVE]
+    X --> E[STRUCTURED EVIDENCE]
+    E --> R[DETERMINISTIC RISK ENGINE]
+    R --> K[KERN-3 POLICY AUTHORITY<br/>AUTHORITY BOUNDARY]
+    K -->|DENY| N[NO INTERVENTION]
+    K -->|ALLOW| W[WARN USER]
+    G -. real events .-> O[TECHNICAL OBSERVABILITY]
+    X -. real events .-> O
+    R -. real events .-> O
+    K -. real events .-> O
 ```
 
-The public name **KERN-3** maps to the policy authority layer implemented internally as `CanaryPolicy`. Compatibility-sensitive API fields and canonical events retain names such as `canary_decision` and `CANARY_EVALUATION`.
+## AUTHORITY MODEL
 
-## Safety principles
+| Layer | Responsibility | Authority |
+|---|---|---|
+| Gemini 3.6 Flash | Interpret language and extract fixed-schema facts | **NON-AUTHORITATIVE** |
+| Structured evidence | Carry explicit scam-related signals | Data contract only |
+| `RiskEngine` | Calculate risk and explain contributing reasons | **DETERMINISTIC ASSESSMENT** |
+| KERN-3 | Allow or deny consequential actions under policy | **AUTHORITY BOUNDARY** |
+| Action layer | Execute only an authorized warning | No independent authority |
 
-> KNOWLEDGE IS NOT AUTHENTICATION.
+**Gemini interprets. Gemini does not authorize intervention.** Extraction failure stops the pipeline; it is never converted into a safe verdict.
 
-> TRUST DOES NOT CANCEL DANGEROUS BEHAVIOR.
+KERN-3 is implemented internally by `CanaryPolicy`. Compatibility-sensitive contracts retain `canary_decision` and `CANARY_EVALUATION`; these are implementation identifiers, not current public branding.
 
-> SENSITIVE REQUESTS OUTWEIGH APPARENT LEGITIMACY.
+## SAFETY PRINCIPLES
 
-Gemini extracts meaning into a fixed schema. The deterministic `RiskEngine` calculates risk and reasons. KERN-3 alone authorizes consequential actions. Extraction failure stops the pipeline; it is never converted into a safe verdict.
+> **KNOWLEDGE IS NOT AUTHENTICATION.**
 
-## Live demo
+> **TRUST DOES NOT CANCEL DANGEROUS BEHAVIOR.**
 
-Service: [guardian-stable](https://guardian-stable-601044791798.europe-west1.run.app)
+> **SENSITIVE REQUESTS OUTWEIGH APPARENT LEGITIMACY.**
 
-- [Guardian protected-user UI](https://guardian-stable-601044791798.europe-west1.run.app/guardian/)
-- [KERN-3 technical visualizer](https://guardian-stable-601044791798.europe-west1.run.app/visualizer/)
-- [Health](https://guardian-stable-601044791798.europe-west1.run.app/health)
+Risk remains explainable through explicit signals and reasons. Consequential behavior cannot bypass policy authorization, and a denied action does not execute.
 
-The primary Guardian text path is `POST /api/v1/analyze`. Voice input uses `POST /api/v1/experimental/stt`, then submits the transcript through the same canonical text path. The technical visualizer also exposes the experimental multi-turn V2 endpoint; the primary Guardian flow does not use it.
+## EXAMPLE BEHAVIOR
 
-## Quick start
+```text
+BENIGN CONVERSATION
+  -> structured evidence: no manipulation signal
+  -> risk: NORMAL
+  -> KERN-3: warn_user DENY
+  -> no intervention
+```
+
+```text
+UNVERIFIED BANK CALLER REQUESTS AN OTP
+  -> structured evidence: identity claim + financial context + OTP request
+  -> risk: CRITICAL
+  -> KERN-3: warn_user ALLOW
+  -> USER_WARNING
+```
+
+## LIVE SYSTEM
+
+| Surface | Production URL |
+|---|---|
+| Guardian | [guardian-stable / guardian](https://guardian-stable-jwydm7w7cq-ew.a.run.app/guardian/) |
+| Technical Visualizer | [guardian-stable / visualizer](https://guardian-stable-jwydm7w7cq-ew.a.run.app/visualizer/) |
+| Health | [guardian-stable / health](https://guardian-stable-jwydm7w7cq-ew.a.run.app/health) |
+
+The primary text endpoint is `POST /api/v1/analyze`. The bounded browser voice flow submits audio to `POST /api/v1/experimental/stt`, then sends the returned transcript through the same canonical text endpoint. The technical visualizer exposes real response fields and backend events.
+
+## TECH STACK
+
+| Area | Technology |
+|---|---|
+| API and domain logic | Python, FastAPI, Pydantic |
+| Semantic extraction | Google GenAI SDK, Gemini 3.6 Flash |
+| User and observability interfaces | Vanilla JavaScript, Canvas 2D, HTML, CSS |
+| Event transport | Server-Sent Events |
+| Packaging and runtime | Docker, Google Cloud Run |
+
+Guardian Call remains a modular monolith: one deployable service with explicit extraction, risk, policy, action, and observability boundaries.
+
+## REPRODUCIBLE TESTING / QUICK START
 
 ```bash
 python -m venv .venv
-# Activate the environment for your shell, then:
+# Activate the environment for your shell.
 pip install -r requirements.txt
 python -m uvicorn backend.server:app --host 127.0.0.1 --port 8080
 ```
 
-Set `GEMINI_API_KEY` in the process environment before provider-backed analysis. Never put credentials in repository files.
+Set `GEMINI_API_KEY` in the process environment before provider-backed analysis. Never place credentials in repository files. Open `http://127.0.0.1:8080/guardian/` after the server starts.
 
-Open `http://127.0.0.1:8080/guardian/`.
-
-## Tests
+Run the complete regression suite:
 
 ```bash
 python -m unittest discover -s tests
 ```
 
-The final local freeze gate passes **331 software regression tests**. This count measures code behavior and contract coverage; it is not scam-detection accuracy, precision, recall, or production reliability.
+`REGRESSION: 331 PASS`
 
-## Evaluation
+## LIMITATIONS
 
-The frozen M0 oracle evaluation uses 57 synthetic scenarios: 37 scam cases, 19 legitimate controls, and 1 explicitly ambiguous case. Its result is 24 passes, 10 risk mismatches, 22 model gaps, and 1 ambiguous case. These are diagnostic results against human-curated structured inputs, not live Gemini accuracy.
-
-## Current limitations
-
-- No caller authentication or independent speaker provenance.
-- No direct phone interception or carrier integration.
-- Browser microphone input is a controlled demo path.
-- Conversation text and demo audio are processed through Gemini cloud APIs.
 - The primary Guardian analysis is single-turn.
+- Browser microphone speech-to-text is experimental.
+- Guardian Call does not intercept telephone calls or provide production telephony integration.
+- The prototype does not authenticate callers or claim speaker authentication.
+- Regression tests measure software behavior and contracts, not detection accuracy.
 - Experimental V2 session state is process-local and in memory.
-- No production persistence or Trusted Circle delivery.
+- There is no production persistence or Trusted Circle delivery.
 
-## Repository structure
+## PRIVACY / SAFETY
 
-```text
-backend/     FastAPI, extraction, deterministic risk, KERN-3 implementation
-frontend/    Guardian protected-user UI and technical visualizer
-scenarios/   Synthetic evaluation and demo cases
-tests/       Unit, API, contract, and frontend tests
-docs/        Architecture, evaluation, safety, deployment, and demo evidence
-design/      Visual working assets
-```
+Provider-backed conversation text and controlled demo audio are processed through Gemini cloud APIs. The Gemini credential is supplied to the deployed service at runtime and is never exposed to the browser.
 
-## Tech stack
+The system uses synthetic evaluation scenarios, minimizes authority granted to probabilistic components, and exposes reasons and canonical events for auditability. It does not share transcripts or contact third parties as part of the frozen release.
 
-Python, FastAPI, Pydantic, Google Gen AI SDK, vanilla JavaScript, Canvas 2D, HTML/CSS, Server-Sent Events, Docker, and Google Cloud Run.
+## HACKATHON
 
-## Hackathon
+Guardian Call is an **All Things Agentic Hackathon** submission. The release demonstrates a narrow safety thesis: semantic interpretation is useful, but consequential action requires a separate deterministic authority boundary.
 
-Built for the Google Cloud agentic AI hackathon. The system is intentionally a modular monolith: one deployable service, explicit authority boundaries, synthetic evaluation data, and observable decisions.
-
-## License
-
-No open-source license has been declared yet. All rights remain with the repository owner.
+No open-source license has been declared. All rights remain with the repository owner.
